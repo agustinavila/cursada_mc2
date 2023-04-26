@@ -10,6 +10,6 @@
 
 
 
-void teclas_Init_Int(uint8_t);
+void button_int_enable(uint8_t);
 
 #endif // TECLAS_PIN_INT

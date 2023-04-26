@@ -19,10 +19,10 @@
 
 #include <cr_section_macros.h>
 
-#include "led_Driver.h"
-#include "teclas_driver.h"
-#include "teclasPinInt.h"
-#include "teclado.h"
+#include "Driver/led_Driver.h"
+#include "Driver/teclas_driver.h"
+#include "Driver/teclasPinInt.h"
+#include "Driver/teclado.h"
 #include <stdint.h>
 
 int main(void) {
@@ -41,23 +41,23 @@ int main(void) {
 #endif
 #endif
 
-	led_inicializar();
-	teclas_inicializar();
-	Board_Keyboard_Init();
-    Board_Keyboard_IntEnable();
-	teclas_Init_Int(TECLA1);
-	teclas_Init_Int(TECLA2);
-	teclas_Init_Int(TECLA3);
-	teclas_Init_Int(TECLA4);
+	led_init();
+	buttons_init();
+	board_keyboard_init();
+    board_Keyboard_int_enable();
+	button_int_enable(TECLA1);
+	button_int_enable(TECLA2);
+	button_int_enable(TECLA3);
+	button_int_enable(TECLA4);
 	// Force the counter to be placed into memory
 	volatile static long i = 0;
-	uint8_t teclado_matriz[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
+	uint8_t keyboard_matrix[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
 	// Enter an infinite loop, just incrementing a counter
 	while (1) {
 		i++;
 		if (i > 10000) {
-			Board_Keyboard_readMatrix(&teclado_matriz);
-			if(teclado_matriz[0][0]>=1){
+			board_keyboard_read_matrix(&keyboard_matrix);
+			if(keyboard_matrix[0][0]>=1){
 				led_toggle(LED1);
 			}
 			i = 0;

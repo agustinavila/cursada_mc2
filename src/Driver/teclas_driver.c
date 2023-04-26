@@ -1,13 +1,17 @@
-/*
- * teclas_driver.c
- *
- *  Created on: 12 abr. 2023
- *      Author: agustin
+/**
+ * @file teclas_driver.c
+ * @author agustinavila (tinto.avila@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-04-26
+ * 
+ * @copyright Copyright (c) 2023
+ * 
  */
 
-#include "teclas_driver.h"
+#include "Driver/teclas_driver.h"
 
-void teclas_inicializar(void) {
+void buttons_init(void) {
 	Chip_GPIO_Init(LPC_GPIO_PORT);
 	Chip_SCU_PinMux(1, 0, MD_PUP | MD_EZI | MD_ZI, FUNC0);
 	Chip_SCU_PinMux(1, 1, MD_PUP | MD_EZI | MD_ZI, FUNC0);
@@ -44,9 +48,9 @@ uint8_t teclas_leer_pin(uint8_t numero_tecla) {
 
 uint8_t teclas_leer_pines(void) {
 	uint8_t teclas = 0;
-	teclas = LeerTecla(TECLA1);
-	teclas |= (LeerTecla(TECLA2) << 1);
-    teclas |= (LeerTecla(TECLA3) << 2);
-    teclas |= (LeerTecla(TECLA4) << 3);
+	teclas = teclas_leer_pin(TECLA1);
+	teclas |= (teclas_leer_pin(TECLA2) << 1);
+    teclas |= (teclas_leer_pin(TECLA3) << 2);
+    teclas |= (teclas_leer_pin(TECLA4) << 3);
     return teclas;
     }

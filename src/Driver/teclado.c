@@ -9,7 +9,7 @@
  * 
  */
 
-#include "teclado.h"
+#include "Driver/teclado.h"
 //#include "puertos.h"
 #include <string.h>
 
@@ -23,7 +23,7 @@
 
 uint8_t stateMatrix[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
 
-void Board_Keyboard_Init(void) {
+void board_keyboard_init(void) {
 	Chip_GPIO_Init(LPC_GPIO_PORT);
 	Chip_SCU_PinMux(4, 0, MD_PUP | MD_EZI | MD_ZI, FUNC0);
 	Chip_SCU_PinMux(4, 1, MD_PUP | MD_EZI | MD_ZI, FUNC0);
@@ -42,7 +42,7 @@ void Board_Keyboard_Init(void) {
 	Chip_GPIO_SetDir(LPC_GPIO_PORT, 4, (1 << 13), 1);
 }
 
-void Board_Keyboard_IntEnable(void) {
+void board_Keyboard_int_enable(void) {
 	Chip_SCU_GPIOIntPinSel(4, 2, 0);
 	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH4);
 	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH4);
@@ -76,7 +76,7 @@ int Board_Keyboard_readCell(uint8_t fila, uint8_t columna) {
 	return stateMatrix[fila][columna];
 }
 
-void Board_Keyboard_readMatrix(uint8_t *matrix_p) {
+void board_keyboard_read_matrix(uint8_t *matrix_p) {
 //	for (uint8_t row = 0; row < KEYBOARD_MAX_ROWS; row++) {
 //		for (uint8_t col = 0; col < KEYBOARD_MAX_COLUMNS; col++) {
 //			matrix_p[row][col] = stateMatrix[row][col];

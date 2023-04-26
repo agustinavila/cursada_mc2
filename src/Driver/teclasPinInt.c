@@ -1,7 +1,19 @@
-#include "teclasPinInt.h"
-#include "teclas_driver.h"
+/**
+ * @file teclasPinInt.c
+ * @author agustinavila (tinto.avila@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-04-26
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 
-void teclas_Init_Int(uint8_t tecla) {
+
+#include "Driver/teclasPinInt.h"
+#include "Driver/teclas_driver.h"
+
+void button_int_enable(uint8_t tecla) {
 
 	switch (tecla) {
 	case TECLA1:

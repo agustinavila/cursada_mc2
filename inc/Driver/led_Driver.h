@@ -17,7 +17,7 @@
 
 #include "chip.h"
 
-void led_inicializar(void);
+void led_init(void);
 void led_prender(uint8_t);
 void led_apaga(uint8_t);
 void led_toggle(uint8_t);

@@ -15,13 +15,13 @@
 #define KEYBOARD_MAX_COLUMNS 3
 #define KEYBOARD_MAX_ROWS 4
 
-void Board_Keyboard_Init(void);
+void board_keyboard_init(void);
 
-void Board_Keyboard_IntEnable(void);
+void board_Keyboard_int_enable(void);
 
 void Board_Keyboard_tick_ms(void);
 
 int Board_Keyboard_readCell(uint8_t, uint8_t);
 
-void Board_Keyboard_readMatrix(uint8_t *matrix_p);
+void board_keyboard_read_matrix(uint8_t *matrix_p);
 

@@ -15,7 +15,7 @@
 
 #include "chip.h"
 
-void teclas_inicializar(void);
+void buttons_init(void);
 uint8_t teclas_leer_pin(uint8_t);
 uint8_t teclas_leer_pines(void);
 

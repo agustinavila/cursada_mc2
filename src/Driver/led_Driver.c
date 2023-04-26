@@ -1,13 +1,17 @@
-/*
- * led_Driver.c
- *
- *  Created on: 12 abr. 2023
- *      Author: agustin
+/**
+ * @file led_Driver.c
+ * @author agustinavila (tinto.avila@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-04-26
+ * 
+ * @copyright Copyright (c) 2023
+ * 
  */
 
-#include "led_Driver.h"
+#include "Driver/led_Driver.h"
 
-void led_inicializar(void) {
+void led_init(void) {
 	Chip_GPIO_Init(LPC_GPIO_PORT);
 	Chip_SCU_PinMux(2, 0, MD_PUP, FUNC4);
 	Chip_SCU_PinMux(2, 1, MD_PUP, FUNC4);
