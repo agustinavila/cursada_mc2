@@ -1,0 +1,33 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${default}"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "intelliSenseMode": "windows-gcc-arm"
+        },
+        {
+            "name": "ARM",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/inc",
+                "${userHome}/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc",
+                "C:\\Users\\agust\\Documents\\MCUXpressoIDE_11.7.0_9198\\workspace\\lpc_chip_43xx"
+                
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "intelliSenseMode": "windows-gcc-arm"
+        }
+    ],
+    "version": 4
+}
