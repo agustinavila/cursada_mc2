@@ -1,0 +1,50 @@
+[
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\CMakeFiles\\src.dir\\cr_startup_lpc43xx.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\cr_startup_lpc43xx.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\cr_startup_lpc43xx.c",
+  "output": "build\\src\\CMakeFiles\\src.dir\\cr_startup_lpc43xx.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\CMakeFiles\\src.dir\\crp.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\crp.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\crp.c",
+  "output": "build\\src\\CMakeFiles\\src.dir\\crp.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\CMakeFiles\\src.dir\\main.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\main.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\main.c",
+  "output": "build\\src\\CMakeFiles\\src.dir\\main.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\CMakeFiles\\src.dir\\sysinit.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\sysinit.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\sysinit.c",
+  "output": "build\\src\\CMakeFiles\\src.dir\\sysinit.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\Driver\\CMakeFiles\\driver.dir\\led_Driver.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\led_Driver.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\led_Driver.c",
+  "output": "build\\src\\Driver\\CMakeFiles\\driver.dir\\led_Driver.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\Driver\\CMakeFiles\\driver.dir\\teclado.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclado.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclado.c",
+  "output": "build\\src\\Driver\\CMakeFiles\\driver.dir\\teclado.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\Driver\\CMakeFiles\\driver.dir\\teclasPinInt.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclasPinInt.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclasPinInt.c",
+  "output": "build\\src\\Driver\\CMakeFiles\\driver.dir\\teclasPinInt.c.obj"
+},
+{
+  "directory": "C:/Users/agust/Documents/cursada_mc2/Debug",
+  "command": "C:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe -IC:/Users/agust/Documents/cursada_mc2/inc -IC:/Users/agust/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc -std=gnu11 -mfpu=fpv4-sp-d16 -mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin -fshort-enums -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main -DDEBUG -g -Og -o build\\src\\Driver\\CMakeFiles\\driver.dir\\teclas_driver.c.obj -c C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclas_driver.c",
+  "file": "C:\\Users\\agust\\Documents\\cursada_mc2\\src\\Driver\\teclas_driver.c",
+  "output": "build\\src\\Driver\\CMakeFiles\\driver.dir\\teclas_driver.c.obj"
+}
+]
