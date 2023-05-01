@@ -25,90 +25,106 @@ target_include_directories(${EXECUTABLE} PRIVATE
         inc
         ${LPCOPEN_CHIP_INCLUDE_PATHS}/inc
         )
-       
 
-
-# -I"C:\Users\agust\Documents\cursada_mc2\inc"
-# -I"C:\Users\agust\Documents\MCUXpressoIDE_11.7.0_9198\workspace\lpc_chip_43xx\inc"
 
 # Compiler options
-target_compile_options(${EXECUTABLE} PRIVATE
-    -std=c99
-    -mcpu=cortex-m4
-    -mfpu=fpv4-sp-d16
-    -fno-common
-    -pedantic
-    -Wall
-    -Wconversion
-    -Wcast-align
-    -Wcast-qual
-    -Wlogical-op
-    -Wshadow
-    -Wsign-conversion
-    -Wfloat-equal
-    -c
-    -fmessage-length=0
-    -fno-builtin
-    -ffunction-sections
-    -fdata-sections
-    -fsingle-precision-constant
-    -v
-    -fmerge-constants
-    -mfloat-abi=softfp
-    -fstack-usage
-    -specs=redlib.specs
-    -mthumb
-    -Wall
-    -O0
-    -g3
-    )
+# target_compile_options(${EXECUTABLE} PRIVATE
+#     -std=c99
+#     -mcpu=cortex-m4
+#     -mfpu=fpv4-sp-d16
+#     -fno-common
+#     -pedantic
+#     -Wall
+#     -Wconversion
+#     -Wcast-align
+#     -Wcast-qual
+#     -Wlogical-op
+#     -Wshadow
+#     -Wsign-conversion
+#     -Wfloat-equal
+#     -c
+#     -fmessage-length=0
+#     -fno-builtin
+#     -ffunction-sections
+#     -fdata-sections
+#     -fsingle-precision-constant
+#     -v
+#     -fmerge-constants
+#     -mfloat-abi=softfp
+#     -fstack-usage
+#     -specs=redlib.specs
+#     -mthumb
+#     -Wall
+#     -O0
+#     -g3
+#     )
+
 set(C_FLAGS
-# -std=c99
-# -mcpu=cortex-m4
-# -mfpu=fpv4-sp-d16
-# -fno-common
-# -pedantic
-# -Wall
-# -Wconversion
-# -Wcast-align
-# -Wcast-qual
-# -Wlogical-op
-# -Wshadow
-# -Wsign-conversion
-# -Wfloat-equal
-# -c
-# -fmessage-length=0
-# -fno-builtin
-# -ffunction-sections
-# -fdata-sections
-# -fsingle-precision-constant
-# -v
-# -fmerge-constants
-# -mfloat-abi=softfp
-# -fstack-usage
-# -specs=redlib.specs
-# -mthumb
-# -Wall
-# -O0
-# -g3
-    "-std=gnu11"
-    "-mfpu=fpv4-sp-d16"
-    "-mcpu=cortex-m4"
-    "-mthumb -mabi=aapcs"
-    "-mfloat-abi=hard -mfpu=fpv4-sp-d16"
-    "-ffunction-sections -fdata-sections -fno-strict-aliasing"
-    "-fno-builtin -fshort-enums"
-    "-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main"
+-std=c99
+-mcpu=cortex-m4
+-mfpu=fpv4-sp-d16
+-fno-common
+-pedantic
+-Wall
+-Wconversion
+-Wcast-align
+-Wcast-qual
+-Wlogical-op
+-Wshadow
+-Wsign-conversion
+-Wfloat-equal
+-c
+-fmessage-length=0
+-fno-builtin
+-ffunction-sections
+-fdata-sections
+-fsingle-precision-constant
+-v
+-fmerge-constants
+-mfloat-abi=softfp
+-fstack-usage
+-specs=redlib.specs
+-mthumb
+-Wall
+-O0
+-g3
+    # "-std=gnu11"
+    # "-mfpu=fpv4-sp-d16"
+    # "-mcpu=cortex-m4"
+    # "-mthumb -mabi=aapcs"
+    # "-mfloat-abi=hard -mfpu=fpv4-sp-d16"
+    # "-ffunction-sections -fdata-sections -fno-strict-aliasing"
+    # "-fno-builtin -fshort-enums"
+    # "-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-main"
 )
 
-set(ASM_FLAGS "-DDEBUG -D__CODE_RED -DCORE_M4 -D__USE_LPCOPEN -DNO_BOARD_LIB -D__LPC43XX__ -D__REDLIB__ -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -mthumb -D__REDLIB__ -specs=redlib.specs")
+set(ASM_FLAGS "-DDEBUG 
+-D__CODE_RED 
+-DCORE_M4 
+-D__USE_LPCOPEN 
+-DNO_BOARD_LIB 
+-D__LPC43XX__ 
+-D__REDLIB__ 
+-mcpu=cortex-m4 
+-mfpu=fpv4-sp-d16 
+-mfloat-abi=softfp 
+-mthumb 
+-D__REDLIB__ 
+-specs=redlib.specs")
 
 set(LD_FLAGS
-    "-mthumb"
-    "-mcpu=cortex-m4"
-    "-mfloat-abi=hard -mfpu=fpv4-sp-d16"
-    "-Wl,--gc-sections"
-    "--specs=nano.specs"
+    -nostdlib
+    -L${LPCOPEN_CHIP_INCLUDE_PATHS}/Debug 
+    -Xlinker -Map=${PROJECT_NAME}.map
+    -mcpu=cortex-m4 
+    -mfpu=fpv4-sp-d16 
+    -mfloat-abi=softfp 
+    -mthumb
+    -T ${LINKER_FILE}
+    -llpc_chip_43xx
+    -Xlinker -print-memory-usage 
+    -Xlinker --cref 
+    -Xlinker --gc-sections
 )
 
 add_compile_definitions(-DDEBUG
@@ -144,21 +160,21 @@ set_target_properties(lpc_board_nxp_lpcxpresso_4337 PROPERTIES LINKER_LANGUAGE C
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src     build/src)
 
-# Linker options
-target_link_options(${EXECUTABLE} PRIVATE
-        -nostdlib
-        -L${LPCOPEN_CHIP_INCLUDE_PATHS}/Debug 
-        -Xlinker -Map=${PROJECT_NAME}.map
-        -mcpu=cortex-m4 
-        -mfpu=fpv4-sp-d16 
-        -mfloat-abi=softfp 
-        -mthumb
-        -T ${LINKER_FILE}
-        -llpc_chip_43xx
-        -Wl,-print-memory-usage 
-        -Wl,--cref 
-        -Wl,--gc-sections
-        )
+# # Linker options
+# target_link_options(${EXECUTABLE} PRIVATE
+#         -nostdlib
+#         -L${LPCOPEN_CHIP_INCLUDE_PATHS}/Debug 
+#         -Xlinker -Map=${PROJECT_NAME}.map
+#         -mcpu=cortex-m4 
+#         -mfpu=fpv4-sp-d16 
+#         -mfloat-abi=softfp 
+#         -mthumb
+#         -T ${LINKER_FILE}
+#         -llpc_chip_43xx
+#         -Xlinker -print-memory-usage 
+#         -Xlinker --cref 
+#         -Xlinker --gc-sections
+#         )
 
 target_link_libraries( ${EXECUTABLE}
     lpc_chip_43xx
