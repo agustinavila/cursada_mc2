@@ -18,7 +18,7 @@ target_link_libraries(
   src 
   driver
   lpc_chip_43xx
-  lpc_board_nxp_lpcxpresso_4337
+#   lpc_board_nxp_lpcxpresso_4337
 )
  
 # target_include_directories: Libraries need to publish their header files 
