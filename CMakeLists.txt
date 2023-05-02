@@ -16,7 +16,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 # List of source files
-set(SRC_FILES src/main.c)
+# set(SRC_FILES src/main.c)
 
 # Build the executable based on the source files
 add_executable(${EXECUTABLE} ${SRC_FILES})
@@ -73,7 +73,7 @@ set(C_FLAGS
 -Wshadow
 -Wsign-conversion
 -Wfloat-equal
--c
+# -c
 -fmessage-length=0
 -fno-builtin
 -ffunction-sections
@@ -112,7 +112,25 @@ set(ASM_FLAGS "-DDEBUG
 -D__REDLIB__ 
 -specs=redlib.specs")
 
-set(LD_FLAGS
+# set(LD_FLAGS
+#     -nostdlib
+#     -L${LPCOPEN_CHIP_INCLUDE_PATHS}/Debug 
+#     -Xlinker -Map=${PROJECT_NAME}.map
+#     -mcpu=cortex-m4 
+#     -mfpu=fpv4-sp-d16 
+#     -mfloat-abi=softfp 
+#     -mthumb
+#     -T ${LINKER_FILE}
+#     -llpc_chip_43xx
+#     -Xlinker -print-memory-usage 
+#     -Xlinker --cref 
+#     -Xlinker --gc-sections
+# )
+target_link_directories(${EXECUTABLE} PRIVATE
+    ${CMAKE_SOURCE_DIR}/ld/
+)
+
+target_link_options(${EXECUTABLE} PRIVATE
     -nostdlib
     -L${LPCOPEN_CHIP_INCLUDE_PATHS}/Debug 
     -Xlinker -Map=${PROJECT_NAME}.map
@@ -122,9 +140,9 @@ set(LD_FLAGS
     -mthumb
     -T ${LINKER_FILE}
     -llpc_chip_43xx
-    -Xlinker -print-memory-usage 
-    -Xlinker --cref 
-    -Xlinker --gc-sections
+    -Wl,-print-memory-usage 
+    -Wl,--cref 
+    -Wl,--gc-sections
 )
 
 add_compile_definitions(-DDEBUG
@@ -177,9 +195,9 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/src     build/src)
 #         )
 
 target_link_libraries( ${EXECUTABLE}
+    src
     lpc_chip_43xx
     lpc_board_nxp_lpcxpresso_4337
-    src
     )
 
 # # Optional: Print executable size as part of the post build process
