@@ -50,13 +50,13 @@ int main(void) {
 	button_int_enable(TECLA3);
 	button_int_enable(TECLA4);
 	// Force the counter to be placed into memory
-	volatile static long i = 0;
+	static volatile long i = 0;
 	uint8_t keyboard_matrix[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
 	// Enter an infinite loop, just incrementing a counter
 	while (1) {
 		i++;
 		if (i > 10000) {
-			board_keyboard_read_matrix(&keyboard_matrix);
+			board_keyboard_read_matrix(*keyboard_matrix);
 			if(keyboard_matrix[0][0]>=1){
 				led_toggle(LED1);
 			}

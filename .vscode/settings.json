@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "*.asm": "8051",
+        "*.h": "c"
+    },
+    "editor.fontFamily": "Fira Code",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/inc", "${userHome}/Documents/MCUXpressoIDE_11.7.0_9198/workspace/lpc_chip_43xx/inc", "C:\\Users\\agust\\Documents\\MCUXpressoIDE_11.7.0_9198\\workspace\\lpc_chip_43xx\\inc"
+    ],
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.cStandard": "c99",
+    "C_Cpp.default.compilerPath": "c:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\arm-none-eabi-gcc.exe",
+    "cmake.buildDirectory": "${workspaceRoot}/${buildType}",
+    // "cmake.copyCompileCommands": "${workspaceRoot}/compile_commands.json",
+    "cmake.configureOnOpen": false,
+    "cortex-debug.enableTelemetry": false,
+    "cmake.preferredGenerators": ["Ninja"]
+}

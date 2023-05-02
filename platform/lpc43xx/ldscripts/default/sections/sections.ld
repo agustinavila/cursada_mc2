@@ -1,17 +1,3 @@
-/*
- * GENERATED FILE - DO NOT EDIT
- * Copyright (c) 2008-2013 Code Red Technologies Ltd,
- * Copyright 2015, 2018-2019 NXP
- * (c) NXP Semiconductors 2013-2023
- * Generated linker script file for LPC4337
- * Created from linkscript.ldt by FMCreateLinkLibraries
- * Using Freemarker v2.3.30
- * MCUXpresso IDE v11.7.0 [Build 9198] [2023-01-17] on 26 abr. 2023 19:12:37
- */
-
-INCLUDE "cursada_Release_library.ld"
-INCLUDE "cursada_Release_memory.ld"
-
 ENTRY(ResetISR)
 
 SECTIONS
@@ -75,13 +61,6 @@ SECTIONS
 
         *(.after_vectors*)
 
-        /* Code Read Protection data */
-        . = 0x000002FC ;
-        PROVIDE(__CRP_WORD_START__ = .) ;
-        KEEP(*(.crp))
-        PROVIDE(__CRP_WORD_END__ = .) ;
-        ASSERT(!(__CRP_WORD_START__ == __CRP_WORD_END__), "Linker CRP Enabled, but no CRP_WORD provided within application");
-        /* End of Code Read Protection */
        *(.text*)
        *(.rodata .rodata.* .constdata .constdata.*)
        . = ALIGN(4);

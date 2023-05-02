@@ -9,7 +9,7 @@
  * 
  */
 
-#include "Driver/teclado.h"
+#include "teclado.h"
 //#include "puertos.h"
 #include <string.h>
 
