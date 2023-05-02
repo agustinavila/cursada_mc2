@@ -2,9 +2,10 @@
 add_definitions(
   -DCORE_M4
   -D__USE_LPCOPEN
+  -DNO_BOARD_LIB
   -D__CODE_RED
   -D__LPC43XX__
-  -D__MULTICORE_NONE
+#   -D__MULTICORE_NONE
   -c
 )
 
@@ -16,7 +17,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # C flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fmessage-length=0 -ffunction-sections -fdata-sections -fsingle-precision-constant -fno-builtin -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fno-common -pedantic -Wconversion -Wcast-align -Wcast-qual -Wlogical-op -Wshadow -Wsign-conversion -Wfloat-equal -fmessage-length=0 -ffunction-sections -fdata-sections -fsingle-precision-constant -fno-builtin -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -fstack-usage -fmerge-constants")
 # C++ flags
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions")
 
@@ -97,7 +98,7 @@ elseif(${CLIB} STREQUAL redlib)
 endif()
 
 set(LINKER_SCRIPT ${PROJECT_BINARY_DIR}/${LINKER_SCRIPT_FILENAME} CACHE INTERNAL "Linker script")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -Xlinker --gc-sections -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -mthumb -T ${LINKER_SCRIPT} -L ${LINKER_SCRIPT_DIR}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib -Xlinker --gc-sections -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=softfp -mthumb -T ${LINKER_SCRIPT} -L ${LINKER_SCRIPT_DIR} -Xlinker -Map=${PROJECT_NAME}.map -Xlinker -print-memory-usage  -Xlinker --cref ")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(FULL_OUTPUT_NAME ${OUTPUT_NAME}.axf)

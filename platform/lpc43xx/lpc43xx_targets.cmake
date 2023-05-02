@@ -1,7 +1,7 @@
-# add_custom_target(hex
-#   DEPENDS ${FULL_OUTPUT_NAME}
-#   COMMAND ${CMAKE_OBJCOPY} -v -Oihex ${EXECUTABLE_OUTPUT_PATH}/${FULL_OUTPUT_NAME} ${EXECUTABLE_OUTPUT_PATH}/${OUTPUT_NAME}.hex
-# )
+add_custom_target(hex
+  DEPENDS ${FULL_OUTPUT_NAME}
+  COMMAND ${CMAKE_OBJCOPY} -v -Oihex ${EXECUTABLE_OUTPUT_PATH}/${FULL_OUTPUT_NAME} ${EXECUTABLE_OUTPUT_PATH}/${OUTPUT_NAME}.hex
+)
 
 if(${HAVE_CHECKSUM_TOOL})
   add_custom_target(bin
@@ -16,10 +16,10 @@ else()
   )
  endif()
 
-# add_custom_target(lst
-#   DEPENDS ${FULL_OUTPUT_NAME}
-#   COMMAND ${CMAKE_OBJDUMP} -x -D ${EXECUTABLE_OUTPUT_PATH}/${FULL_OUTPUT_NAME} > ${EXECUTABLE_OUTPUT_PATH}/${OUTPUT_NAME}.lst
-# )
+add_custom_target(lst
+  DEPENDS ${FULL_OUTPUT_NAME}
+  COMMAND ${CMAKE_OBJDUMP} -x -D ${EXECUTABLE_OUTPUT_PATH}/${FULL_OUTPUT_NAME} > ${EXECUTABLE_OUTPUT_PATH}/${OUTPUT_NAME}.lst
+)
 
 if(${HAVE_OPENOCD})
   add_custom_target(flash
