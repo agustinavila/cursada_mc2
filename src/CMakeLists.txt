@@ -1,29 +1,56 @@
-file(GLOB FILES
+file(GLOB SOURCE_FILES
   *.c
- )
- add_subdirectory(driver)
-# add_library: With this declaration, you express the intent to build a library. 
-# The first argument, here its pico-shift-register, is the name of the library, 
-# the second argument are the files that will be compiled to create your library.
-include_directories(
-    ${PROJECT_SOURCE_DIR}/inc/
-    ${LPCOPEN_CHIP_INCLUDE_PATHS}/inc
-    )
-    
-
-add_library(src ${FILES})
- 
-# target_link_libraries: If you link with other libraries, list them here
-target_link_libraries(
-  src 
-  driver
-  lpc_chip_43xx
-#   lpc_board_nxp_lpcxpresso_4337
+  *.cpp
 )
- 
-# target_include_directories: Libraries need to publish their header files 
-# so that you can import them in source code. This statement expresses where to find the files 
-# - typically in an include directory of your projects.
-# target_include_directories(
-# driver
-# )
+file(GLOB HEADER_FILES
+  *.h
+)
+
+include_directories(${LPCOPEN_CHIP_INCLUDE_PATHS}
+${PROJECT_SOURCE_DIR}/inc/
+${PROJECT_SOURCE_DIR}/inc/driver
+${PROJECT_SOURCE_DIR}/driver)
+
+# Add system files
+if(${CPP})
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/crp.c)
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/sysinit.c)
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/cr_startup_lpc43xx.cpp)
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/cr_cpp_config.cpp)
+  list(APPEND SOURCE_FILES ${SYSTEM_FILES})
+else()
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/crp.c)
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/sysinit.c)
+  set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/cr_startup_lpc43xx.c)
+  list(APPEND SOURCE_FILES ${SYSTEM_FILES})
+endif()
+
+if(${CPP})
+  add_definitions(-DCPP_USE_HEAP)
+endif()
+
+include(${PLATFORM_FILE})
+include(${PLATFORM_TARGETS})
+
+add_executable(${FULL_OUTPUT_NAME}
+  ${SOURCE_FILES}
+  ${HEADER_FILES}
+)
+
+set_target_properties(${FULL_OUTPUT_NAME} PROPERTIES
+  LINKER_LANGUAGE ${LANG}
+)
+
+if(DEFINED BSP_PATH)
+  include_directories(${BSP_INCLUDE_PATHS})
+  target_link_libraries(${FULL_OUTPUT_NAME} ${BSP_LIBRARY_NAME})
+else()
+  target_link_libraries(${FULL_OUTPUT_NAME} lpc_chip_43xx)
+endif()
+
+# Print size of binary
+add_custom_command(
+  TARGET ${FULL_OUTPUT_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_SIZE} ${FULL_OUTPUT_PATH}
+)
