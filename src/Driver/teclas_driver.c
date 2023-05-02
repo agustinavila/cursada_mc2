@@ -9,7 +9,7 @@
  * 
  */
 
-#include "Driver/teclas_driver.h"
+#include "teclas_driver.h"
 
 void buttons_init(void) {
 	Chip_GPIO_Init(LPC_GPIO_PORT);

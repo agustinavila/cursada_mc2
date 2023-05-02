@@ -10,8 +10,8 @@
  */
 
 
-#include "Driver/teclasPinInt.h"
-#include "Driver/teclas_driver.h"
+#include "teclasPinInt.h"
+#include "teclas_driver.h"
 
 void button_int_enable(uint8_t tecla) {
 

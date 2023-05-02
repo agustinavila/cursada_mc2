@@ -5,7 +5,7 @@ if(NOT TOOLCHAIN_PREFIX)
 endif()
 
 # MCUXpresso version check
-string(REGEX MATCH "lpcxpresso" MATCH_STR ${TOOLCHAIN_PREFIX})
+string(REGEX MATCH "mcuxpresso" MATCH_STR ${TOOLCHAIN_PREFIX})
 if(NOT ${MATCH_STR} STREQUAL "")
   # Get version from specified path prefix
   string(REGEX MATCH "([0-9].[0-9].[0-9])" MCUXPRESSO_VERSION ${TOOLCHAIN_PREFIX})

@@ -6,10 +6,8 @@ file(GLOB HEADER_FILES
   *.h
 )
 
-include_directories(${LPCOPEN_CHIP_INCLUDE_PATHS}
-${PROJECT_SOURCE_DIR}/inc/
-${PROJECT_SOURCE_DIR}/inc/driver
-${PROJECT_SOURCE_DIR}/driver)
+include_directories(${LPCOPEN_CHIP_INCLUDE_PATHS})
+add_subdirectory(driver)
 
 # Add system files
 if(${CPP})
@@ -45,7 +43,7 @@ if(DEFINED BSP_PATH)
   include_directories(${BSP_INCLUDE_PATHS})
   target_link_libraries(${FULL_OUTPUT_NAME} ${BSP_LIBRARY_NAME})
 else()
-  target_link_libraries(${FULL_OUTPUT_NAME} lpc_chip_43xx)
+  target_link_libraries(${FULL_OUTPUT_NAME} lpc_chip_43xx ${FULL_OUTPUT_NAME}_driver)
 endif()
 
 # Print size of binary

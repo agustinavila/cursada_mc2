@@ -11,7 +11,7 @@ set(SUPPORTED_CLIBS newlib newlib-nano redlib)
 set(SUPPORTED_HOSTING none nohost semihosting)
 
 # Supported target devices
-set(SUPPORTED_DEVICES LPC4357)
+set(SUPPORTED_DEVICES LPC4337)
 
 # Check if C++ is enabled
 if(CPP)
@@ -30,12 +30,6 @@ else()
   endif()
 endif()
 message(STATUS "Toolchain file: " ${CMAKE_TOOLCHAIN_FILE})
-
-# Set Eclipse make arguments if not specified
-if(NOT CMAKE_ECLIPSE_MAKE_ARGUMENTS)
-  set(CMAKE_ECLIPSE_MAKE_ARGUMENTS "-j4") # Parallel building
-endif()
-message(STATUS "Eclipse make arguments: " ${CMAKE_ECLIPSE_MAKE_ARGUMENTS})
 
 project(cursada_mc2)
 
@@ -64,7 +58,7 @@ message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
 # Set C/C++ library if not specified
 if(NOT DEFINED CLIB)
-  set(CLIB newlib-nano)
+  set(CLIB redlib)
 else()
     # Check if library is supported
     if(NOT ";${SUPPORTED_CLIBS};" MATCHES ${CLIB})
@@ -97,7 +91,7 @@ message(STATUS "Hosting setting: " ${HOSTING})
 
 # Set hosting if not specified
 if(NOT DEFINED DEVICE)
-  set(DEVICE LPC4357)
+  set(DEVICE LPC4337)
 else()
     # Check if device is supported
     if(NOT ";${SUPPORTED_DEVICES};" STREQUAL ${DEVICE})
@@ -110,23 +104,23 @@ message(STATUS "Target device: " ${DEVICE})
 if(NOT DEFINED FLASHDRIVER)
   set(FLASHDRIVER LPC18x7_43x7_2x512_BootA.cfx)
 endif()
-message(STATUS "LPCXpresso flash driver file: " ${FLASHDRIVER})
+message(STATUS "MCUXpresso flash driver file: " ${FLASHDRIVER})
 
 # Set reset script if not specified
 if(NOT DEFINED RESETSCRIPT)
   set(RESETSCRIPT LPC18LPC43InternalFLASHBootResetscript.scp)
 endif()
-message(STATUS "LPCXpresso reset script: " ${RESETSCRIPT})
+message(STATUS "MCUXpresso reset script: " ${RESETSCRIPT})
 
-# Check if LPCXpresso checksum tool is present
-if(EXISTS ${TOOLCHAIN_PREFIX}/../bin/checksum${EXECUTABLE_SUFFIX})
-  set(CHECKSUM_TOOL ${TOOLCHAIN_PREFIX}/../bin/checksum)
+# Check if MCUXpresso checksum tool is present
+if(EXISTS ${TOOLCHAIN_PREFIX}/../binaries/checksum${EXECUTABLE_SUFFIX})
+  set(CHECKSUM_TOOL ${TOOLCHAIN_PREFIX}/../binaries/checksum)
   set(HAVE_CHECKSUM_TOOL ON)
-  message(STATUS "LPCXpresso checksum tool found: " ${CHECKSUM_TOOL})
+  message(STATUS "MCUXpresso checksum tool found: " ${CHECKSUM_TOOL})
   message(STATUS "'make bin' target will add checksum information.")
 else()
   set(HAVE_CHECKSUM_TOOL OFF)
-  message(STATUS "WARNING: LPCXpresso checksum tool not found. 'make bin' target will NOT add checksum information.")
+  message(STATUS "WARNING: MCUXpresso checksum tool not found. 'make bin' target will NOT add checksum information.")
 endif()
 
 # Check if specified path to the OpenOCD binary is correct
@@ -158,7 +152,7 @@ if(EXISTS ${OPENOCD_BINARY})
     message(STATUS "OpenOCD transport: " ${OPENOCD_TRANSPORT})
   else()
     set(HAVE_OPENOCD OFF)
-    message(STATUS "WARNING: LPCXpresso checksum tool not found. 'make flash' and 'make erase' targets will NOT be available.")
+    message(STATUS "WARNING: MCUXpresso checksum tool not found. 'make flash' and 'make erase' targets will NOT be available.")
   endif()
 else()
   set(HAVE_OPENOCD OFF)
