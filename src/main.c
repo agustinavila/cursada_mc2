@@ -45,7 +45,6 @@ int main(void)
 
     //variable definitions
     static volatile long i = 0;
-    // uint8_t keyboard_matrix[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
     uint8_t last_char = 0xFF;
 
     // Initialization
@@ -66,14 +65,6 @@ int main(void)
     while (1) {
         i++;
         if (i > 1000000) {
-            // board_keyboard_read_matrix(*keyboard_matrix);
-            // if (keyboard_matrix[0][0] >= 1) { led_toggle(LED1); }
-            // if (keyboard_matrix[1][1] >= 1) { led_toggle(LED2); }
-            // if (keyboard_matrix[2][2] >= 1) { led_toggle(LED3); }
-            // if (keyboard_matrix[3][0] >= 1) { led_toggle(LED0B); }
-            // if (keyboard_matrix[3][1] >= 1) { led_toggle(LED0G); }
-            // if (keyboard_matrix[3][2] >= 1) { led_toggle(LED0R); }
-
             last_char = board_keyboard_get_last_char();
             switch (last_char) {
             case 0:
