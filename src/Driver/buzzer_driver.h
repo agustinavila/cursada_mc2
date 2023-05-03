@@ -15,7 +15,7 @@
 #include "chip.h"
 
 void buzzer_init();
-void buzzer_prende();
-void buzzer_apaga();
+void buzzer_turn_on();
+void buzzer_turn_off();
 
 #endif // DRIVER_BUZZER_H

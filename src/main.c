@@ -17,11 +17,11 @@
 #endif
 #endif
 
-#include "Driver/buzzer.h"
-#include "Driver/led_Driver.h"
-#include "Driver/teclado.h"
-#include "Driver/teclasPinInt.h"
-#include "Driver/teclas_driver.h"
+#include "Driver/adc_driver.h"
+#include "Driver/buttons_driver.h"
+#include "Driver/buzzer_driver.h"
+#include "Driver/keyboard_driver.h"
+#include "Driver/led_driver.h"
 
 #include <cr_section_macros.h>
 #include <stdint.h>
@@ -50,7 +50,7 @@ int main(void)
     // Initialization
     led_init();
     buzzer_init();
-    buzzer_apaga();
+    buzzer_turn_off();
     buttons_init();
     board_keyboard_init();
 

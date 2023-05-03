@@ -9,7 +9,7 @@
  * 
  */
 
-#include "led_Driver.h"
+#include "led_driver.h"
 
 void led_init(void)
 {
@@ -29,7 +29,7 @@ void led_init(void)
     Chip_GPIO_SetDir(LPC_GPIO_PORT, 1, (1 << 12), 1);
 }
 
-void led_prender(uint8_t numero_led)
+void led_turn_on(uint8_t numero_led)
 {
     switch (numero_led) {
     case LED0R:

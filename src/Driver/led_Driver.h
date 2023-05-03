@@ -18,8 +18,8 @@
 #include "chip.h"
 
 void led_init(void);
-void led_prender(uint8_t);
-void led_apaga(uint8_t);
+void led_turn_on(uint8_t);
+void led_turn_off(uint8_t);
 void led_toggle(uint8_t);
 
 #endif /* LED_DRIVER_H_ */
