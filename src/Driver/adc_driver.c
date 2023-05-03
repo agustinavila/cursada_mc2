@@ -12,7 +12,7 @@
 #include "adc_driver.h"
 
 ADC_CHANNEL_T adc_channel = ADC_CH0;
-uint16_t adc_value = 0;
+
 
 #define MAX_ADC_CHANNELS 8
 
@@ -48,6 +48,7 @@ void board_adc_set_channel(uint8_t channel)
 
 uint16_t board_adc_polling()
 {
+    uint16_t adc_value;
     Chip_ADC_SetStartMode(LPC_ADC0, ADC_START_NOW, ADC_TRIGGERMODE_RISING);
     while (Chip_ADC_ReadStatus(LPC_ADC0, adc_channel, ADC_DR_DONE_STAT) == RESET) {}
     Chip_ADC_ReadValue(LPC_ADC0, adc_channel, &adc_value);
