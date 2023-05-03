@@ -9,7 +9,6 @@
 #define PININT3_IRQ_HANDLER GPIO3_IRQHandler
 
 
-
 void button_int_enable(uint8_t);
 
 #endif // TECLAS_PIN_INT

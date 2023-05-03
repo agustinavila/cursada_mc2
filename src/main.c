@@ -63,11 +63,9 @@ int main(void)
     button_int_enable(TECLA4);
 
     // Infinite loop
-    while (1)
-    {
+    while (1) {
         i++;
-        if (i > 1000000)
-        {
+        if (i > 1000000) {
             // board_keyboard_read_matrix(*keyboard_matrix);
             // if (keyboard_matrix[0][0] >= 1) { led_toggle(LED1); }
             // if (keyboard_matrix[1][1] >= 1) { led_toggle(LED2); }
@@ -77,8 +75,7 @@ int main(void)
             // if (keyboard_matrix[3][2] >= 1) { led_toggle(LED0R); }
 
             last_char = board_keyboard_get_last_char();
-            switch (last_char)
-            {
+            switch (last_char) {
             case 0:
             case 10:
             case 20:

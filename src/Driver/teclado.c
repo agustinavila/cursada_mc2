@@ -95,8 +95,7 @@ int board_keyboard_read_cell(uint8_t fila, uint8_t columna) { return state_matri
 void board_keyboard_read_matrix(uint8_t* matrix_p[KEYBOARD_MAX_COLUMNS])
 {
     memcpy((char*) matrix_p, (char*) state_matrix, sizeof(uint8_t) * KEYBOARD_MAX_COLUMNS * KEYBOARD_MAX_ROWS);
-    for (int row = 0; row < KEYBOARD_MAX_ROWS; row++)
-    {
+    for (int row = 0; row < KEYBOARD_MAX_ROWS; row++) {
         for (int col = 0; col < KEYBOARD_MAX_COLUMNS; col++) { state_matrix[row][col] = 0; }
     }
 }
@@ -115,8 +114,7 @@ uint8_t read_row(uint8_t row)
     uint8_t col = 0;
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 3, 12);
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 3, 13);
-    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row))
-    {
+    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row)) {
         col = 0;
         state_matrix[row][0] = 1;
     }
@@ -124,16 +122,14 @@ uint8_t read_row(uint8_t row)
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 1, 8);
 
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 3, 12);
-    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row))
-    {
+    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row)) {
         col = 1;
         state_matrix[row][1] = 1;
     }
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 3, 12);
 
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 3, 13);
-    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row))
-    {
+    if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, 2, row)) {
         col = 2;
         state_matrix[row][2] = 1;
     }
