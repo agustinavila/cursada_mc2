@@ -17,15 +17,47 @@
 #endif
 #endif
 
-#include "Driver/buzzer.h"
-#include "Driver/led_Driver.h"
-#include "Driver/teclado.h"
-#include "Driver/teclasPinInt.h"
-#include "Driver/teclas_driver.h"
+#include "Driver/adc_driver.h"
+#include "Driver/buttons_driver.h"
+#include "Driver/buzzer_driver.h"
+#include "Driver/keyboard_driver.h"
+#include "Driver/led_driver.h"
 
 #include <cr_section_macros.h>
 #include <stdint.h>
 
+void handle_keyboard()
+{
+    uint8_t last_char = board_keyboard_get_last_char();
+    switch (last_char) {
+    case 0:
+    case 10:
+    case 20:
+        led_toggle(LED1);
+        break;
+    case 1:
+    case 11:
+    case 21:
+        led_toggle(LED2);
+        break;
+    case 2:
+    case 12:
+    case 22:
+        led_toggle(LED3);
+        break;
+    case 30:
+        led_toggle(LED0B);
+        break;
+    case 31:
+        led_toggle(LED0G);
+        break;
+    case 32:
+        led_toggle(LED0R);
+        break;
+    case 0xFF:
+        break;
+    }
+}
 
 int main(void)
 {
@@ -45,15 +77,15 @@ int main(void)
 
     //variable definitions
     static volatile long i = 0;
-    // uint8_t keyboard_matrix[KEYBOARD_MAX_ROWS][KEYBOARD_MAX_COLUMNS];
-    uint8_t last_char = 0xFF;
+    uint16_t adc_val = 0;
 
     // Initialization
     led_init();
     buzzer_init();
-    buzzer_apaga();
+    buzzer_turn_off();
     buttons_init();
     board_keyboard_init();
+    board_adc_init(ADC_CH3);
 
     // Interrupts enabling
     board_keyboard_int_enable();
@@ -65,44 +97,9 @@ int main(void)
     // Infinite loop
     while (1) {
         i++;
-        if (i > 1000000) {
-            // board_keyboard_read_matrix(*keyboard_matrix);
-            // if (keyboard_matrix[0][0] >= 1) { led_toggle(LED1); }
-            // if (keyboard_matrix[1][1] >= 1) { led_toggle(LED2); }
-            // if (keyboard_matrix[2][2] >= 1) { led_toggle(LED3); }
-            // if (keyboard_matrix[3][0] >= 1) { led_toggle(LED0B); }
-            // if (keyboard_matrix[3][1] >= 1) { led_toggle(LED0G); }
-            // if (keyboard_matrix[3][2] >= 1) { led_toggle(LED0R); }
-
-            last_char = board_keyboard_get_last_char();
-            switch (last_char) {
-            case 0:
-            case 10:
-            case 20:
-                led_toggle(LED1);
-                break;
-            case 1:
-            case 11:
-            case 21:
-                led_toggle(LED2);
-                break;
-            case 2:
-            case 12:
-            case 22:
-                led_toggle(LED3);
-                break;
-            case 30:
-                led_toggle(LED0B);
-                break;
-            case 31:
-                led_toggle(LED0G);
-                break;
-            case 32:
-                led_toggle(LED0R);
-                break;
-            case 0xFF:
-                break;
-            }
+        if (i > 10000000) {
+            handle_keyboard();
+            adc_val = board_adc_polling();
             i = 0;
         }
     }

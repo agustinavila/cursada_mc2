@@ -9,7 +9,7 @@
  * 
  */
 
-#include "buzzer.h"
+#include "buzzer_driver.h"
 
 void buzzer_init()
 {
@@ -19,7 +19,7 @@ void buzzer_init()
 }
 
 
-void buzzer_prende() { Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 2, 8); }
+void buzzer_turn_on() { Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 2, 8); }
 
 
-void buzzer_apaga() { Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 2, 8); }
+void buzzer_turn_off() { Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 2, 8); }
