@@ -14,11 +14,13 @@
 #if !defined(ADC_DRIVER_H)
 #define ADC_DRIVER_H
 
-void board_adc_init();
+void board_adc_init(uint8_t channel);
 
 void board_adc_int_enable();
 
-void board_adc_polling();
+void board_adc_set_channel(uint8_t channel);
+
+uint16_t board_adc_polling();
 
 
 #endif // ADC_DRIVER_H

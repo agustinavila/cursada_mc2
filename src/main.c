@@ -26,6 +26,38 @@
 #include <cr_section_macros.h>
 #include <stdint.h>
 
+void handle_keyboard()
+{
+    uint8_t last_char = board_keyboard_get_last_char();
+    switch (last_char) {
+    case 0:
+    case 10:
+    case 20:
+        led_toggle(LED1);
+        break;
+    case 1:
+    case 11:
+    case 21:
+        led_toggle(LED2);
+        break;
+    case 2:
+    case 12:
+    case 22:
+        led_toggle(LED3);
+        break;
+    case 30:
+        led_toggle(LED0B);
+        break;
+    case 31:
+        led_toggle(LED0G);
+        break;
+    case 32:
+        led_toggle(LED0R);
+        break;
+    case 0xFF:
+        break;
+    }
+}
 
 int main(void)
 {
@@ -45,7 +77,7 @@ int main(void)
 
     //variable definitions
     static volatile long i = 0;
-    uint8_t last_char = 0xFF;
+    uint16_t adc_val = 0;
 
     // Initialization
     led_init();
@@ -53,6 +85,7 @@ int main(void)
     buzzer_turn_off();
     buttons_init();
     board_keyboard_init();
+    board_adc_init(ADC_CH3);
 
     // Interrupts enabling
     board_keyboard_int_enable();
@@ -64,36 +97,9 @@ int main(void)
     // Infinite loop
     while (1) {
         i++;
-        if (i > 1000000) {
-            last_char = board_keyboard_get_last_char();
-            switch (last_char) {
-            case 0:
-            case 10:
-            case 20:
-                led_toggle(LED1);
-                break;
-            case 1:
-            case 11:
-            case 21:
-                led_toggle(LED2);
-                break;
-            case 2:
-            case 12:
-            case 22:
-                led_toggle(LED3);
-                break;
-            case 30:
-                led_toggle(LED0B);
-                break;
-            case 31:
-                led_toggle(LED0G);
-                break;
-            case 32:
-                led_toggle(LED0R);
-                break;
-            case 0xFF:
-                break;
-            }
+        if (i > 10000000) {
+            handle_keyboard();
+            adc_val = board_adc_polling();
             i = 0;
         }
     }
