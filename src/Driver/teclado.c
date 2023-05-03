@@ -60,7 +60,7 @@ void board_keyboard_init(void)
 void board_keyboard_int_enable(void)
 {
     Chip_SCU_GPIOIntPinSel(4, 2, 0);
-    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH4);
+    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH4);
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH4);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH4);
     NVIC_ClearPendingIRQ(PIN_INT4_IRQn);
@@ -68,20 +68,20 @@ void board_keyboard_int_enable(void)
 
     Chip_SCU_GPIOIntPinSel(5, 2, 1);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH5);
-    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH5);
+    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH5);
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH5);
     NVIC_ClearPendingIRQ(PIN_INT5_IRQn);
     NVIC_EnableIRQ(PIN_INT5_IRQn);
 
     Chip_SCU_GPIOIntPinSel(6, 2, 2);
-    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH6);
+    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH6);
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH6);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH6);
     NVIC_ClearPendingIRQ(PIN_INT6_IRQn);
     NVIC_EnableIRQ(PIN_INT6_IRQn);
 
     Chip_SCU_GPIOIntPinSel(7, 2, 3);
-    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH7);
+    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH7);
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH7);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH7);
     NVIC_ClearPendingIRQ(PIN_INT7_IRQn);
@@ -109,7 +109,7 @@ char board_keyboard_get_last_char()
 }
 
 
-uint8_t read_row(uint8_t row)
+void read_row(uint8_t row)
 {
     uint8_t col = 0;
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 3, 12);
@@ -118,7 +118,6 @@ uint8_t read_row(uint8_t row)
         col = 0;
         state_matrix[row][0] = 1;
     }
-
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 1, 8);
 
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 3, 12);
@@ -136,7 +135,8 @@ uint8_t read_row(uint8_t row)
 
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 1, 8);
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 3, 12);
-    return col;
+
+    last_char = (uint8_t) (row * 10 + col);
 }
 
 
@@ -144,9 +144,7 @@ void FILA0_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearRiseStates(LPC_GPIO_PIN_INT, 4);
     NVIC_ClearPendingIRQ(PIN_INT4_IRQn);
-    const uint8_t row = 0;
-    const uint8_t col = read_row(row);
-    last_char = row * 10 + col;
+    read_row(0);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH4);
 }
 
@@ -155,9 +153,7 @@ void FILA1_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearRiseStates(LPC_GPIO_PIN_INT, 5);
     NVIC_ClearPendingIRQ(PIN_INT5_IRQn);
-    const uint8_t row = 1;
-    const uint8_t col = read_row(row);
-    last_char = row * 10 + col;
+    read_row(1);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH5);
 }
 
@@ -166,9 +162,7 @@ void FILA2_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearRiseStates(LPC_GPIO_PIN_INT, 6);
     NVIC_ClearPendingIRQ(PIN_INT6_IRQn);
-    const uint8_t row = 2;
-    const uint8_t col = read_row(row);
-    last_char = row * 10 + col;
+    read_row(2);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH6);
 }
 
@@ -177,8 +171,6 @@ void FILA3_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearRiseStates(LPC_GPIO_PIN_INT, 7);
     NVIC_ClearPendingIRQ(PIN_INT7_IRQn);
-    const uint8_t row = 3;
-    const uint8_t col = read_row(row);
-    last_char = row * 10 + col;
+    read_row(3);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH7);
 }
