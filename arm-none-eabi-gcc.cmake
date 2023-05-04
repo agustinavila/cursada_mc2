@@ -8,7 +8,7 @@ endif()
 string(REGEX MATCH "mcuxpresso" MATCH_STR ${TOOLCHAIN_PREFIX})
 if(NOT ${MATCH_STR} STREQUAL "")
   # Get version from specified path prefix
-  string(REGEX MATCH "([0-9].[0-9].[0-9])" MCUXPRESSO_VERSION ${TOOLCHAIN_PREFIX})
+  string(REGEX MATCH "[0-9].[0-9].[0-9]" MCUXPRESSO_VERSION ${TOOLCHAIN_PREFIX})
   if(NOT ${MCUXPRESSO_VERSION} STREQUAL "")
     message(STATUS "MCUXpresso detected: v" ${MCUXPRESSO_VERSION})
     # Check if version is supported
@@ -61,4 +61,3 @@ set(CMAKE_CXX_COMPILER_ID_RUN   TRUE)
 set(CMAKE_CXX_COMPILER_FORCED   TRUE)
  
 # set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
- 
