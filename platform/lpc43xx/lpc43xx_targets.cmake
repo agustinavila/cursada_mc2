@@ -25,10 +25,6 @@ if(${HAVE_OPENOCD})
   add_custom_target(flash
     DEPENDS ${FULL_OUTPUT_NAME}
     COMMAND make bin
-    COMMAND ${OPENOCD_BINARY} -c "set _TRANSPORT ${OPENOCD_TRANSPORT}" -f ${CMAKE_SOURCE_DIR}/debug/${OPENOCD_CONFIG} -c "init; reset; sleep 500; halt; flash protect ${FLASH_BANK} 0 last off; flash write_image erase ${EXECUTABLE_OUTPUT_PATH}/${OUTPUT_NAME}.bin ${FLASH_BANK_ADDRESS} bin; sleep 500; reset; shutdown;"
-  )
-  add_custom_target(erase
-    DEPENDS ${FULL_OUTPUT_NAME}
-    COMMAND ${OPENOCD_BINARY} -c "set _TRANSPORT ${OPENOCD_TRANSPORT}" -f ${CMAKE_SOURCE_DIR}/debug/${OPENOCD_CONFIG} -c "init; reset; sleep 500; halt; flash protect ${FLASH_BANK} 0 last off; flash erase_sector ${FLASH_BANK} 0 last; sleep 500; reset; shutdown;"
+    COMMAND ${OPENOCD_BINARY} -f ${CMAKE_SOURCE_DIR}/debug/${OPENOCD_CONFIG} -c "init" -c "halt 0" -c "flash write_image erase unlock" ${EXECUTABLE_OUTPUT_PATH}/cursada_mc2.axf  ${TARGET_DOWNLOAD_FLASH_BANK} bin -c "reset run" -c "shutdown"
   )
 endif()
