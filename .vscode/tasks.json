@@ -2,62 +2,11 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "compile",
             "type": "shell",
-            "command": "make",
-            "group": "build",
-            "presentation": {
-                "reveal": "always"
-            },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
-        },
-        {
-            "label": "build",
-            "type": "shell",
-            "command": "make all",
-            "presentation": {
-                "reveal": "always"
-            },
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceRoot}"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "type": "shell",
-            "label": "Build Project",
-            "command": "cmake --build .",
+            "label": "Build Project [Debug]",
+            "command": "cmake --build . --config Debug --target all --",
             "options": {
-                "cwd": "${workspaceFolder}/build"
+                "cwd": "${workspaceFolder}/Debug"
             },
             "group": {
                 "kind": "build",
@@ -65,22 +14,18 @@
             },
             "problemMatcher": {
                 "base": "$gcc",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}/build"
-                ]
+                "fileLocation": ["relative", "${workspaceFolder}/Debug"]
             }
-        },
-        {
+        }, {
             "type": "shell",
-            "label": "clean & build",
-            "command": "cmake --build . --clean-first",
+            "label": "clean & build debug",
+            "command": "cmake --build . --clean-first --config Debug --target all --",
             "options": {
-                "cwd": "${workspaceFolder}/build"
+                "cwd": "${workspaceFolder}/Debug"
             },
             "group": "build",
             "problemMatcher": {
-                "base": "$gcc", 
+                "base": "$gcc",
                 "fileLocation": ["relative", "${workspaceFolder}/build"]
             }
         }
