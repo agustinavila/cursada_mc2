@@ -2,33 +2,9 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C/C++: arm-none-eabi-gcc.exe build and debug active file",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "c:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "c:\\nxp\\MCUXpressoIDE_11.7.0_9198\\ide\\tools\\bin\\gdb.exe",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }, {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "C/C++: arm-none-eabi-gcc.exe build active file"
-        }, {
+            "name": "Attach openOCD",
             "cwd": "${workspaceRoot}",
             "executable": "${workspaceRoot}/Debug/bin/cursada_mc2.axf",
-            "name": "Debug Microcontroller openOCD THIS",
             "armToolchainPath": "C:/nxp/MCUXpressoIDE_11.7.0_9198/ide/tools/bin",
             "request": "launch",
             "type": "cortex-debug",
@@ -36,7 +12,29 @@
             "showDevDebugOutput": "raw",
             "device": "LPC4337",
             "gdbTarget": "localhost:3333",
-            "svdFile": "${workspaceRoot}/LPC43xx_43Sxx.svd"
+            "svdFile": "${workspaceRoot}/LPC43xx_43Sxx.svd",
+            "preLaunchTask": "Build Project [Debug]"
+        }, {
+            "name": "Launch openOCD",
+            "servertype": "openocd",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/Debug/bin/cursada_mc2.axf",
+            "armToolchainPath": "C:/nxp/MCUXpressoIDE_11.7.0_9198/ide/tools/bin",
+            "request": "launch",
+            "configFiles": ["${workspaceRoot}/platform/openocd/ciaa-nxp.cfg"],
+            // "preLaunchCommands": [
+            //     "init", "halt 0",
+            // ],
+            // "openOCDLaunchCommands": ["flash write_image erase unlock ${workspaceRoot}/Debug/bin/cursada_mc2.axf 0x1A000000 bin"],
+            // "postResetCommands": [
+            //     "reset run", "shutdown"
+            // ],
+            "type": "cortex-debug",
+            "showDevDebugOutput": "raw",
+            "device": "LPC4337",
+            "gdbTarget": "localhost:3333",
+            "svdFile": "${workspaceRoot}/LPC43xx_43Sxx.svd",
+            "preLaunchTask": "Build Project [Debug]"
         }
     ]
 }
