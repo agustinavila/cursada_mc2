@@ -22,6 +22,7 @@
 #include "Driver/buzzer_driver.h"
 #include "Driver/keyboard_driver.h"
 #include "Driver/led_driver.h"
+#include "Driver/timer_driver.h"
 
 #include <cr_section_macros.h>
 #include <stdint.h>
@@ -77,7 +78,7 @@ int main(void)
 
     //variable definitions
     static volatile long i = 0;
-    uint16_t adc_val = 0;
+    static volatile uint16_t adc_val = 0;
 
     // Initialization
     led_init();
@@ -85,7 +86,8 @@ int main(void)
     buzzer_turn_off();
     buttons_init();
     board_keyboard_init();
-    board_adc_init(ADC_CH3);
+    board_adc_init(ADC_CH2);
+    board_timer_init(5000);
 
     // Interrupts enabling
     board_keyboard_int_enable();
@@ -96,12 +98,12 @@ int main(void)
 
     // Infinite loop
     while (1) {
-        i++;
-        if (i > 10000000) {
-            handle_keyboard();
-            adc_val = board_adc_polling();
-            i = 0;
-        }
+        // i++;
+        // if (i > 10000000) {
+        //     handle_keyboard();
+        //     adc_val = board_adc_polling();
+        //     i = 0;
+        // }
     }
     return 0;
 }
@@ -131,4 +133,13 @@ void PININT3_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH3);
     led_toggle(LED3);
+}
+
+
+void RIT_Handler(void)
+{
+    NVIC_ClearPendingIRQ(RITIMER_IRQn);
+    uint16_t adc_val = board_adc_polling();
+    NVIC_EnableIRQ(RITIMER_IRQn);
+    Chip_RIT_ClearInt(LPC_RITIMER);
 }
