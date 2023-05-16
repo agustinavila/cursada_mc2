@@ -20,7 +20,7 @@ void board_timer_init(uint32_t timer_value_ms)
 
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
     NVIC_EnableIRQ(RITIMER_IRQn);
-    board_timer_clear_timer();
+    // board_timer_clear_timer();
 }
 
 void board_timer_set_period(uint32_t timer_value_ms)
