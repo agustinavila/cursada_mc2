@@ -14,7 +14,6 @@
 
 #include <chip.h>
 #include <lpc_types.h>
-#include <stdint.h>
 
 void driver_lcd_init_port(void);
 

@@ -64,6 +64,7 @@ void handle_keyboard()
 
 void lcd_start_message()
 {
+    driver_lcd_write_char('\b');
     driver_lcd_set_position(1, 1);
     driver_lcd_write_char('P');
     driver_lcd_write_char('U');
@@ -97,7 +98,6 @@ int main(void)
     Board_LED_Set(0, true);
 #endif
 #endif
-
     //variable definitions
     // static volatile long i = 0;
     // static volatile uint16_t adc_val = 0;
