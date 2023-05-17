@@ -64,22 +64,22 @@ void handle_keyboard()
 
 void lcd_start_message()
 {
-    lcd_gotoxy(1, 1);
-    lcd_putc('P');
-    lcd_putc('U');
-    lcd_putc('L');
-    lcd_putc('S');
-    lcd_putc('A');
-    lcd_putc('D');
-    lcd_putc('O');
-    lcd_putc('R');
-    lcd_putc(' ');
-    lcd_putc('P');
-    lcd_putc('R');
-    lcd_putc('E');
-    lcd_putc('S');
-    lcd_putc('S');
-    lcd_putc(':');
+    driver_lcd_set_position(1, 1);
+    driver_lcd_write_char('P');
+    driver_lcd_write_char('U');
+    driver_lcd_write_char('L');
+    driver_lcd_write_char('S');
+    driver_lcd_write_char('A');
+    driver_lcd_write_char('D');
+    driver_lcd_write_char('O');
+    driver_lcd_write_char('R');
+    driver_lcd_write_char(' ');
+    driver_lcd_write_char('P');
+    driver_lcd_write_char('R');
+    driver_lcd_write_char('E');
+    driver_lcd_write_char('S');
+    driver_lcd_write_char('S');
+    driver_lcd_write_char(':');
 }
 
 int main(void)
@@ -99,8 +99,8 @@ int main(void)
 #endif
 
     //variable definitions
-    static volatile long i = 0;
-    static volatile uint16_t adc_val = 0;
+    // static volatile long i = 0;
+    // static volatile uint16_t adc_val = 0;
 
     // Initialization
     led_init();
@@ -110,8 +110,8 @@ int main(void)
     board_keyboard_init();
     board_adc_init(ADC_CH2);
     board_timer_init(5000);
-    lcd_init_port();
-    lcd_init();
+    driver_lcd_init_port();
+    driver_lcd_init();
 
     // Interrupts enabling
     board_keyboard_int_enable();
