@@ -11,310 +11,159 @@
 
 #include "lcd_driver.h"
 
-LCD_DATA_Type data_;
+#define LCD_PORT 4
+#define LCD4 10 ///< LCD4 = D7 on lcd pinout
+#define LCD3 6  ///< LCD3 = D6 on lcd pinout
+#define LCD2 5  ///< LCD2 = D5 on lcd pinout
+#define LCD1 4  ///< LCD1 = D4 on lcd pinout
+#define LCD_RS 8
+#define LCD_EN 9
 
-
-void enviar_lcd(LCD_DATA_Type data)
-{
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD1, data.D1);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD2, data.D2);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD3, data.D3);
-    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD4, data.D4);
-    // if (data.D1 == 1) { port_pin(LCD_PORT, LCD1, disable, high); }
-    // if (data.D2 == 1) port_pin(LCD_PORT, LCD2, disable, high);
-    // if (data.D3 == 1) port_pin(LCD_PORT, LCD3, disable, high);
-    // if (data.D4 == 1) port_pin(LCD_PORT, LCD4, disable, high);
-    // if (data.RS == 1) port_pin(LCD_PORT, LCD_RS, disable, high);
-
-    delay();
-    // port_pin(LCD_PORT, LCD_EN, disable, high);
-    Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    delay();
-    // port_pin(LCD_PORT, LCD_EN, disable, low);
-    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    delay();
-}
-
-
-void lcd_init_port(void)
-{
-    // port_pin(LCD_PORT, LCD_RS, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD_RS, MD_PLN, FUNC4);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD_RS + 4, 1);
-
-    // port_pin(LCD_PORT, LCD_EN, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD_EN, MD_PLN, FUNC4);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD_EN + 4, 1);
-
-    // port_pin(LCD_PORT, LCD4, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD4, MD_PLN, FUNC4);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD4 + 4, 1);
-
-    // port_pin(LCD_PORT, LCD3, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD3, MD_PLN, FUNC0);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD3, 1);
-
-    // port_pin(LCD_PORT, LCD2, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD2, MD_PLN, FUNC0);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD2, 1);
-
-    // port_pin(LCD_PORT, LCD1, MD_PLN, init_out);
-    Chip_SCU_PinMux(4, LCD1, MD_PLN, FUNC0);
-    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD1, 1);
-}
-
-
-void lcd_init(void)
-{
-    // 1)-----------D7,D6,D5,D4=0011------------------
-    delay();
-    data_.D1 = 1;
-    data_.D2 = 1;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 2)-----------D7,D6,D5,D4=0011------------------
-    delay();
-    data_.D1 = 1;
-    data_.D2 = 1;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 3)-----------D7,D6,D5,D4=0011------------------
-    delay();
-    data_.D1 = 1;
-    data_.D2 = 1;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 4)-----------D7,D6,D5,D4=0010------------------
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 1;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 5)---PRIMERO--------D7,D6,D5,D4=0010------------------
-    ///----DESPUES--------D7,D6,D5,D4=1111------------------
-    // D7=1 UNA LINEA, D7=0 DOS LINEAS
-    // D6=1 5x7 PUNTOS, D6=1 5x10 PUNTOS
-    // D5=X
-    // D4=X
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 1;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    data_.D1 = 1;
-    data_.D2 = 1;
-    data_.D3 = 1;
-    data_.D4 = 1;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    // 6)---PRIMERO--------D7,D6,D5,D4=0000------------------
-    ///----DESPUES--------D7,D6,D5,D4=1000------------------
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D3 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D4 = 1;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 7)---PRIMERO--------D7,D6,D5,D4=0000------------------
-    ///----DESPUES--------D7,D6,D5,D4=0001------------------
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    data_.D1 = 1;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    // 8)---PRIMERO--------D7,D6,D5,D4=0000------------------
-    ///----DESPUES--------D7,D6,D5,D4=0110------------------
-    // D7=0
-    // D6=1
-    // D5=1 I/D--> D5=1 EL CURSOR Y LA FUNCION DE PARPADEO SE MUEVEN
-    // SOBRE EL DISPLAY UNA POSICION A LA DERECHA D5=0 A LA IZQUIERDA
-    // D4=0   S--> D4=1 EL DISPLAY ENTERO SE DESPLAZA UNA POSICION A
-    // LA IZQUIERDA, D4=0 NO SE DESPLAZA
-
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 1;
-    data_.D3 = 1;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-
-    //-----------------------------------------------
-    // FIN INICIALIZACION
-    //----------------------------------------------
-    // DISPLAY ON/OFF
-    ///---PRIMERO--------D7,D6,D5,D4=0000------------------
-    ///----DESPUES-------D7,D6,D5,D4=1100------------------
-    // D7=1
-    // D6=1 D--> D6=1 EL DISPLAY SE HABILITA, D=0 EL DISPLAY SE APAGA
-    // D5=0  C--> D5=1 EL CURSOR SE MUESTRA EN LA POSICION DEFINIDA POR AC D5=0
-    // NO SE MUESTRA EN PANTALLA
-    // D4=0 B--> D4=1 EL CARACTER  QUE SE MUESTRA EN LA POSICION DEL CURSOR
-    // PARPADEA, D4=0 LA FUNCION PARPADEO QUEDA DESHABILITADA LA IZQUIERDA, D4=0
-    // NO SE DESPLAZA
-
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 0;
-    data_.D4 = 0;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-    data_.D1 = 0;
-    data_.D2 = 0;
-    data_.D3 = 1;
-    data_.D4 = 1;
-    data_.RS = 0;
-    enviar_lcd(data_);
-    delay();
-}
-
-
-void lcd_gotoxy(int x, int y)
-{
-    // numeracion de los caracteres dentro del display
-    //     1    2    3    4    5    6    7     8   9    10   11   12   13   14 15
-    //     16 (columnas)
-    //	<---><---><---><---><---><---><---><---><---><---><---><---><---><---><---><--->
-    //   <
-    //   0..........................................................................79>
-    //   linea 1
-    //   <64.........................................................................101>
-    //   linea 2
-    //   <---><---><---><---><---><---><---><---><---><---><---><---><---><---><---><--->
-    int address;
-    LCD_DATA_Type data;
-    // int nibble;
-    switch (y) {
-    case 1:
-        address = 0;
-        break;
-    case 2:
-        address = 64;
-        break;
-    }
-    // primero envio tres bits de direccion y d7=1, luego cuatro bits mas de
-    // direccion
-    address = (address + (x - 1));
-    delay();
-    data.D1 = (!!(address & 16));
-    data.D2 = (!!(address & 32));
-    data.D3 = (!!(address & 64));
-    data.D4 = 1;
-    data.RS = 0;
-    enviar_lcd(data);
-    delay();
-    data.D1 = (!!(address & 1));
-    data.D2 = (!!(address & 2));
-    data.D3 = (!!(address & 4));
-    data.D4 = (!!(address & 8));
-    data.RS = 0;
-    enviar_lcd(data);
-}
-
-
-void lcd_putc(char C)
-{
-    LCD_DATA_Type data;
-    int nibble;
-    switch (C) {
-    case '\f':
-        break;
-    case '\n':
-        break;
-    case '\b': // borra pantalla
-        delay();
-        data.D1 = 0;
-        data.D2 = 0;
-        data.D3 = 0;
-        data.D4 = 0;
-        data.RS = 0;
-        enviar_lcd(data);
-        delay();
-        data.D1 = 1;
-        data.D2 = 0;
-        data.D3 = 0;
-        data.D4 = 0;
-        data.RS = 0;
-        enviar_lcd(data);
-        delay();
-        break;
-    default:
-        nibble = (int) C;
-        data.D1 = (!!(nibble & 16));
-        data.D2 = (!!(nibble & 32));
-        data.D3 = (!!(nibble & 64));
-        data.D4 = (!!(nibble & 128));
-        data.RS = 1;
-        enviar_lcd(data);
-        delay();
-        data.D1 = (!!(nibble & 1));
-        data.D2 = (!!(nibble & 2));
-        data.D3 = (!!(nibble & 4));
-        data.D4 = (!!(nibble & 8));
-        data.RS = 1;
-        enviar_lcd(data);
-        delay();
-        break;
-    }
-}
-
-
-void printf_lcd(char* string)
-{
-    int c = 0;
-    while (string[c] != '\0') {
-        lcd_putc(string[c]);
-        c++;
-    }
-}
+#define LCD_IS_DATA 1
+#define LCD_IS_COMMAND 0
 
 
 void delay(void)
 {
     uint16_t x = 0;
     for (uint16_t i = 0; i < 9999; i++) { x++; }
+}
+
+void lcd_send(uint8_t nibble, bool is_command)
+{
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD_RS + 4, is_command);
+
+    const bool bit_0 = nibble & 0x01;
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD1, bit_0);
+    const bool bit_1 = nibble & 0x02 >> 1;
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD2, bit_1);
+    const bool bit_2 = nibble & 0x04 >> 2;
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD3, bit_2);
+    const bool bit_3 = nibble & 0x08 >> 3;
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD4, bit_3);
+
+    delay();
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
+    delay();
+    Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
+    delay();
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
+    delay();
+}
+
+void send_command(uint8_t command)
+{
+    const uint8_t upper_nibble = command & 0xF0 >> 4;
+    lcd_send(upper_nibble, LCD_IS_COMMAND);
+
+    const uint8_t lower_nibble = command & 0x0F;
+    lcd_send(lower_nibble, LCD_IS_COMMAND);
+}
+
+void send_data(uint8_t data)
+{
+    const uint8_t upper_nibble = data & 0xF0 >> 4;
+    lcd_send(upper_nibble, LCD_IS_DATA);
+
+    const uint8_t lower_nibble = data & 0x0F;
+    lcd_send(lower_nibble, LCD_IS_DATA);
+}
+
+void driver_lcd_init_port(void)
+{
+    // port_pin(LCD_PORT, LCD_RS, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD_RS, MD_PLN, FUNC4);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD_RS + 4, 1);
+
+    // port_pin(LCD_PORT, LCD_EN, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD_EN, MD_PLN, FUNC4);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD_EN + 4, 1);
+
+    // port_pin(LCD_PORT, LCD4, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD4, MD_PLN, FUNC4);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD4 + 4, 1);
+
+    // port_pin(LCD_PORT, LCD3, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD3, MD_PLN, FUNC0);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD3, 1);
+
+    // port_pin(LCD_PORT, LCD2, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD2, MD_PLN, FUNC0);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD2, 1);
+
+    // port_pin(LCD_PORT, LCD1, MD_PLN, init_out);
+    Chip_SCU_PinMux(LCD_PORT, LCD1, MD_PLN, FUNC0);
+    Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD1, 1);
+}
+
+void driver_lcd_init(void)
+{
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_RS + 4); // Sets enable to low
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4); // Sets enable to low
+    delay();
+
+    // Function set (interface is 8 bits long)
+    lcd_send(0x03, LCD_IS_COMMAND);
+    delay();
+    delay();
+    lcd_send(0x03, LCD_IS_COMMAND);
+    delay();
+    lcd_send(0x03, LCD_IS_COMMAND);
+    delay();
+    lcd_send(0x02, LCD_IS_COMMAND);
+    delay();
+
+    // Function set: interface is 4-bit long, 5x8 dot font
+    // DL = 1; 8-bit interface data
+    // N = 0; 1-line display
+    // F = 0; 5 × 8 dot character font
+    send_command(0x28); // 0b0010 ' N F x x
+    send_command(0x08); // Display off
+    send_command(0x01); // Display clear
+
+    // Entry mode set
+    // I/D = 1; Increment by 1
+    // S = 0; No shift
+    send_command(0x06); // 0b0000 ' 0 1 I/D S
+
+    send_command(0x0C); // Display on, cursor off
+}
+
+
+void driver_lcd_set_position(uint8_t x, uint8_t y)
+{
+    if (x < 1 || x > 16) return;
+    if (y < 1 || y > 2) return; // checks limits of display (16x2)
+
+    uint8_t address_position = (y == 1) ? 0x00 : 0x40;
+    address_position += (uint8_t) (x - 1);
+    address_position |= 0x80; // this bit must be 1
+    send_command(address_position);
+}
+
+
+void driver_lcd_write_char(char C)
+{
+    switch (C) {
+    case '\f':
+        break;
+    case '\n':
+        break;
+    case '\b':
+        send_command(0x01); // Clear display screen
+        break;
+    default:
+        send_data(C);
+        break;
+    }
+}
+
+
+void driver_lcd_printf(char* string)
+{
+    uint16_t i = 0;
+    while (string[i] != '\0') {
+        driver_lcd_write_char(string[i]);
+        i++;
+    }
 }

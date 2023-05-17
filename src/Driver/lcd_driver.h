@@ -14,33 +14,17 @@
 
 #include <chip.h>
 #include <lpc_types.h>
+#include <stdint.h>
 
+void driver_lcd_init_port(void);
 
-typedef struct __LCD_DATA_Type
-{
-    Bool D4;
-    Bool D3;
-    Bool D2;
-    Bool D1;
-    Bool RS;
-    Bool EN;
-} LCD_DATA_Type;
+void driver_lcd_init(void);
 
-#define LCD_PORT 4 // Donde esta el LCD
-#define LCD4 10    // Pines del puerto
-#define LCD3 6
-#define LCD2 5
-#define LCD1 4
-#define LCD_RS 8
-#define LCD_EN 9
+void driver_lcd_set_position(uint8_t x, uint8_t y);
 
-void lcd_init_port(void);
-void lcd_init(void);
-void lcd_gotoxy(int x, int y);
-void lcd_putc(char c);
-// void enviar_lcd(LCD_DATA_Type data);
-void printf_lcd(char* string);
-void delay(void);
+void driver_lcd_write_char(char c);
+
+void driver_lcd_printf(char* string);
 
 
 #endif // DRIVER_LCD_DRIVER_H_
