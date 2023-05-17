@@ -21,11 +21,13 @@
 #include "Driver/buttons_driver.h"
 #include "Driver/buzzer_driver.h"
 #include "Driver/keyboard_driver.h"
+#include "Driver/lcd_driver.h"
 #include "Driver/led_driver.h"
 #include "Driver/timer_driver.h"
 
 #include <cr_section_macros.h>
 #include <stdint.h>
+
 
 void handle_keyboard()
 {
@@ -60,6 +62,26 @@ void handle_keyboard()
     }
 }
 
+void lcd_start_message()
+{
+    lcd_gotoxy(1, 1);
+    lcd_putc('P');
+    lcd_putc('U');
+    lcd_putc('L');
+    lcd_putc('S');
+    lcd_putc('A');
+    lcd_putc('D');
+    lcd_putc('O');
+    lcd_putc('R');
+    lcd_putc(' ');
+    lcd_putc('P');
+    lcd_putc('R');
+    lcd_putc('E');
+    lcd_putc('S');
+    lcd_putc('S');
+    lcd_putc(':');
+}
+
 int main(void)
 {
 #if defined(__USE_LPCOPEN)
@@ -88,6 +110,8 @@ int main(void)
     board_keyboard_init();
     board_adc_init(ADC_CH2);
     board_timer_init(5000);
+    lcd_init_port();
+    lcd_init();
 
     // Interrupts enabling
     board_keyboard_int_enable();
@@ -96,6 +120,7 @@ int main(void)
     button_int_enable(TECLA3);
     button_int_enable(TECLA4);
 
+    lcd_start_message();
     // Infinite loop
     while (1) {
         // i++;
