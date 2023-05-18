@@ -21,11 +21,72 @@
 #include "Driver/buttons_driver.h"
 #include "Driver/buzzer_driver.h"
 #include "Driver/keyboard_driver.h"
+#include "Driver/lcd_driver.h"
 #include "Driver/led_driver.h"
 #include "Driver/timer_driver.h"
 
 #include <cr_section_macros.h>
 #include <stdint.h>
+
+void main_init();
+
+void handle_keyboard();
+
+void lcd_start_message();
+
+int main(void)
+{
+#if defined(__USE_LPCOPEN)
+    // Read clock settings and update SystemCoreClock variable
+    SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+#if defined(__MULTICORE_MASTER) || defined(__MULTICORE_NONE)
+    // Set up and initialize all required blocks and
+    // functions related to the board hardware
+    Board_Init();
+#endif
+    // Set the LED to the state of "On"
+    Board_LED_Set(0, true);
+#endif
+#endif
+    //variable definitions
+    // static volatile long i = 0;
+    // static volatile uint16_t adc_val = 0;
+
+    main_init();
+
+    lcd_start_message();
+    // Infinite loop
+    while (1) {
+        // i++;
+        // if (i > 10000000) {
+        //     handle_keyboard();
+        //     adc_val = board_adc_polling();
+        //     i = 0;
+        // }
+    }
+    return 0;
+}
+
+void main_init()
+{
+    // Initialization
+    led_init();
+    buzzer_init();
+    buzzer_turn_off();
+    buttons_init();
+    board_keyboard_init();
+    board_adc_init(ADC_CH2);
+    board_timer_init(5000);
+    driver_lcd_init();
+
+    // Interrupts enabling
+    board_keyboard_int_enable();
+    button_int_enable(TECLA1);
+    button_int_enable(TECLA2);
+    button_int_enable(TECLA3);
+    button_int_enable(TECLA4);
+}
 
 void handle_keyboard()
 {
@@ -60,53 +121,15 @@ void handle_keyboard()
     }
 }
 
-int main(void)
+void lcd_start_message()
 {
-#if defined(__USE_LPCOPEN)
-    // Read clock settings and update SystemCoreClock variable
-    SystemCoreClockUpdate();
-#if !defined(NO_BOARD_LIB)
-#if defined(__MULTICORE_MASTER) || defined(__MULTICORE_NONE)
-    // Set up and initialize all required blocks and
-    // functions related to the board hardware
-    Board_Init();
-#endif
-    // Set the LED to the state of "On"
-    Board_LED_Set(0, true);
-#endif
-#endif
-
-    //variable definitions
-    static volatile long i = 0;
-    static volatile uint16_t adc_val = 0;
-
-    // Initialization
-    led_init();
-    buzzer_init();
-    buzzer_turn_off();
-    buttons_init();
-    board_keyboard_init();
-    board_adc_init(ADC_CH2);
-    board_timer_init(5000);
-
-    // Interrupts enabling
-    board_keyboard_int_enable();
-    button_int_enable(TECLA1);
-    button_int_enable(TECLA2);
-    button_int_enable(TECLA3);
-    button_int_enable(TECLA4);
-
-    // Infinite loop
-    while (1) {
-        // i++;
-        // if (i > 10000000) {
-        //     handle_keyboard();
-        //     adc_val = board_adc_polling();
-        //     i = 0;
-        // }
-    }
-    return 0;
+    driver_lcd_write_char('\b');
+    driver_lcd_set_position(1, 1);
+    driver_lcd_printf("ADC value:");
+    driver_lcd_set_position(1, 2);
+    driver_lcd_printf("xxxxx");
 }
+
 
 void PININT0_IRQ_HANDLER(void)
 {
@@ -140,6 +163,8 @@ void RIT_Handler(void)
 {
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
     uint16_t adc_val = board_adc_polling();
+    driver_lcd_set_position(1, 2);
+    driver_lcd_printf("xxxxx"); // TODO: convert number to char
     NVIC_EnableIRQ(RITIMER_IRQn);
     Chip_RIT_ClearInt(LPC_RITIMER);
 }
