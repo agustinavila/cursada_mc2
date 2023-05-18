@@ -15,8 +15,6 @@
 #include <chip.h>
 #include <lpc_types.h>
 
-void driver_lcd_init_port(void);
-
 void driver_lcd_init(void);
 
 void driver_lcd_set_position(uint8_t x, uint8_t y);

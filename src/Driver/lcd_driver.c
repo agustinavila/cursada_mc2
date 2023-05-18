@@ -22,7 +22,6 @@
 #define LCD_IS_DATA 1
 #define LCD_IS_COMMAND 0
 
-
 void delay(void)
 {
     uint16_t x = 0;
@@ -30,32 +29,22 @@ void delay(void)
 }
 
 
-void set_value(uint8_t port, uint8_t pin, bool data)
-{
-    if (data) { Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, port, pin); }
-    else {
-        Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, port, pin);
-    }
-}
-
-
 void lcd_send(uint8_t nibble, bool is_data)
 {
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD_RS + 4, is_data);
+
     const bool bit_0 = (bool) (nibble & 0x01);
-    set_value(2, LCD1, bit_0);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD1, bit_0);
 
     const bool bit_1 = (bool) ((nibble >> 1) & 0x01);
-    set_value(2, LCD2, bit_1);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD2, bit_1);
 
     const bool bit_2 = (bool) ((nibble >> 2) & 0x01);
-    set_value(2, LCD3, bit_2);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 2, LCD3, bit_2);
 
     const bool bit_3 = (bool) ((nibble >> 3) & 0x01);
-    set_value(5, LCD4 + 4, bit_3);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD4 + 4, bit_3);
 
-    set_value(5, LCD_RS + 4, is_data);
-    // delay();
-    // Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
     delay();
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
     delay();
@@ -64,29 +53,18 @@ void lcd_send(uint8_t nibble, bool is_data)
 }
 
 
-void send_command(uint8_t command)
+void send_byte(uint8_t payload, bool data_type)
 {
-    const uint8_t upper_nibble = (command >> 4) & 0x0F;
-    lcd_send(upper_nibble, LCD_IS_COMMAND);
+    const uint8_t upper_nibble = (payload >> 4) & 0x0F;
+    lcd_send(upper_nibble, data_type);
     delay();
-    const uint8_t lower_nibble = command & 0x0F;
-    lcd_send(lower_nibble, LCD_IS_COMMAND);
+    const uint8_t lower_nibble = payload & 0x0F;
+    lcd_send(lower_nibble, data_type);
     delay();
 }
 
 
-void send_data(uint8_t data)
-{
-    const uint8_t upper_nibble = (data >> 4) & 0x0F;
-    lcd_send(upper_nibble, LCD_IS_DATA);
-    delay();
-    const uint8_t lower_nibble = data & 0x0F;
-    lcd_send(lower_nibble, LCD_IS_DATA);
-    delay();
-}
-
-
-void driver_lcd_init_port(void)
+void driver_lcd_init_port()
 {
     Chip_SCU_PinMux(LCD_PORT, LCD_RS, MD_PLN, FUNC4);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 5, LCD_RS + 4, 1);
@@ -110,6 +88,7 @@ void driver_lcd_init_port(void)
 
 void driver_lcd_init(void)
 {
+    driver_lcd_init_port();
     delay();
     // Function set (interface is 8 bits long)
     lcd_send(0x03, LCD_IS_COMMAND);
@@ -117,28 +96,25 @@ void driver_lcd_init(void)
     delay();
     lcd_send(0x03, LCD_IS_COMMAND);
     delay();
-    delay();
     lcd_send(0x03, LCD_IS_COMMAND);
-    delay();
     delay();
     lcd_send(0x02, LCD_IS_COMMAND);
     delay();
-    delay();
+
 
     // Function set: interface is 4-bit long, 5x8 dot font
     // DL = 1; 8-bit interface data
     // N = 0; 1-line display
     // F = 0; 5 × 8 dot character font
-    send_command(0x2F); // 0b0010 ' N F x x
-    send_command(0x08); // Display off
-    send_command(0x01); // Display clear
+    send_byte(0x2F, LCD_IS_COMMAND); // 0b0010 ' N F x x
+    send_byte(0x08, LCD_IS_COMMAND); // Display off
+    send_byte(0x01, LCD_IS_COMMAND); // Display clear
 
     // Entry mode set
     // I/D = 1; Increment by 1
     // S = 0; No shift
-    send_command(0x06); // 0b0000 ' 0 1 I/D S
-
-    send_command(0x0C); // Display on, cursor off
+    send_byte(0x06, LCD_IS_COMMAND); // 0b0000 ' 0 1 I/D S
+    send_byte(0x0C, LCD_IS_COMMAND); // Display on, cursor off
 }
 
 
@@ -147,10 +123,9 @@ void driver_lcd_set_position(uint8_t x, uint8_t y)
     if (x < 1 || x > 16) return;
     if (y < 1 || y > 2) return; // checks limits of display (16x2)
 
-    uint8_t address_position = (y == 1) ? 0x00 : 0x40;
+    uint8_t address_position = (y == 1) ? 0x80 : 0xC0;
     address_position += (uint8_t) (x - 1);
-    address_position |= 0x80; // this bit must be 1
-    send_command(address_position);
+    send_byte(address_position, LCD_IS_COMMAND);
 }
 
 
@@ -162,10 +137,10 @@ void driver_lcd_write_char(char C)
     case '\n':
         break;
     case '\b':
-        send_command(0x01); // Clear display screen
+        send_byte(0x01, LCD_IS_COMMAND); // Clear display screen
         break;
     default:
-        send_data(C);
+        send_byte(C, LCD_IS_DATA);
         break;
     }
 }
