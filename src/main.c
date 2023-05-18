@@ -78,7 +78,6 @@ void main_init()
     board_keyboard_init();
     board_adc_init(ADC_CH2);
     board_timer_init(5000);
-    driver_lcd_init_port();
     driver_lcd_init();
 
     // Interrupts enabling
@@ -126,21 +125,9 @@ void lcd_start_message()
 {
     driver_lcd_write_char('\b');
     driver_lcd_set_position(1, 1);
-    driver_lcd_write_char('P');
-    driver_lcd_write_char('U');
-    driver_lcd_write_char('L');
-    driver_lcd_write_char('S');
-    driver_lcd_write_char('A');
-    driver_lcd_write_char('D');
-    driver_lcd_write_char('O');
-    driver_lcd_write_char('R');
-    driver_lcd_write_char(' ');
-    driver_lcd_write_char('P');
-    driver_lcd_write_char('R');
-    driver_lcd_write_char('E');
-    driver_lcd_write_char('S');
-    driver_lcd_write_char('S');
-    driver_lcd_write_char(':');
+    driver_lcd_printf("ADC value:");
+    driver_lcd_set_position(1, 2);
+    driver_lcd_printf("xxxxx");
 }
 
 
@@ -176,6 +163,8 @@ void RIT_Handler(void)
 {
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
     uint16_t adc_val = board_adc_polling();
+    driver_lcd_set_position(1, 2);
+    driver_lcd_printf("xxxxx"); // TODO: convert number to char
     NVIC_EnableIRQ(RITIMER_IRQn);
     Chip_RIT_ClearInt(LPC_RITIMER);
 }
