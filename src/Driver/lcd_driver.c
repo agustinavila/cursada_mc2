@@ -90,7 +90,9 @@ void driver_lcd_init(void)
 {
     driver_lcd_init_port();
     delay();
-    // Function set (interface is 8 bits long)
+
+    // Init sequence
+    // TODO: improve delay
     lcd_send(0x03, LCD_IS_COMMAND);
     delay();
     delay();
@@ -101,19 +103,11 @@ void driver_lcd_init(void)
     lcd_send(0x02, LCD_IS_COMMAND);
     delay();
 
-
-    // Function set: interface is 4-bit long, 5x8 dot font
-    // DL = 1; 8-bit interface data
-    // N = 0; 1-line display
-    // F = 0; 5 × 8 dot character font
-    send_byte(0x2F, LCD_IS_COMMAND); // 0b0010 ' N F x x
+    send_byte(0x2F, LCD_IS_COMMAND); // Function set: interface is 4-bit long, 5x8 dot font
     send_byte(0x08, LCD_IS_COMMAND); // Display off
     send_byte(0x01, LCD_IS_COMMAND); // Display clear
 
-    // Entry mode set
-    // I/D = 1; Increment by 1
-    // S = 0; No shift
-    send_byte(0x06, LCD_IS_COMMAND); // 0b0000 ' 0 1 I/D S
+    send_byte(0x06, LCD_IS_COMMAND); // 0b0000 ' 0 1 I/D S - Increment by 1, no shift
     send_byte(0x0C, LCD_IS_COMMAND); // Display on, cursor off
 }
 
