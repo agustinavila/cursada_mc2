@@ -28,6 +28,66 @@
 #include <cr_section_macros.h>
 #include <stdint.h>
 
+void main_init();
+
+void handle_keyboard();
+
+void lcd_start_message();
+
+int main(void)
+{
+#if defined(__USE_LPCOPEN)
+    // Read clock settings and update SystemCoreClock variable
+    SystemCoreClockUpdate();
+#if !defined(NO_BOARD_LIB)
+#if defined(__MULTICORE_MASTER) || defined(__MULTICORE_NONE)
+    // Set up and initialize all required blocks and
+    // functions related to the board hardware
+    Board_Init();
+#endif
+    // Set the LED to the state of "On"
+    Board_LED_Set(0, true);
+#endif
+#endif
+    //variable definitions
+    // static volatile long i = 0;
+    // static volatile uint16_t adc_val = 0;
+
+    main_init();
+
+    lcd_start_message();
+    // Infinite loop
+    while (1) {
+        // i++;
+        // if (i > 10000000) {
+        //     handle_keyboard();
+        //     adc_val = board_adc_polling();
+        //     i = 0;
+        // }
+    }
+    return 0;
+}
+
+void main_init()
+{
+    // Initialization
+    led_init();
+    buzzer_init();
+    buzzer_turn_off();
+    buttons_init();
+    board_keyboard_init();
+    board_adc_init(ADC_CH2);
+    board_timer_init(5000);
+    driver_lcd_init_port();
+    driver_lcd_init();
+
+    // Interrupts enabling
+    board_keyboard_int_enable();
+    button_int_enable(TECLA1);
+    button_int_enable(TECLA2);
+    button_int_enable(TECLA3);
+    button_int_enable(TECLA4);
+}
 
 void handle_keyboard()
 {
@@ -83,55 +143,6 @@ void lcd_start_message()
     driver_lcd_write_char(':');
 }
 
-int main(void)
-{
-#if defined(__USE_LPCOPEN)
-    // Read clock settings and update SystemCoreClock variable
-    SystemCoreClockUpdate();
-#if !defined(NO_BOARD_LIB)
-#if defined(__MULTICORE_MASTER) || defined(__MULTICORE_NONE)
-    // Set up and initialize all required blocks and
-    // functions related to the board hardware
-    Board_Init();
-#endif
-    // Set the LED to the state of "On"
-    Board_LED_Set(0, true);
-#endif
-#endif
-    //variable definitions
-    // static volatile long i = 0;
-    // static volatile uint16_t adc_val = 0;
-
-    // Initialization
-    led_init();
-    buzzer_init();
-    buzzer_turn_off();
-    buttons_init();
-    board_keyboard_init();
-    board_adc_init(ADC_CH2);
-    board_timer_init(5000);
-    driver_lcd_init_port();
-    driver_lcd_init();
-
-    // Interrupts enabling
-    board_keyboard_int_enable();
-    button_int_enable(TECLA1);
-    button_int_enable(TECLA2);
-    button_int_enable(TECLA3);
-    button_int_enable(TECLA4);
-
-    lcd_start_message();
-    // Infinite loop
-    while (1) {
-        // i++;
-        // if (i > 10000000) {
-        //     handle_keyboard();
-        //     adc_val = board_adc_polling();
-        //     i = 0;
-        // }
-    }
-    return 0;
-}
 
 void PININT0_IRQ_HANDLER(void)
 {
