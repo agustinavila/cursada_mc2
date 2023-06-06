@@ -177,18 +177,7 @@ message(STATUS "Linker script directory: " ${LINKER_SCRIPT_DIR})
 #########################
 # LPCOpen: Chip Library #
 #########################
-if(NOT DEFINED LPCOPEN_VERSION)
-  set(LPCOPEN_VERSION 3.02)
-endif()
-set(LPCOPEN_PATH ${CMAKE_SOURCE_DIR}/../MCUXpressoIDE_11.7.0_9198/workspace)
-# Chip Library
-if(EXISTS ${LPCOPEN_PATH}/lpc_chip_43xx)
-  set(LPCOPEN_CHIP_PATH ${LPCOPEN_PATH}/lpc_chip_43xx)
-  add_subdirectory(${LPCOPEN_CHIP_PATH} "${CMAKE_CURRENT_BINARY_DIR}/lpc_chip_43xx")
-  message(STATUS "LPCOpen chip library (lpc_chip_43xx) path: " ${LPCOPEN_CHIP_PATH})
-else()
-  message(FATAL_ERROR "LPCOpen chip library (lpc_chip_43xx) source folder not found in: ${LPCOPEN_PATH}/lpc_chip_43xx")
-endif()
+add_subdirectory(platform/lpc43xx/lpc_chip_43xx)
 
 #########################
 # Board Support Package #
