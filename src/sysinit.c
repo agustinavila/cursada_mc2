@@ -17,11 +17,11 @@
  * retain, install, activate or otherwise use the software.
  */
 
- #if defined(NO_BOARD_LIB)
- #include "chip.h"
- #else
- #include "board.h"
- #endif
+#if defined(NO_BOARD_LIB)
+#include "chip.h"
+#else
+#include "board.h"
+#endif
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -62,6 +62,10 @@ void SystemInit(void)
 	extern void *__Vectors;
 
 	*pSCB_VTOR = (unsigned int) &__Vectors;
+#else
+	extern void *g_pfnVectors;
+
+	*pSCB_VTOR = (unsigned int) &g_pfnVectors;
 #endif
 
 #if defined(__FPU_PRESENT) && __FPU_PRESENT == 1

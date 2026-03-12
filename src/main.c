@@ -25,7 +25,6 @@
 #include "Driver/led_driver.h"
 #include "Driver/timer_driver.h"
 
-#include <cr_section_macros.h>
 #include <stdint.h>
 
 void main_init();
