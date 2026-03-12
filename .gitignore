@@ -1,4 +1,6 @@
 Debug
+build/
+.codex-tmp/
 .settings
 # Prerequisites
 *.d

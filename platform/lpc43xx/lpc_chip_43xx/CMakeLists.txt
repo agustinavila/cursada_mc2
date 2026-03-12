@@ -1,29 +1,44 @@
-set(LIBRARY_NAME lpc_chip_43xx)
-
-set(LIBRARY_VERSION_MAJOR 2)
-set(LIBRARY_VERSION_MINOR 1)
-set(LIBRARY_VERSION_PATCH 2)
-set(LIBRARY_VERSION ${LIBRARY_VERSION_MAJOR}.${LIBRARY_VERSION_MINOR}.${LIBRARY_VERSION_PATCH})
-
-file(GLOB_RECURSE CHIP_SOURCE_FILES src/*.c)
-file(GLOB_RECURSE CHIP_HEADER_FILES inc/*.h)
-file(GLOB_RECURSE CHIP_HEADER_FILES inc/config_43xx/*.h)
-file(GLOB_RECURSE CHIP_HEADER_FILES inc/usbd_rom/*.h)
-
-set(LPCOPEN_CHIP_INCLUDE_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/inc CACHE INTERNAL "lpcopen chip library include paths")
-
-include_directories(${LPCOPEN_CHIP_INCLUDE_PATHS})
-
-set_source_files_properties(${CHIP_SOURCE_FILES} PROPERTIES LANGUAGE C)
-
-add_library(${LIBRARY_NAME} STATIC
-  ${CHIP_SOURCE_FILES}
-  ${CHIP_HEADER_FILES}
+set(LPC43XX_CHIP_SOURCES
+    src/adc_18xx_43xx.c
+    src/aes_18xx_43xx.c
+    src/atimer_18xx_43xx.c
+    src/ccan_18xx_43xx.c
+    src/chip_18xx_43xx.c
+    src/clock_18xx_43xx.c
+    src/dac_18xx_43xx.c
+    src/eeprom_18xx_43xx.c
+    src/emc_18xx_43xx.c
+    src/enet_18xx_43xx.c
+    src/evrt_18xx_43xx.c
+    src/fpu_init.c
+    src/gpdma_18xx_43xx.c
+    src/gpiogroup_18xx_43xx.c
+    src/gpio_18xx_43xx.c
+    src/i2cm_18xx_43xx.c
+    src/i2c_18xx_43xx.c
+    src/i2s_18xx_43xx.c
+    src/iap_18xx_43xx.c
+    src/lcd_18xx_43xx.c
+    src/otp_18xx_43xx.c
+    src/pinint_18xx_43xx.c
+    src/pmc_18xx_43xx.c
+    src/ring_buffer.c
+    src/ritimer_18xx_43xx.c
+    src/rtc_18xx_43xx.c
+    src/sct_18xx_43xx.c
+    src/sct_pwm_18xx_43xx.c
+    src/sdif_18xx_43xx.c
+    src/sdio_18xx_43xx.c
+    src/sdmmc_18xx_43xx.c
+    src/spi_18xx_43xx.c
+    src/ssp_18xx_43xx.c
+    src/stopwatch_18xx_43xx.c
+    src/sysinit_18xx_43xx.c
+    src/timer_18xx_43xx.c
+    src/uart_18xx_43xx.c
+    src/wwdt_18xx_43xx.c
 )
 
-set_target_properties(${LIBRARY_NAME} PROPERTIES
-  OUTPUT_NAME "${LIBRARY_NAME}_${LIBRARY_VERSION}"
-  LINKER_LANGUAGE C
-)
-
-include(${PLATFORM_FILE})
+add_library(lpc_chip_43xx STATIC ${LPC43XX_CHIP_SOURCES})
+target_include_directories(lpc_chip_43xx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/inc")
+target_link_libraries(lpc_chip_43xx PUBLIC lpc43xx_common)
