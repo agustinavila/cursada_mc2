@@ -52,11 +52,7 @@ function(lpc4337_configure_firmware_target target_name)
             COMMAND ${OPENOCD_EXECUTABLE}
                 -f "${OPENOCD_CONFIG}"
                 -c "init"
-                -c "halt"
-                -c "flash write_image erase \"$<TARGET_FILE:${target_name}>\""
-                -c "verify_image \"$<TARGET_FILE:${target_name}>\""
-                -c "reset run"
-                -c "shutdown"
+                -c "program \"$<TARGET_FILE:${target_name}>\" verify reset exit"
             DEPENDS ${target_name}
             USES_TERMINAL
             VERBATIM
