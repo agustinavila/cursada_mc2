@@ -5,39 +5,59 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 ## Estructura
 
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
-- `platform/lpc43xx/`: código vendor heredado de NXP/LPCOpen que se conserva como capa de chip support.
-- `platform/openocd/ciaa-nxp.cfg`: configuración de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
-- `src/`: startup, system init, aplicación actual y target mínimo de validación.
+- `platform/lpc43xx/`: codigo vendor heredado de NXP/LPCOpen que se conserva como capa de chip support.
+- `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
+- `src/`: startup, system init, aplicacion actual y target minimo de validacion.
 - `.vscode/`: tasks, launch y settings para VS Code.
 
 ## Prerrequisitos en Windows
 
-Tienen que estar accesibles desde `PATH`:
+Estas herramientas tienen que estar accesibles desde `PATH`:
 
 - `cmake`
+- `ninja`
 - `arm-none-eabi-gcc`
 - `arm-none-eabi-gdb`
+- `arm-none-eabi-objdump`
 - `openocd`
 
-Verificación rápida:
+Verificacion rapida:
 
 ```powershell
 cmake --version
+ninja --version
 arm-none-eabi-gcc --version
 arm-none-eabi-gdb --version
+arm-none-eabi-objdump --version
 openocd --version
 ```
 
-Si el toolchain no está en `PATH`, podés configurar una ruta explícita al momento de configurar:
+Versiones validadas en esta maquina para el flujo actual:
+
+- `cmake`: `3.27.6`
+- `ninja`: `1.11.1`
+- `arm-none-eabi-gcc`: `Arm GNU Toolchain 14.2.Rel1`, `gcc 14.2.1 20241119`
+- `arm-none-eabi-gdb`: `Arm GNU Toolchain 14.2.Rel1`, `gdb 15.2.90.20241130-git`
+- `arm-none-eabi-objdump`: `Arm GNU Toolchain 14.2.Rel1`, `objdump 2.43.1.20241119`
+- `openocd`: `0.12.0 (2023-01-14-23:37)`
+
+Con estas versiones se validaron:
+
+- configuracion `debug` y `release`
+- build de `cursada_mc2_blink` y `cursada_mc2_app`
+- flash con OpenOCD
+- sesion de GDB detenida en `main`
+
+Si el toolchain no esta en `PATH`, podes configurar una ruta explicita al momento de configurar. Usa la carpeta raiz del toolchain o su subcarpeta `bin`, segun tu instalacion:
 
 ```powershell
-cmake --preset debug -DARM_NONE_EABI_TOOLCHAIN_PATH="C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1"
+cmake --preset debug -DARM_NONE_EABI_TOOLCHAIN_PATH="<ruta-al-toolchain-o-bin>"
 ```
 
 ## Targets disponibles
 
-- `cursada_mc2_blink`: firmware mínimo para validar build, flash y debug.
-- `cursada_mc2_app`: aplicación actual con los drivers existentes.
+- `cursada_mc2_blink`: firmware minimo para validar build, flash y debug.
+- `cursada_mc2_app`: aplicacion actual con los drivers existentes.
 
 Cada target genera:
 
@@ -73,7 +93,7 @@ Blink:
 cmake --build --preset debug --target flash_cursada_mc2_blink
 ```
 
-Aplicación actual:
+Aplicacion actual:
 
 ```powershell
 cmake --build --preset debug --target flash_cursada_mc2_app
@@ -97,18 +117,18 @@ Flujo:
 
 1. Ejecutar `Configure [debug]` o usar el preset `debug` de CMake Tools.
 2. Ejecutar `Build Blink [debug]` o `Build App [debug]`.
-3. Elegir `Debug Blink (OpenOCD)` o `Debug App (OpenOCD)` en la pestaña Run and Debug.
-4. El debugger usa `runToEntryPoint: main`, así que debe detenerse en `main`.
+3. Elegir `Debug Blink (OpenOCD)` o `Debug App (OpenOCD)` en la pestana Run and Debug.
+4. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
 
-## Validación de OpenOCD y del probe FTDI
+## Validacion de OpenOCD y del probe FTDI
 
-Validación mínima de conectividad:
+Validacion minima de conectividad:
 
 ```powershell
 openocd -f platform/openocd/ciaa-nxp.cfg -c "init; targets; shutdown"
 ```
 
-Ese comando debería detectar al menos el TAP `lpc4337.m4`.
+Ese comando deberia detectar al menos el TAP `lpc4337.m4`.
 
 Para inspeccionar dispositivos USB/driver en Windows:
 
@@ -116,7 +136,7 @@ Para inspeccionar dispositivos USB/driver en Windows:
 Get-PnpDevice -PresentOnly | Where-Object { $_.FriendlyName -match 'FTDI|CMSIS|J-Link|ST-Link|LPC-Link|NXP|CIAA' } | Format-Table -Auto
 ```
 
-Si necesitás ver más detalle del FTDI:
+Si necesitas ver mas detalle del FTDI:
 
 ```powershell
 pnputil /enum-devices /connected
@@ -132,49 +152,50 @@ LPCOpen queda reducido a vendor code de soporte:
 - chip support
 - startup/system integration alineada con LPC4337
 
-No se usa board library. El código propio vive en `src/` y se apoya en `lpc_chip_43xx` como capa de bajo nivel.
+No se usa board library. El codigo propio vive en `src/` y se apoya en `lpc_chip_43xx` como capa de bajo nivel.
 
 ## Troubleshooting
 
 ### OpenOCD no detecta la placa
 
-- Verificar que la placa esté alimentada y conectada.
+- Verificar que la placa este alimentada y conectada.
 - Probar `openocd -f platform/openocd/ciaa-nxp.cfg -c "init; targets; shutdown"`.
-- Verificar si Windows está exponiendo la interfaz FTDI correcta.
+- Verificar si Windows esta exponiendo la interfaz FTDI correcta.
 - No cambiar drivers si OpenOCD ya detecta el TAP.
-- Usar Zadig y `WinUSB` sólo si OpenOCD deja de abrir la interfaz FTDI o no aparece el dispositivo correcto.
+- Usar Zadig y `WinUSB` solo si OpenOCD deja de abrir la interfaz FTDI o no aparece el dispositivo correcto.
 
 ### GDB no conecta
 
-- Confirmar que `arm-none-eabi-gdb` esté en `PATH`.
+- Confirmar que `arm-none-eabi-gdb` este en `PATH`.
 - Confirmar que `openocd` arranca sin errores con el mismo `cfg`.
-- Revisar que el `launch.json` apunte al `.elf` del preset `debug`.
+- Revisar que el `launch.json` apunte al `.elf` del preset `debug` y que `arm-none-eabi-gdb`, `arm-none-eabi-objdump` y `openocd` esten en `PATH`.
+- Si una sesion previa dejo `openocd` abierto, cerrar la sesion de debug o terminar el proceso antes de reintentar.
 
 ### VS Code no encuentra el toolchain
 
 - Verificar `arm-none-eabi-gcc --version`.
-- Si no está en `PATH`, configurar `ARM_NONE_EABI_TOOLCHAIN_PATH` al correr `cmake --preset debug`.
-- Reconfigurar el preset después del cambio.
+- Si no esta en `PATH`, configurar `ARM_NONE_EABI_TOOLCHAIN_PATH` al correr `cmake --preset debug`.
+- Reconfigurar el preset despues del cambio.
 
 ### Problemas con rutas en Windows
 
-- Esta base usa `build/debug` y `build/release`, no el árbol legado `Debug/`.
-- Si movés el repo de carpeta, reconfigurá con `cmake --preset debug`.
+- Esta base usa `build/debug` y `build/release`, no el arbol legado `Debug/`.
+- Si moves el repo de carpeta, reconfigura con `cmake --preset debug`.
 - No reutilices `CMakeCache.txt` viejos de otra ruta.
 
 ### Errores de linker o startup
 
 - Confirmar que el target sea el core M4.
 - Confirmar que no se haya cambiado el linker script base bajo `platform/lpc43xx/ldscripts/default/`.
-- Confirmar que `src/cr_startup_lpc43xx.c` y `src/sysinit.c` estén siendo compilados.
+- Confirmar que `src/cr_startup_lpc43xx.c` y `src/sysinit.c` esten siendo compilados.
 
 ### Problemas por dependencias viejas de LPCOpen
 
-- Evitar agregar código nuevo que dependa del board library.
-- Mantener el acceso a periféricos a través de drivers propios o directamente sobre `chip.h`.
-- Si aparece una dependencia a símbolos de MCUXpresso/Code Red, revisá primero si viene de headers viejos o includes heredados.
+- Evitar agregar codigo nuevo que dependa del board library.
+- Mantener el acceso a perifericos a traves de drivers propios o directamente sobre `chip.h`.
+- Si aparece una dependencia a simbolos de MCUXpresso/Code Red, revisar primero si viene de headers viejos o includes heredados.
 
-## Validación mínima sugerida
+## Validacion minima sugerida
 
 1. Compilar `cursada_mc2_blink`.
 2. Verificar `build/debug/cursada_mc2_blink.elf`, `.bin` y `.hex`.
@@ -183,6 +204,6 @@ No se usa board library. El código propio vive en `src/` y se apoya en `lpc_chi
 5. Confirmar que el debugger se detiene en `main`.
 6. Repetir el flujo con `cursada_mc2_app`.
 
-## Nota sobre el árbol `Debug/`
+## Nota sobre el arbol `Debug/`
 
-El directorio `Debug/` heredado de MCUXpresso quedó como referencia histórica. El flujo reproducible actual usa exclusivamente `build/debug` y `build/release`.
+El directorio `Debug/` heredado de MCUXpresso quedo como referencia historica. El flujo reproducible actual usa exclusivamente `build/debug` y `build/release`.

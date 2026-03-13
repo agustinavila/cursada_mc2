@@ -8,9 +8,8 @@
             "cwd": "${workspaceFolder}",
             "servertype": "openocd",
             "serverpath": "openocd",
-            "armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",
-            "gdbPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gdb.exe",
-            "objdumpPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-objdump.exe",
+            "gdbPath": "arm-none-eabi-gdb",
+            "objdumpPath": "arm-none-eabi-objdump",
             "device": "LPC4337",
             "configFiles": [
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
@@ -28,9 +27,8 @@
             "cwd": "${workspaceFolder}",
             "servertype": "openocd",
             "serverpath": "openocd",
-            "armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",
-            "gdbPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gdb.exe",
-            "objdumpPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-objdump.exe",
+            "gdbPath": "arm-none-eabi-gdb",
+            "objdumpPath": "arm-none-eabi-objdump",
             "device": "LPC4337",
             "configFiles": [
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
