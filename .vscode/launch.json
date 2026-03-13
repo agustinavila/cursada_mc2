@@ -8,7 +8,9 @@
             "cwd": "${workspaceFolder}",
             "servertype": "openocd",
             "serverpath": "openocd",
-            "gdbPath": "arm-none-eabi-gdb",
+            "armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",
+            "gdbPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gdb.exe",
+            "objdumpPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-objdump.exe",
             "device": "LPC4337",
             "configFiles": [
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
@@ -16,6 +18,7 @@
             "executable": "${workspaceFolder}/build/debug/cursada_mc2_blink.elf",
             "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
             "runToEntryPoint": "main",
+            "showDevDebugOutput": "raw",
             "preLaunchTask": "Build Blink [debug]"
         },
         {
@@ -25,7 +28,9 @@
             "cwd": "${workspaceFolder}",
             "servertype": "openocd",
             "serverpath": "openocd",
-            "gdbPath": "arm-none-eabi-gdb",
+            "armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",
+            "gdbPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gdb.exe",
+            "objdumpPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-objdump.exe",
             "device": "LPC4337",
             "configFiles": [
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
@@ -33,6 +38,7 @@
             "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
             "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
             "runToEntryPoint": "main",
+            "showDevDebugOutput": "raw",
             "preLaunchTask": "Build App [debug]"
         }
     ]
