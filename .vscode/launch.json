@@ -2,39 +2,42 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach openOCD",
-            "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/Debug/bin/cursada_mc2.axf",
-            "armToolchainPath": "C:/nxp/MCUXpressoIDE_11.7.0_9198/ide/tools/bin",
-            "request": "launch",
+            "name": "Debug Blink (OpenOCD)",
             "type": "cortex-debug",
-            "servertype": "external",
-            "showDevDebugOutput": "raw",
-            "device": "LPC4337",
-            "gdbTarget": "localhost:3333",
-            "svdFile": "${workspaceRoot}/LPC43xx_43Sxx.svd",
-            "preLaunchTask": "Build Project [Debug]"
-        }, {
-            "name": "Launch openOCD",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
             "servertype": "openocd",
-            "cwd": "${workspaceRoot}",
-            "executable": "${workspaceRoot}/Debug/bin/cursada_mc2.axf",
-            "armToolchainPath": "C:/nxp/MCUXpressoIDE_11.7.0_9198/ide/tools/bin",
-            "request": "launch",
-            "configFiles": ["${workspaceRoot}/platform/openocd/ciaa-nxp.cfg"],
-            // "preLaunchCommands": [
-            //     "init", "halt 0",
-            // ],
-            // "openOCDLaunchCommands": ["flash write_image erase unlock ${workspaceRoot}/Debug/bin/cursada_mc2.axf 0x1A000000 bin"],
-            // "postResetCommands": [
-            //     "reset run", "shutdown"
-            // ],
-            "type": "cortex-debug",
-            "showDevDebugOutput": "raw",
+            "serverpath": "openocd",
+            "gdbPath": "arm-none-eabi-gdb",
+            "objdumpPath": "arm-none-eabi-objdump",
             "device": "LPC4337",
-            "gdbTarget": "localhost:3333",
-            "svdFile": "${workspaceRoot}/LPC43xx_43Sxx.svd",
-            "preLaunchTask": "Build Project [Debug]"
+            "configFiles": [
+                "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
+            ],
+            "executable": "${workspaceFolder}/build/debug/cursada_mc2_blink.elf",
+            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "raw",
+            "preLaunchTask": "Build Blink [debug]"
+        },
+        {
+            "name": "Debug App (OpenOCD)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "servertype": "openocd",
+            "serverpath": "openocd",
+            "gdbPath": "arm-none-eabi-gdb",
+            "objdumpPath": "arm-none-eabi-objdump",
+            "device": "LPC4337",
+            "configFiles": [
+                "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
+            ],
+            "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
+            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "raw",
+            "preLaunchTask": "Build App [debug]"
         }
     ]
 }

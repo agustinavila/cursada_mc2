@@ -55,7 +55,7 @@ void led_turn_on(uint8_t numero_led)
     }
 }
 
-void led_apagar(uint8_t numero_led)
+void led_turn_off(uint8_t numero_led)
 {
     switch (numero_led) {
     case LED0R:

@@ -1,47 +1,12 @@
-file(GLOB SOURCE_FILES
-  *.c
-  *.cpp
+add_library(cursada_mc2_drivers STATIC
+    adc_driver.c
+    buttons_driver.c
+    buzzer_driver.c
+    keyboard_driver.c
+    lcd_driver.c
+    led_Driver.c
+    timer_driver.c
+    uart_driver.c
 )
-file(GLOB HEADER_FILES
-  *.h
-)
-
-include_directories(${LPCOPEN_CHIP_INCLUDE_PATHS})
-
-# # Add system files
-# if(${CPP})
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../crp.c)
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../sysinit.c)
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../cr_startup_lpc43xx.cpp)
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../cr_cpp_config.cpp)
-#   list(APPEND SOURCE_FILES ${SYSTEM_FILES})
-# else()
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../crp.c)
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../sysinit.c)
-#   set(SYSTEM_FILES ${SYSTEM_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/../cr_startup_lpc43xx.c)
-#   list(APPEND SOURCE_FILES ${SYSTEM_FILES})
-# endif()
-
-if(${CPP})
-  add_definitions(-DCPP_USE_HEAP)
-endif()
-
-include(${PLATFORM_FILE})
-# include(${PLATFORM_TARGETS})
-
-add_library(${FULL_OUTPUT_NAME}_driver
-  ${SOURCE_FILES}
-  ${HEADER_FILES}
-)
-
-set_target_properties(${FULL_OUTPUT_NAME}_driver PROPERTIES
-  LINKER_LANGUAGE ${LANG}
-)
-
-if(DEFINED BSP_PATH)
-  include_directories(${BSP_INCLUDE_PATHS})
-  target_link_libraries(${FULL_OUTPUT_NAME} ${BSP_LIBRARY_NAME})
-else()
-  target_link_libraries(${FULL_OUTPUT_NAME}_driver lpc_chip_43xx)
-endif()
-
+target_include_directories(cursada_mc2_drivers PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(cursada_mc2_drivers PUBLIC lpc43xx_common)

@@ -22,12 +22,26 @@
 #define LCD_IS_DATA 1
 #define LCD_IS_COMMAND 0
 
-void delay(void)
+static void lcd_delay_cycles(volatile uint32_t cycles)
 {
-    uint16_t x = 0;
-    for (uint16_t i = 0; i < 9999; i++) { x++; }
+    while (cycles-- > 0U) {
+        __asm volatile ("nop");
+    }
 }
 
+static void lcd_delay_us(uint32_t microseconds)
+{
+    const uint32_t core_clock_hz = (SystemCoreClock != 0U) ? SystemCoreClock : 12000000U;
+    const uint32_t cycles_per_us = (core_clock_hz / 3000000U) + 1U;
+    lcd_delay_cycles(cycles_per_us * microseconds);
+}
+
+static void lcd_delay_ms(uint32_t milliseconds)
+{
+    while (milliseconds-- > 0U) {
+        lcd_delay_us(1000U);
+    }
+}
 
 void lcd_send(uint8_t nibble, bool is_data)
 {
@@ -45,11 +59,11 @@ void lcd_send(uint8_t nibble, bool is_data)
     const bool bit_3 = (bool) ((nibble >> 3) & 0x01);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD4 + 4, bit_3);
 
-    delay();
+    lcd_delay_us(1U);
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    delay();
+    lcd_delay_us(1U);
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    delay();
+    lcd_delay_us(50U);
 }
 
 
@@ -57,10 +71,8 @@ void send_byte(uint8_t payload, bool data_type)
 {
     const uint8_t upper_nibble = (payload >> 4) & 0x0F;
     lcd_send(upper_nibble, data_type);
-    delay();
     const uint8_t lower_nibble = payload & 0x0F;
     lcd_send(lower_nibble, data_type);
-    delay();
 }
 
 
@@ -83,32 +95,41 @@ void driver_lcd_init_port()
 
     Chip_SCU_PinMux(LCD_PORT, LCD1, MD_PLN, FUNC0);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, 2, LCD1, 1);
+
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_RS + 4);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD4 + 4);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 2, LCD3);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 2, LCD2);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 2, LCD1);
 }
 
 
 void driver_lcd_init(void)
 {
     driver_lcd_init_port();
-    delay();
+    lcd_delay_ms(50U);
 
-    // Init sequence
-    // TODO: improve delay
+    // HD44780 4-bit initialization sequence
     lcd_send(0x03, LCD_IS_COMMAND);
-    delay();
-    delay();
+    lcd_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);
-    delay();
+    lcd_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);
-    delay();
+    lcd_delay_ms(5U);
     lcd_send(0x02, LCD_IS_COMMAND);
-    delay();
+    lcd_delay_ms(5U);
 
-    send_byte(0x2F, LCD_IS_COMMAND); // Function set: interface is 4-bit long, 5x8 dot font
+    send_byte(0x28, LCD_IS_COMMAND); // 4-bit, 2 lines, 5x8 font
+    lcd_delay_ms(2U);
     send_byte(0x08, LCD_IS_COMMAND); // Display off
+    lcd_delay_ms(2U);
     send_byte(0x01, LCD_IS_COMMAND); // Display clear
-
+    lcd_delay_ms(5U);
     send_byte(0x06, LCD_IS_COMMAND); // 0b0000 ' 0 1 I/D S - Increment by 1, no shift
+    lcd_delay_ms(2U);
     send_byte(0x0C, LCD_IS_COMMAND); // Display on, cursor off
+    lcd_delay_ms(2U);
 }
 
 
@@ -132,6 +153,7 @@ void driver_lcd_write_char(char C)
         break;
     case '\b':
         send_byte(0x01, LCD_IS_COMMAND); // Clear display screen
+        lcd_delay_ms(5U);
         break;
     default:
         send_byte(C, LCD_IS_DATA);
