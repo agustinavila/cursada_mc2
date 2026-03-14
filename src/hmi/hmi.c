@@ -137,6 +137,7 @@ typedef struct {
     hmi_screen_t current_screen;
     uint8_t current_node;
     uint8_t last_button_mask;
+    int16_t edit_value;
     bool needs_redraw;
 } hmi_state_t;
 
@@ -293,10 +294,10 @@ static void hmi_render_edit(void)
     if (hmi_state_.current_node == HMI_NODE_MODE) {
         (void) snprintf(value_line, sizeof(value_line), "%s:%s",
                         current_item->title,
-                        hmi_obtener_texto_modo_control_desde_valor(*current_item->value));
+                        hmi_obtener_texto_modo_control_desde_valor(hmi_state_.edit_value));
     } else {
         (void) snprintf(value_line, sizeof(value_line), "%s:%d",
-                        current_item->title, *current_item->value);
+                        current_item->title, hmi_state_.edit_value);
     }
 
     hmi_lcd_write_line(1U, "EDITAR");
@@ -401,6 +402,7 @@ static void hmi_handle_menu_event(hmi_event_t event)
             hmi_state_.current_node = current_item->first_child;
             hmi_state_.current_screen = HMI_SCREEN_MENU;
         } else {
+            hmi_state_.edit_value = *current_item->value;
             hmi_state_.current_screen = HMI_SCREEN_EDIT;
         }
         hmi_state_.needs_redraw = true;
@@ -415,7 +417,7 @@ static void hmi_handle_menu_event(hmi_event_t event)
 static void hmi_handle_edit_event(hmi_event_t event)
 {
     const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
-    int16_t new_value = *current_item->value;
+    int16_t new_value = hmi_state_.edit_value;
 
     switch (event) {
     case HMI_EVENT_MENU:
@@ -428,7 +430,7 @@ static void hmi_handle_edit_event(hmi_event_t event)
         if (new_value > current_item->max_value) {
             new_value = current_item->max_value;
         }
-        *current_item->value = new_value;
+        hmi_state_.edit_value = new_value;
         hmi_state_.needs_redraw = true;
         break;
 
@@ -437,11 +439,12 @@ static void hmi_handle_edit_event(hmi_event_t event)
         if (new_value < current_item->min_value) {
             new_value = current_item->min_value;
         }
-        *current_item->value = new_value;
+        hmi_state_.edit_value = new_value;
         hmi_state_.needs_redraw = true;
         break;
 
     case HMI_EVENT_ENTER:
+        *current_item->value = hmi_state_.edit_value;
         hmi_state_.current_screen = HMI_SCREEN_MENU;
         hmi_state_.needs_redraw = true;
         break;
@@ -457,6 +460,7 @@ void hmi_init(void)
     hmi_state_.current_screen = HMI_SCREEN_HOME;
     hmi_state_.current_node = HMI_NODE_PARAMS;
     hmi_state_.last_button_mask = 0U;
+    hmi_state_.edit_value = 0;
     hmi_state_.needs_redraw = true;
 
     driver_delay_init();
