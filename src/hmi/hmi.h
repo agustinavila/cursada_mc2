@@ -1,6 +1,6 @@
 /**
  * @file hmi.h
- * @brief Interfaz de la HMI jerárquica para LCD y pulsadores de la EDU-CIAA
+ * @brief Interfaz de la HMI jerarquica para LCD y pulsadores de la EDU-CIAA
  */
 
 #if !defined(HMI_H_)
@@ -15,12 +15,12 @@
 void hmi_init(void);
 
 /**
- * @brief Procesa la navegación de la interfaz y actualiza el LCD si es necesario.
+ * @brief Procesa la navegacion de la interfaz y actualiza el LCD si es necesario.
  *
- * Esta función debe llamarse de manera periódica desde el lazo principal.
+ * Esta funcion debe llamarse de manera periodica desde el lazo principal.
  * Internamente:
  * - lee el estado de los pulsadores,
- * - detecta eventos de navegación,
+ * - detecta eventos de navegacion,
  * - actualiza el estado de la HMI,
  * - y redibuja la pantalla cuando corresponde.
  */
