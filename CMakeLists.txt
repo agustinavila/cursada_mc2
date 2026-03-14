@@ -20,6 +20,15 @@ if(NOT OPENOCD_EXECUTABLE)
     message(WARNING "OpenOCD was not found in PATH. Flash targets will fail until it is installed or added to PATH.")
 endif()
 
+# cppcheck es opcional. Si no esta disponible, el target de analisis se omite
+# sin romper la configuracion ni la compilacion normal del proyecto.
+find_program(CPPCHECK_EXECUTABLE NAMES cppcheck)
+if(CPPCHECK_EXECUTABLE)
+    message(STATUS "Using cppcheck from: ${CPPCHECK_EXECUTABLE}")
+else()
+    message(STATUS "cppcheck was not found in PATH. The optional 'cppcheck' target will print a message and exit successfully.")
+endif()
+
 # Genera un linker script efectivo a partir de los fragmentos provistos por NXP.
 lpc4337_generate_linker_script(LPC4337_LINKER_SCRIPT "${LPC4337_LINKER_DIR}")
 
@@ -55,3 +64,36 @@ target_compile_options(lpc43xx_common INTERFACE
 # Primero se agrega el codigo vendor del chip y luego la aplicacion.
 add_subdirectory(platform/lpc43xx/lpc_chip_43xx)
 add_subdirectory(src)
+
+# Target opcional de analisis estatico. No participa de la build normal y se
+# puede invocar manualmente si la herramienta esta instalada.
+if(CPPCHECK_EXECUTABLE)
+    add_custom_target(cppcheck
+        COMMAND ${CPPCHECK_EXECUTABLE}
+            --template=gcc
+            --enable=warning,style,performance,portability
+            --error-exitcode=1
+            --inline-suppr
+            --suppress=missingIncludeSystem
+            --suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*
+            -D__GNUC__
+            -DCORE_M4
+            -Isrc
+            -Isrc/Driver
+            -Iplatform/lpc43xx/lpc_chip_43xx/inc
+            src/main.c
+            src/sysinit.c
+            src/hmi
+            src/app
+            src/control
+            src/Driver
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        USES_TERMINAL
+        VERBATIM
+    )
+else()
+    add_custom_target(cppcheck
+        COMMAND ${CMAKE_COMMAND} -E echo "cppcheck no esta disponible en PATH. Se omite el analisis."
+        VERBATIM
+    )
+endif()

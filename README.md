@@ -130,6 +130,14 @@ Si tambien cambiaste tooling o integracion local, conviene correr ademas:
 cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver
 ```
 
+Como alternativa, el proyecto expone un target opcional de CMake:
+
+```powershell
+cmake --build --preset debug --target cppcheck
+```
+
+Si `cppcheck` no esta instalado en la maquina, ese target no falla: solo informa que el analisis se omite.
+
 ## Build desde terminal
 
 Configurar y compilar en debug:
