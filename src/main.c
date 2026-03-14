@@ -17,20 +17,7 @@
 #endif
 #endif
 
-#include "Driver/adc_driver.h"
-#include "Driver/buttons_driver.h"
-#include "Driver/buzzer_driver.h"
-#include "Driver/keyboard_driver.h"
-#include "Driver/lcd_driver.h"
-#include "Driver/led_Driver.h"
-#include "Driver/timer_driver.h"
-#include "hmi/hmi.h"
-
-#include <stdint.h>
-
-void main_init();
-
-void handle_keyboard();
+#include "app/app.h"
 
 int main(void)
 {
@@ -47,62 +34,12 @@ int main(void)
     Board_LED_Set(0, true);
 #endif
 #endif
-    //variable definitions
-    // static volatile long i = 0;
-    // static volatile uint16_t adc_val = 0;
-
-    main_init();
-    // Infinite loop
+    app_init();
     while (1) {
-        hmi_process();
+        app_process();
     }
+
     return 0;
-}
-
-void main_init()
-{
-    // Initialization
-    led_init();
-    buzzer_init();
-    buzzer_turn_off();
-    buttons_init();
-    board_keyboard_init();
-    board_adc_init(ADC_CH2);
-    driver_lcd_init();
-    hmi_init();
-}
-
-void handle_keyboard()
-{
-    uint8_t last_char = board_keyboard_get_last_char();
-    switch (last_char) {
-    case 0:
-    case 10:
-    case 20:
-        led_toggle(LED1);
-        break;
-    case 1:
-    case 11:
-    case 21:
-        led_toggle(LED2);
-        break;
-    case 2:
-    case 12:
-    case 22:
-        led_toggle(LED3);
-        break;
-    case 30:
-        led_toggle(LED0B);
-        break;
-    case 31:
-        led_toggle(LED0G);
-        break;
-    case 32:
-        led_toggle(LED0R);
-        break;
-    case 0xFF:
-        break;
-    }
 }
 
 void PININT0_IRQ_HANDLER(void)

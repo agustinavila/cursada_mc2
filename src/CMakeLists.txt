@@ -8,6 +8,7 @@ target_link_libraries(cursada_mc2_startup PRIVATE lpc43xx_common)
 add_subdirectory(Driver)
 
 add_executable(cursada_mc2_app
+    app/app.c
     hmi/hmi.c
     main.c
     $<TARGET_OBJECTS:cursada_mc2_startup>
