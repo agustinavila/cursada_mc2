@@ -62,20 +62,14 @@ typedef struct {
 enum {
     HMI_NODE_ROOT = 0,
     HMI_NODE_PARAMS,
-    HMI_NODE_MONITOR,
-    HMI_NODE_SYSTEM,
     HMI_NODE_SETPOINT,
-    HMI_NODE_TIME,
-    HMI_NODE_ADC,
-    HMI_NODE_BUTTON_MODE,
-    HMI_NODE_BUZZER,
+    HMI_NODE_HYSTERESIS,
+    HMI_NODE_MODE,
 };
 
-static int16_t hmi_setpoint_ = 25;
-static int16_t hmi_time_seconds_ = 5;
-static int16_t hmi_adc_preview_ = 0;
-static int16_t hmi_button_mode_ = 1;
-static int16_t hmi_buzzer_enable_ = 0;
+static int16_t hmi_setpoint_celsius_ = 27;
+static int16_t hmi_histeresis_celsius_ = 2;
+static int16_t hmi_modo_calentar_ = 1;
 
 static ds18b20_bus_driver_t hmi_temperature_bus_;
 static uint8_t hmi_sensor_count_ = 0U;
@@ -104,69 +98,35 @@ static const hmi_menu_item_t hmi_menu_tree_[] = {
         .title = "Parametros",
         .parent = HMI_NODE_ROOT,
         .first_child = HMI_NODE_SETPOINT,
-        .next_sibling = HMI_NODE_MONITOR,
-        .kind = HMI_ITEM_MENU,
-    },
-    [HMI_NODE_MONITOR] = {
-        .title = "Monitoreo",
-        .parent = HMI_NODE_ROOT,
-        .first_child = HMI_NODE_ADC,
-        .previous_sibling = HMI_NODE_PARAMS,
-        .next_sibling = HMI_NODE_SYSTEM,
-        .kind = HMI_ITEM_MENU,
-    },
-    [HMI_NODE_SYSTEM] = {
-        .title = "Sistema",
-        .parent = HMI_NODE_ROOT,
-        .first_child = HMI_NODE_BUZZER,
-        .previous_sibling = HMI_NODE_MONITOR,
         .kind = HMI_ITEM_MENU,
     },
     [HMI_NODE_SETPOINT] = {
         .title = "Setpoint",
         .parent = HMI_NODE_PARAMS,
-        .next_sibling = HMI_NODE_TIME,
+        .next_sibling = HMI_NODE_HYSTERESIS,
         .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_setpoint_,
+        .value = &hmi_setpoint_celsius_,
         .min_value = 0,
-        .max_value = 100,
+        .max_value = 120,
         .step = 1,
     },
-    [HMI_NODE_TIME] = {
-        .title = "Tiempo",
+    [HMI_NODE_HYSTERESIS] = {
+        .title = "Histeresis",
         .parent = HMI_NODE_PARAMS,
         .previous_sibling = HMI_NODE_SETPOINT,
+        .next_sibling = HMI_NODE_MODE,
         .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_time_seconds_,
+        .value = &hmi_histeresis_celsius_,
         .min_value = 1,
-        .max_value = 60,
+        .max_value = 20,
         .step = 1,
     },
-    [HMI_NODE_ADC] = {
-        .title = "ADC preview",
-        .parent = HMI_NODE_MONITOR,
-        .next_sibling = HMI_NODE_BUTTON_MODE,
+    [HMI_NODE_MODE] = {
+        .title = "Modo",
+        .parent = HMI_NODE_PARAMS,
+        .previous_sibling = HMI_NODE_HYSTERESIS,
         .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_adc_preview_,
-        .min_value = 0,
-        .max_value = 1023,
-        .step = 1,
-    },
-    [HMI_NODE_BUTTON_MODE] = {
-        .title = "Btn mode",
-        .parent = HMI_NODE_MONITOR,
-        .previous_sibling = HMI_NODE_ADC,
-        .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_button_mode_,
-        .min_value = 0,
-        .max_value = 1,
-        .step = 1,
-    },
-    [HMI_NODE_BUZZER] = {
-        .title = "Buzzer",
-        .parent = HMI_NODE_SYSTEM,
-        .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_buzzer_enable_,
+        .value = &hmi_modo_calentar_,
         .min_value = 0,
         .max_value = 1,
         .step = 1,
@@ -268,6 +228,15 @@ static void hmi_format_temperature_line(char* line, size_t line_size, int16_t de
     }
 }
 
+static const char* hmi_obtener_texto_modo_control_desde_valor(int16_t valor_modo)
+{
+    if (valor_modo != 0) {
+        return "Calentar";
+    }
+
+    return "Enfriar";
+}
+
 static void hmi_render_home(void)
 {
     char header_line[HMI_LCD_COLUMNS + 1U];
@@ -321,8 +290,14 @@ static void hmi_render_edit(void)
     const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
     char value_line[HMI_LCD_COLUMNS + 1U];
 
-    (void) snprintf(value_line, sizeof(value_line), "%s:%d",
-                    current_item->title, *current_item->value);
+    if (hmi_state_.current_node == HMI_NODE_MODE) {
+        (void) snprintf(value_line, sizeof(value_line), "%s:%s",
+                        current_item->title,
+                        hmi_obtener_texto_modo_control_desde_valor(*current_item->value));
+    } else {
+        (void) snprintf(value_line, sizeof(value_line), "%s:%d",
+                        current_item->title, *current_item->value);
+    }
 
     hmi_lcd_write_line(1U, "EDITAR");
     hmi_lcd_write_line(2U, value_line);
@@ -576,4 +551,19 @@ bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_
     }
 
     return true;
+}
+
+int16_t hmi_obtener_setpoint_deci_celsius(void)
+{
+    return (int16_t) (hmi_setpoint_celsius_ * 10);
+}
+
+uint16_t hmi_obtener_histeresis_deci_celsius(void)
+{
+    return (uint16_t) (hmi_histeresis_celsius_ * 10);
+}
+
+bool hmi_modo_control_es_calentar(void)
+{
+    return (hmi_modo_calentar_ != 0);
 }

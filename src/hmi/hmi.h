@@ -44,4 +44,32 @@ void hmi_process(void);
  */
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius);
 
+/**
+ * @brief Obtiene la consigna configurada desde la HMI.
+ *
+ * El valor se devuelve en decimas de grado Celsius para que la aplicacion
+ * pueda usarlo directamente en la capa de control.
+ *
+ * @return Consigna actual en decimas de grado Celsius.
+ */
+int16_t hmi_obtener_setpoint_deci_celsius(void);
+
+/**
+ * @brief Obtiene la histeresis configurada desde la HMI.
+ *
+ * El valor se devuelve en decimas de grado Celsius para que la aplicacion
+ * pueda usarlo directamente en la capa de control.
+ *
+ * @return Histeresis actual en decimas de grado Celsius.
+ */
+uint16_t hmi_obtener_histeresis_deci_celsius(void);
+
+/**
+ * @brief Indica si el modo configurado en la HMI corresponde a calentar.
+ *
+ * @retval true Si el modo actual es calentar.
+ * @retval false Si el modo actual es enfriar.
+ */
+bool hmi_modo_control_es_calentar(void);
+
 #endif // HMI_H_
