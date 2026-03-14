@@ -33,11 +33,13 @@ typedef enum {
     HMI_PANTALLA_INICIO = 0, /**< Pantalla principal con el estado del sistema. */
     HMI_PANTALLA_MENU,       /**< Pantalla de navegacion por el arbol de menu. */
     HMI_PANTALLA_EDICION,    /**< Pantalla de edicion de un parametro puntual. */
+    HMI_PANTALLA_CONFIRMACION, /**< Pantalla de confirmacion para acciones criticas. */
 } hmi_pantalla_t;
 
 typedef enum {
     HMI_ITEM_MENU = 0,      /**< Nodo contenedor que agrupa hijos. */
     HMI_ITEM_PARAMETRO,     /**< Parametro entero editable desde la HMI. */
+    HMI_ITEM_ACCION,        /**< Accion disparada desde la HMI. */
 } hmi_tipo_item_t;
 
 typedef struct {
@@ -65,11 +67,13 @@ enum {
     HMI_NODE_SETPOINT,   /**< Parametro de setpoint del control. */
     HMI_NODE_HYSTERESIS, /**< Parametro de banda de histeresis. */
     HMI_NODE_MODE,       /**< Parametro de modo calentar/enfriar. */
+    HMI_NODE_RESET,      /**< Accion para restablecer valores por defecto. */
 };
 
 static int16_t hmi_setpoint_celsius_ = 27;
 static int16_t hmi_histeresis_celsius_ = 2;
 static int16_t hmi_modo_calentar_ = 1;
+static bool hmi_solicitud_restablecer_parametros_ = false;
 
 static ds18b20_bus_driver_t hmi_bus_temperatura_;
 static uint8_t hmi_cantidad_sensores_ = 0U;
@@ -125,11 +129,18 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .titulo = "Modo",
         .padre = HMI_NODE_PARAMS,
         .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .hermano_siguiente = HMI_NODE_RESET,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_modo_calentar_,
         .valor_minimo = 0,
         .valor_maximo = 1,
         .paso = 1,
+    },
+    [HMI_NODE_RESET] = {
+        .titulo = "Restablecer",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_MODE,
+        .tipo = HMI_ITEM_ACCION,
     },
 };
 
@@ -304,6 +315,12 @@ static void hmi_dibujar_edicion(void)
     hmi_escribir_linea_lcd(2U, linea_valor);
 }
 
+static void hmi_dibujar_confirmacion(void)
+{
+    hmi_escribir_linea_lcd(1U, "Restablecer?");
+    hmi_escribir_linea_lcd(2U, "ENT=SI MENU=NO");
+}
+
 static void hmi_dibujar(void)
 {
     if (!hmi_estado_.necesita_redibujado) {
@@ -319,6 +336,9 @@ static void hmi_dibujar(void)
         break;
     case HMI_PANTALLA_EDICION:
         hmi_dibujar_edicion();
+        break;
+    case HMI_PANTALLA_CONFIRMACION:
+        hmi_dibujar_confirmacion();
         break;
     default:
         break;
@@ -402,6 +422,8 @@ static void hmi_manejar_evento_menu(hmi_evento_t evento)
         if (item_actual->tipo == HMI_ITEM_MENU) {
             hmi_estado_.nodo_actual = item_actual->primer_hijo;
             hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+        } else if (item_actual->tipo == HMI_ITEM_ACCION) {
+            hmi_estado_.pantalla_actual = HMI_PANTALLA_CONFIRMACION;
         } else {
             hmi_estado_.valor_edicion = *item_actual->valor;
             hmi_estado_.pantalla_actual = HMI_PANTALLA_EDICION;
@@ -409,6 +431,29 @@ static void hmi_manejar_evento_menu(hmi_evento_t evento)
         hmi_estado_.necesita_redibujado = true;
         break;
 
+    case HMI_EVENTO_NINGUNO:
+    default:
+        break;
+    }
+}
+
+static void hmi_manejar_evento_confirmacion(hmi_evento_t evento)
+{
+    switch (evento) {
+    case HMI_EVENTO_MENU:
+        hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+        hmi_estado_.necesita_redibujado = true;
+        break;
+
+    case HMI_EVENTO_ACEPTAR:
+        /* La accion real se delega a la app para mantener a la HMI desacoplada. */
+        hmi_solicitud_restablecer_parametros_ = true;
+        hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+        hmi_estado_.necesita_redibujado = true;
+        break;
+
+    case HMI_EVENTO_SUBIR:
+    case HMI_EVENTO_BAJAR:
     case HMI_EVENTO_NINGUNO:
     default:
         break;
@@ -494,6 +539,9 @@ void hmi_process(void)
     case HMI_PANTALLA_EDICION:
         hmi_manejar_evento_edicion(evento);
         break;
+    case HMI_PANTALLA_CONFIRMACION:
+        hmi_manejar_evento_confirmacion(evento);
+        break;
 
     default:
         break;
@@ -571,4 +619,30 @@ uint16_t hmi_obtener_histeresis_deci_celsius(void)
 bool hmi_modo_control_es_calentar(void)
 {
     return (hmi_modo_calentar_ != 0);
+}
+
+void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
+                                   uint16_t histeresis_deci_celsius,
+                                   bool modo_calentar)
+{
+    /**
+     * @brief La HMI edita grados enteros, mientras que la app persiste decimos.
+     *
+     * La conversion se centraliza aca para que el resto de la HMI siga
+     * trabajando con valores simples de mostrar y editar en el LCD.
+     */
+    hmi_setpoint_celsius_ = (int16_t) (setpoint_deci_celsius / 10);
+    hmi_histeresis_celsius_ = (int16_t) (histeresis_deci_celsius / 10U);
+    hmi_modo_calentar_ = modo_calentar ? 1 : 0;
+    hmi_estado_.valor_edicion = 0;
+    hmi_estado_.necesita_redibujado = true;
+}
+
+bool hmi_consumir_solicitud_restablecer_parametros(void)
+{
+    const bool solicitud = hmi_solicitud_restablecer_parametros_;
+
+    /* La solicitud se consume una sola vez para evitar repetir el reset. */
+    hmi_solicitud_restablecer_parametros_ = false;
+    return solicitud;
 }

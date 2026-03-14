@@ -45,6 +45,17 @@ void hmi_process(void);
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius);
 
 /**
+ * @brief Carga en la HMI los parametros de control vigentes.
+ *
+ * @param setpoint_deci_celsius Setpoint en decimas de grado Celsius.
+ * @param histeresis_deci_celsius Histeresis en decimas de grado Celsius.
+ * @param modo_calentar `true` si el modo es calentar.
+ */
+void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
+                                   uint16_t histeresis_deci_celsius,
+                                   bool modo_calentar);
+
+/**
  * @brief Obtiene el setpoint configurado desde la HMI.
  *
  * El valor se devuelve en decimas de grado Celsius para que la aplicacion
@@ -71,5 +82,13 @@ uint16_t hmi_obtener_histeresis_deci_celsius(void);
  * @retval false Si el modo actual es enfriar.
  */
 bool hmi_modo_control_es_calentar(void);
+
+/**
+ * @brief Consume la solicitud de restablecer parametros a defaults.
+ *
+ * @retval true Si la HMI solicito restablecer valores.
+ * @retval false Si no hay solicitud pendiente.
+ */
+bool hmi_consumir_solicitud_restablecer_parametros(void);
 
 #endif // HMI_H_
