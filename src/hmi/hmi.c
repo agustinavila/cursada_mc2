@@ -554,3 +554,26 @@ void hmi_process(void)
     /** @brief Antirrebote simple y control de ritmo del lazo de polling. */
     driver_delay_ms(HMI_PROCESS_PERIOD_MS);
 }
+
+bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius)
+{
+    int16_t temperatura_cruda = 0;
+    int32_t temperatura_escalada = 0;
+
+    if (temperatura_deci_celsius == 0) {
+        return false;
+    }
+
+    if (!ds18b20_bus_get_latest_raw(&hmi_temperature_bus_, indice_sensor, &temperatura_cruda)) {
+        return false;
+    }
+
+    temperatura_escalada = (int32_t) temperatura_cruda * 10;
+    if (temperatura_escalada >= 0) {
+        *temperatura_deci_celsius = (int16_t) ((temperatura_escalada + 8) / 16);
+    } else {
+        *temperatura_deci_celsius = (int16_t) ((temperatura_escalada - 8) / 16);
+    }
+
+    return true;
+}
