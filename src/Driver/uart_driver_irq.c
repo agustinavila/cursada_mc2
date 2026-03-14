@@ -18,10 +18,14 @@ typedef struct {
     uint8_t tx_data[UART_IRQ_TX_BUFFER_SIZE];
 } driver_uart_irq_state_t;
 
+/* This driver keeps a single active UART instance. If the project later needs
+ * multiple channels at once, this state has to become per-instance. */
 static driver_uart_irq_state_t driver_uart_irq_state_;
 
 static bool driver_uart_irq_select_channel(uint8_t channel)
 {
+    /* Besides selecting the peripheral and IRQ, this also applies the pinmux
+     * for the chosen channel so init() stays self-contained. */
     switch (channel) {
     case UART_IRQ_CHANNEL_0:
         driver_uart_irq_state_.peripheral = LPC_USART0;
@@ -55,6 +59,8 @@ bool driver_uart_irq_init(uint8_t channel, uint32_t baudrate)
         return false;
     }
 
+    /* RX and TX are decoupled through ring buffers so the application can
+     * enqueue/dequeue data while the IRQ handler services the hardware FIFO. */
     RingBuffer_Init(&driver_uart_irq_state_.rx_ring,
                     driver_uart_irq_state_.rx_data,
                     sizeof(driver_uart_irq_state_.rx_data[0]),
@@ -157,6 +163,8 @@ void driver_uart_irq_handler(void)
         return;
     }
 
+    /* LPCOpen moves RX bytes into rx_ring and drains tx_ring into the UART
+     * FIFO according to the interrupt source that woke the peripheral up. */
     Chip_UART_IRQRBHandler(driver_uart_irq_state_.peripheral,
                            &driver_uart_irq_state_.rx_ring,
                            &driver_uart_irq_state_.tx_ring);
@@ -164,6 +172,8 @@ void driver_uart_irq_handler(void)
 
 void UART0_IRQHandler(void)
 {
+    /* The wrappers keep the vector table explicit while dispatching only the
+     * channel currently owned by this driver instance. */
     if (driver_uart_irq_state_.channel == UART_IRQ_CHANNEL_0) {
         driver_uart_irq_handler();
     }

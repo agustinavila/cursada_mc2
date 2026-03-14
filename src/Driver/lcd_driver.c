@@ -39,6 +39,8 @@ void lcd_send(uint8_t nibble, bool is_data)
     const bool bit_3 = (bool) ((nibble >> 3) & 0x01);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD4 + 4, bit_3);
 
+    /* The controller latches the nibble on the EN pulse, so the pulse width
+     * and post-write delay are part of the LCD protocol, not optional waits. */
     driver_delay_us(1U);
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
     driver_delay_us(1U);
@@ -49,6 +51,8 @@ void lcd_send(uint8_t nibble, bool is_data)
 
 void send_byte(uint8_t payload, bool data_type)
 {
+    /* The display is wired in 4-bit mode, so every byte is split into two
+     * transfers, upper nibble first. */
     const uint8_t upper_nibble = (payload >> 4) & 0x0F;
     lcd_send(upper_nibble, data_type);
     const uint8_t lower_nibble = payload & 0x0F;
@@ -91,7 +95,8 @@ void driver_lcd_init(void)
     driver_delay_init();
     driver_delay_ms(50U);
 
-    // HD44780 4-bit initialization sequence
+    /* Standard HD44780 power-on sequence for 4-bit mode. The repeated 0x03
+     * writes force the controller into a known state before switching to 0x02. */
     lcd_send(0x03, LCD_IS_COMMAND);
     driver_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);

@@ -48,6 +48,8 @@ typedef struct {
     int16_t step;
 } hmi_menu_item_t;
 
+/* The menu tree is encoded as siblings/children indices to avoid dynamic
+ * allocation and keep navigation deterministic on the target. */
 enum {
     HMI_NODE_ROOT = 0,
     HMI_NODE_PARAMS,
@@ -156,6 +158,8 @@ static hmi_state_t hmi_state_;
 
 static void hmi_lcd_write_line(uint8_t row, const char* text)
 {
+    /* The LCD keeps previous characters on screen, so every render writes a
+     * fully padded 16-character line. */
     char line[HMI_LCD_COLUMNS + 1U];
     size_t index = 0U;
 
@@ -257,6 +261,8 @@ static void hmi_render(void)
 static hmi_event_t hmi_poll_event(void)
 {
     const uint8_t current_mask = button_read_all_pins();
+    /* Buttons are mapped to one-shot events on rising edges so a held key does
+     * not retrigger continuously inside the main loop. */
     const uint8_t pressed_edges = (uint8_t) (current_mask & (uint8_t) ~hmi_state_.last_button_mask);
 
     hmi_state_.last_button_mask = current_mask;
@@ -299,6 +305,7 @@ static void hmi_handle_menu_event(hmi_event_t event)
         break;
 
     case HMI_EVENT_UP:
+        /* Wrap within the current sibling list to keep navigation cyclic. */
         if (current_item->previous_sibling != 0U) {
             hmi_state_.current_node = current_item->previous_sibling;
         } else {
@@ -308,6 +315,7 @@ static void hmi_handle_menu_event(hmi_event_t event)
         break;
 
     case HMI_EVENT_DOWN:
+        /* Wrap within the current sibling list to keep navigation cyclic. */
         if (current_item->next_sibling != 0U) {
             hmi_state_.current_node = current_item->next_sibling;
         } else {
@@ -408,5 +416,6 @@ void hmi_process(void)
     }
 
     hmi_render();
+    /* Simple debounce and pacing for the polling loop. */
     driver_delay_ms(20U);
 }
