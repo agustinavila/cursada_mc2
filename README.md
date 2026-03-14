@@ -2,6 +2,87 @@
 
 Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando VS Code, CMake, OpenOCD y GDB, sin PlatformIO ni Eclipse.
 
+## Indice
+
+- [Funcionamiento general](#funcionamiento-general)
+- [Uso de la HMI](#uso-de-la-hmi)
+- [Estructura](#estructura)
+- [Prerrequisitos en Windows](#prerrequisitos-en-windows)
+- [Targets disponibles](#targets-disponibles)
+- [Como mantener la configuracion de CMake](#como-mantener-la-configuracion-de-cmake)
+- [Build desde terminal](#build-desde-terminal)
+- [Flash desde terminal](#flash-desde-terminal)
+- [Debug en VS Code](#debug-en-vs-code)
+- [Validacion de OpenOCD y del probe FTDI](#validacion-de-openocd-y-del-probe-ftdi)
+- [Rol de LPCOpen en esta base](#rol-de-lpcopen-en-esta-base)
+- [Sensores DS18B20 por 1-Wire](#sensores-ds18b20-por-1-wire)
+- [Troubleshooting](#troubleshooting)
+- [Validacion minima sugerida](#validacion-minima-sugerida)
+- [Nota sobre el arbol `Debug/`](#nota-sobre-el-arbol-debug)
+
+## Funcionamiento general
+
+La aplicacion actual implementa una base para control de temperatura sobre la EDU-CIAA-NXP.
+
+A grandes rasgos, el flujo es este:
+
+- uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
+- la HMI muestra esas mediciones en el LCD y permite navegar un menu jerarquico con cuatro pulsadores
+- la logica de aplicacion toma un sensor fijo como variable de proceso
+- sobre esa medicion corre un control `on/off` con histéresis
+- la salida del control se refleja hoy en `LED1` como actuador de prueba
+
+En el estado actual:
+
+- el sensor de proceso esta fijado al indice `0`
+- la HMI puede rotar visualmente entre sensores, pero esa rotacion no cambia la entrada del lazo de control
+- la estrategia implementada hoy es `on/off`
+- la estructura de `src/control/` ya esta preparada para sumar otras estrategias mas adelante
+
+## Uso de la HMI
+
+La interfaz de usuario usa el LCD de 16x2 y los cuatro pulsadores del poncho.
+
+### Pantalla principal
+
+La pantalla principal muestra el estado general del sistema:
+
+- si no hay sensores: `No detectado`
+- si hay un sensor: `DS18B20 1/1`
+- si hay varios sensores: `DS18B20 X/Y` y va rotando automaticamente
+- la segunda linea muestra la temperatura del sensor visible
+
+### Pulsadores
+
+La navegacion actual se hace asi:
+
+- `Tecla 1`: entra o sale del menu
+- `Tecla 2`: sube o incrementa
+- `Tecla 3`: baja o decrementa
+- `Tecla 4`: entra en una opcion o confirma edicion
+
+Por ahora no hay una accion especial asociada a mantener una tecla presionada, aunque la estructura de HMI permite agregarla mas adelante.
+
+### Menu actual
+
+La HMI implementa un menu jerarquico simple. En el LCD:
+
+- la linea superior indica si estas en `MENU`, en un submenu o en modo `EDITAR`
+- la linea inferior muestra la opcion actual o el valor que se esta editando
+
+Categorias actuales:
+
+- `Parametros`
+  - `Setpoint`
+  - `Tiempo`
+- `Monitoreo`
+  - `ADC preview`
+  - `Btn mode`
+- `Sistema`
+  - `Buzzer`
+
+Hoy esa estructura sirve como base de navegacion. La idea es que despues la configuracion real del control y del sistema se vaya moviendo a estas pantallas.
+
 ## Estructura
 
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
@@ -9,6 +90,8 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
 - `src/`: startup, system init, aplicacion actual y target minimo de validacion.
 - `.vscode/`: tasks, launch y settings para VS Code.
+
+Por ahora la documentacion vive centralizada en este README. Si el proyecto sigue creciendo, una evolucion razonable seria agregar un `README.md` chico en carpetas como `src/`, `src/Driver/`, `src/control/` y `src/hmi/`.
 
 ## Prerrequisitos en Windows
 
