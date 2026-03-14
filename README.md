@@ -104,7 +104,77 @@ Estas herramientas tienen que estar accesibles desde `PATH`:
 - `arm-none-eabi-objdump`
 - `openocd`
 
-Verificacion rapida:
+### Descargas sugeridas para Windows
+
+Enlaces oficiales, alineados con las versiones validadas en este repo cuando fue posible:
+
+- `VS Code`
+  - descarga general: [code.visualstudio.com](https://code.visualstudio.com/download)
+- `CMake`
+  - descarga general: [cmake.org/download](https://cmake.org/download/)
+  - version validada en este repo: [CMake 3.27.6 para Windows x64](https://github.com/Kitware/CMake/releases/download/v3.27.6/cmake-3.27.6-windows-x86_64.msi)
+- `Ninja`
+  - pagina oficial del proyecto: [github.com/ninja-build/ninja/releases](https://github.com/ninja-build/ninja/releases)
+  - version validada en este repo: [Ninja 1.11.1 para Windows](https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip)
+- `Arm GNU Toolchain`
+  - descarga general: [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
+  - version validada en este repo: [Arm GNU Toolchain 14.2.Rel1](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads/14-2-rel1)
+- `OpenOCD`
+  - release alineada con este repo: [xPack OpenOCD v0.12.0-7](https://github.com/xpack-dev-tools/openocd-xpack/releases/tag/v0.12.0-7)
+  - para Windows, bajar el ZIP de la release, descomprimirlo en una carpeta simple como `C:\OpenOCD\` y agregar `C:\OpenOCD\bin` al `PATH`
+
+Herramienta opcional:
+
+- `cppcheck`
+  - pagina oficial: [cppcheck.sourceforge.io](https://cppcheck.sourceforge.io/)
+  - version validada en esta maquina: `2.20.0`
+
+Versiones validadas en esta maquina para el flujo actual:
+
+- `cmake`: `3.27.6`
+- `ninja`: `1.11.1`
+- `arm-none-eabi-gcc`: `Arm GNU Toolchain 14.2.Rel1`, `gcc 14.2.1 20241119`
+- `arm-none-eabi-gdb`: `Arm GNU Toolchain 14.2.Rel1`, `gdb 15.2.90.20241130-git`
+- `arm-none-eabi-objdump`: `Arm GNU Toolchain 14.2.Rel1`, `objdump 2.43.1.20241119`
+- `openocd`: `0.12.0 (2023-01-14-23:37)`
+
+### Herramientas que deben quedar en PATH
+
+Para que CMake, VS Code, OpenOCD y las tasks del proyecto funcionen sin rutas absolutas, estas herramientas deben poder ejecutarse directamente desde una terminal:
+
+- `cmake`
+- `ninja`
+- `arm-none-eabi-gcc`
+- `arm-none-eabi-gdb`
+- `arm-none-eabi-objdump`
+- `openocd`
+
+Opcional:
+
+- `cppcheck`
+
+En la practica, lo que suele agregarse al `PATH` no es el ejecutable individual sino la carpeta `bin` de cada herramienta.
+
+Ejemplos tipicos:
+
+- `C:\Program Files\CMake\bin`
+- `C:\Program Files\Ninja`
+- `C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin`
+- `C:\OpenOCD\bin`
+- `C:\Program Files\Cppcheck`
+
+### Como agregar herramientas al PATH en Windows
+
+1. Abrir `Inicio`.
+2. Buscar `Editar las variables de entorno del sistema`.
+3. Entrar en `Variables de entorno`.
+4. En `Variables de usuario` o `Variables del sistema`, elegir `Path`.
+5. Hacer click en `Editar`.
+6. Agregar una entrada por cada carpeta `bin` o carpeta de ejecutables.
+7. Aceptar todas las ventanas.
+8. Cerrar y volver a abrir VS Code o la terminal para que el cambio tome efecto.
+
+Despues de eso, conviene verificar:
 
 ```powershell
 cmake --version
@@ -115,14 +185,11 @@ arm-none-eabi-objdump --version
 openocd --version
 ```
 
-Versiones validadas en esta maquina para el flujo actual:
+Y si tambien queres usar analisis estatico local:
 
-- `cmake`: `3.27.6`
-- `ninja`: `1.11.1`
-- `arm-none-eabi-gcc`: `Arm GNU Toolchain 14.2.Rel1`, `gcc 14.2.1 20241119`
-- `arm-none-eabi-gdb`: `Arm GNU Toolchain 14.2.Rel1`, `gdb 15.2.90.20241130-git`
-- `arm-none-eabi-objdump`: `Arm GNU Toolchain 14.2.Rel1`, `objdump 2.43.1.20241119`
-- `openocd`: `0.12.0 (2023-01-14-23:37)`
+```powershell
+cppcheck --version
+```
 
 Con estas versiones se validaron:
 
