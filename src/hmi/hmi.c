@@ -265,6 +265,20 @@ static uint8_t hmi_get_last_sibling(uint8_t node)
     return sibling;
 }
 
+static void hmi_format_temperature_line(char* line, size_t line_size, int16_t deci_celsius)
+{
+    const bool is_negative = (deci_celsius < 0);
+    const int16_t absolute_temperature = (int16_t) abs(deci_celsius);
+    const int16_t integer_part = (int16_t) (absolute_temperature / 10);
+    const int16_t fractional_part = (int16_t) (absolute_temperature % 10);
+
+    if (is_negative) {
+        (void) snprintf(line, line_size, "T:-%d.%1d C", integer_part, fractional_part);
+    } else {
+        (void) snprintf(line, line_size, "T: %d.%1d C", integer_part, fractional_part);
+    }
+}
+
 static void hmi_render_home(void)
 {
     char header_line[HMI_LCD_COLUMNS + 1U];
@@ -288,11 +302,9 @@ static void hmi_render_home(void)
         return;
     }
 
-    (void) snprintf(value_line,
-                    sizeof(value_line),
-                    "T:%3d.%1d C",
-                    hmi_sensor_temperature_deci_celsius_ / 10,
-                    abs(hmi_sensor_temperature_deci_celsius_ % 10));
+    hmi_format_temperature_line(value_line,
+                                sizeof(value_line),
+                                hmi_sensor_temperature_deci_celsius_);
 
     hmi_lcd_write_line(1U, header_line);
     hmi_lcd_write_line(2U, value_line);
