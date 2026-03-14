@@ -1,12 +1,6 @@
 /**
  * @file lcd_driver.h
- * @author agustinavila (tinto.avila@gmail.com)
- * @brief 
- * @version 0.1
- * @date 2023-05-17
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @brief Interfaz del driver para LCD alfanumerico
  */
 
 #if !defined(DRIVER_LCD_DRIVER_H_)
@@ -14,30 +8,31 @@
 
 #include <chip.h>
 
-/// @brief Initializes LCD pins, sends starting commands to the LCD MCU
-void driver_lcd_init();
+/**
+ * @brief Inicializa el LCD y ejecuta la secuencia de arranque.
+ */
+void driver_lcd_init(void);
 
 /**
- * @brief Sets the cursor position
- * 
- * @param x X position (column) - 1 to 16
- * @param y Y position (row) - 1 or 2
+ * @brief Posiciona el cursor dentro de la matriz visible del LCD.
+ *
+ * @param x Columna, en el rango 1 a 16.
+ * @param y Fila, en el rango 1 a 2.
  */
 void driver_lcd_set_position(uint8_t x, uint8_t y);
 
 /**
- * @brief writes character
- * @param C Character to write
+ * @brief Escribe un caracter en la posicion actual del LCD.
+ *
+ * @param c Caracter a escribir o caracter de control soportado por el driver.
  */
 void driver_lcd_write_char(char c);
 
 /**
- * @brief prints a string starting from the current position
- * 
- * @param string String to print
- * @todo it doesn't check matrix boundaries
+ * @brief Escribe una cadena a partir de la posicion actual del cursor.
+ *
+ * @param string Cadena a imprimir.
  */
 void driver_lcd_printf(char* string);
-
 
 #endif // DRIVER_LCD_DRIVER_H_
