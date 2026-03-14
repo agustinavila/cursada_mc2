@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build-app:
     if: startsWith(github.head_ref, 'dev/')
@@ -12,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -20,6 +23,7 @@ jobs:
           sudo apt-get install -y \
             cmake \
             ninja-build \
+            cppcheck \
             gcc-arm-none-eabi \
             binutils-arm-none-eabi \
             libnewlib-arm-none-eabi
@@ -28,11 +32,31 @@ jobs:
         run: |
           cmake --version
           ninja --version
+          cppcheck --version
           arm-none-eabi-gcc --version
           arm-none-eabi-objdump --version
 
       - name: Configure debug
         run: cmake --preset debug
+
+      - name: Run cppcheck
+        run: |
+          cppcheck \
+            --enable=warning,style,performance,portability \
+            --error-exitcode=1 \
+            --inline-suppr \
+            --suppress=missingIncludeSystem \
+            --suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/* \
+            -D__GNUC__ \
+            -DCORE_M4 \
+            -Isrc \
+            -Isrc/Driver \
+            -Iplatform/lpc43xx/lpc_chip_43xx/inc \
+            src/main.c \
+            src/sysinit.c \
+            src/hmi \
+            src/Driver \
+            --quiet
 
       - name: Build app debug
         run: cmake --build --preset debug --target cursada_mc2_app
@@ -44,7 +68,7 @@ jobs:
         run: cmake --build --preset release --target cursada_mc2_app
 
       - name: Upload debug artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cursada_mc2_app-debug
           path: |
@@ -55,7 +79,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cursada_mc2_app-release
           path: |
