@@ -14,6 +14,11 @@ static const parametros_t parametros_default_ = {
         .histeresis_deci_celsius = 20U,
         .modo_calentar = true,
     },
+    .sensor_proceso = {
+        .modo = PARAMETROS_SENSOR_MODO_AUTO,
+        .rom_valida = false,
+        .rom = { 0U },
+    },
 };
 
 /**

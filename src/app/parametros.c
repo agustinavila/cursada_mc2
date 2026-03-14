@@ -11,7 +11,7 @@
 #include <string.h>
 
 #define PARAMETROS_PERSISTENTES_MAGIC   0x5041524DU
-#define PARAMETROS_PERSISTENTES_VERSION 1U
+#define PARAMETROS_PERSISTENTES_VERSION 2U
 
 /**
  * @brief Formato persistido en EEPROM para los parametros de la aplicacion.
@@ -152,6 +152,54 @@ bool parametros_actualizar_control(int16_t setpoint_deci_celsius,
 
     if (parametros_actuales_.control.modo_calentar != modo_calentar) {
         parametros_actuales_.control.modo_calentar = modo_calentar;
+        hubo_cambios = true;
+    }
+
+    return hubo_cambios;
+}
+
+bool parametros_configurar_sensor_proceso_auto(void)
+{
+    bool hubo_cambios = false;
+    uint32_t indice = 0U;
+
+    if (parametros_actuales_.sensor_proceso.modo != PARAMETROS_SENSOR_MODO_AUTO) {
+        parametros_actuales_.sensor_proceso.modo = PARAMETROS_SENSOR_MODO_AUTO;
+        hubo_cambios = true;
+    }
+
+    if (parametros_actuales_.sensor_proceso.rom_valida) {
+        parametros_actuales_.sensor_proceso.rom_valida = false;
+        hubo_cambios = true;
+    }
+
+    for (indice = 0U; indice < PARAMETROS_SENSOR_ROM_SIZE; ++indice) {
+        if (parametros_actuales_.sensor_proceso.rom[indice] != 0U) {
+            parametros_actuales_.sensor_proceso.rom[indice] = 0U;
+            hubo_cambios = true;
+        }
+    }
+
+    return hubo_cambios;
+}
+
+bool parametros_configurar_sensor_proceso_por_rom(const uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE])
+{
+    bool hubo_cambios = false;
+
+    if (rom == 0) {
+        return false;
+    }
+
+    if (parametros_actuales_.sensor_proceso.modo != PARAMETROS_SENSOR_MODO_ROM) {
+        parametros_actuales_.sensor_proceso.modo = PARAMETROS_SENSOR_MODO_ROM;
+        hubo_cambios = true;
+    }
+
+    if (!parametros_actuales_.sensor_proceso.rom_valida
+        || (memcmp(parametros_actuales_.sensor_proceso.rom, rom, PARAMETROS_SENSOR_ROM_SIZE) != 0)) {
+        (void) memcpy(parametros_actuales_.sensor_proceso.rom, rom, PARAMETROS_SENSOR_ROM_SIZE);
+        parametros_actuales_.sensor_proceso.rom_valida = true;
         hubo_cambios = true;
     }
 
