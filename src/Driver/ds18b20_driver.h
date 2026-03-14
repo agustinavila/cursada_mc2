@@ -13,6 +13,18 @@
 
 /** @brief Tamano del scratchpad del DS18B20. */
 #define DS18B20_SCRATCHPAD_SIZE 9U
+/** @brief Tiempo maximo de conversion del DS18B20 a 12 bits. */
+#define DS18B20_CONVERSION_TIME_MS 750U
+
+/**
+ * @brief Estado interno de la conversion no bloqueante del sensor.
+ */
+typedef enum {
+    DS18B20_STATE_IDLE = 0,
+    DS18B20_STATE_CONVERTING,
+    DS18B20_STATE_DATA_READY,
+    DS18B20_STATE_ERROR,
+} ds18b20_state_t;
 
 /**
  * @brief Estado del driver DS18B20 para un sensor individual.
@@ -23,6 +35,10 @@
 typedef struct {
     onewire_driver_t bus;
     bool initialized;
+    bool sample_valid;
+    int16_t last_raw_temperature;
+    uint16_t conversion_elapsed_ms;
+    ds18b20_state_t state;
 } ds18b20_driver_t;
 
 /**
@@ -55,6 +71,67 @@ bool ds18b20_is_present(ds18b20_driver_t* driver);
  * @retval false Si el sensor no respondio.
  */
 bool ds18b20_start_conversion(ds18b20_driver_t* driver);
+
+/**
+ * @brief Avanza la maquina de estados no bloqueante del sensor.
+ *
+ * Debe llamarse periodicamente desde el lazo principal o desde una tarea
+ * cooperativa. Cuando la conversion termina, el driver lee el scratchpad y
+ * actualiza la ultima muestra valida disponible.
+ *
+ * @param driver Instancia del driver.
+ * @param elapsed_ms Tiempo transcurrido desde la ultima llamada, en ms.
+ */
+void ds18b20_process(ds18b20_driver_t* driver, uint16_t elapsed_ms);
+
+/**
+ * @brief Indica si hay una conversion en curso.
+ *
+ * @param driver Instancia del driver.
+ *
+ * @retval true Si el sensor esta convirtiendo temperatura.
+ * @retval false Si no hay conversion pendiente o el driver es invalido.
+ */
+bool ds18b20_is_busy(const ds18b20_driver_t* driver);
+
+/**
+ * @brief Indica si el driver dispone de una ultima muestra valida.
+ *
+ * @param driver Instancia del driver.
+ *
+ * @retval true Si existe una temperatura valida cacheada.
+ * @retval false En caso contrario.
+ */
+bool ds18b20_has_valid_sample(const ds18b20_driver_t* driver);
+
+/**
+ * @brief Obtiene la ultima temperatura cruda ya convertida.
+ *
+ * Esta funcion no dispara una nueva conversion. Solo devuelve la ultima
+ * muestra valida almacenada por el driver.
+ *
+ * @param driver Instancia del driver.
+ * @param raw_temperature Destino para el valor crudo de 16 bits.
+ *
+ * @retval true Si habia una muestra valida disponible.
+ * @retval false Si no habia datos validos o hubo error de parametros.
+ */
+bool ds18b20_get_latest_raw(const ds18b20_driver_t* driver, int16_t* raw_temperature);
+
+/**
+ * @brief Obtiene la ultima temperatura valida en grados Celsius.
+ *
+ * Esta funcion no dispara una nueva conversion. Solo convierte la ultima
+ * muestra valida almacenada por el driver.
+ *
+ * @param driver Instancia del driver.
+ * @param temperature_celsius Destino para la temperatura en Celsius.
+ *
+ * @retval true Si habia una muestra valida disponible.
+ * @retval false Si no habia datos validos o hubo error de parametros.
+ */
+bool ds18b20_get_latest_temperature_celsius(const ds18b20_driver_t* driver,
+                                            float* temperature_celsius);
 
 /**
  * @brief Lee el scratchpad completo del sensor.

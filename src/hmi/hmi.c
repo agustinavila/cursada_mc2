@@ -18,6 +18,7 @@
 
 #define HMI_LCD_COLUMNS 16U
 #define HMI_SENSOR_REFRESH_TICKS 50U
+#define HMI_PROCESS_PERIOD_MS 20U
 
 typedef enum {
     HMI_EVENT_NONE = 0,
@@ -180,14 +181,23 @@ static hmi_state_t hmi_state_;
 
 static void hmi_update_temperature(void)
 {
+    const bool previous_present = hmi_sensor_present_;
+    const bool previous_valid = hmi_sensor_temperature_valid_;
+    const int16_t previous_temperature = hmi_sensor_temperature_deci_celsius_;
     int16_t raw_temperature = 0;
 
+    ds18b20_process(&hmi_temperature_sensor_, HMI_PROCESS_PERIOD_MS);
+
     if (!hmi_sensor_present_) {
+        hmi_sensor_present_ = ds18b20_is_present(&hmi_temperature_sensor_);
+        if (hmi_sensor_present_) {
+            (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
+        }
         hmi_sensor_temperature_valid_ = false;
         return;
     }
 
-    if (ds18b20_read_raw(&hmi_temperature_sensor_, &raw_temperature)) {
+    if (ds18b20_get_latest_raw(&hmi_temperature_sensor_, &raw_temperature)) {
         const int32_t scaled_value = (int32_t) raw_temperature * 10;
         if (scaled_value >= 0) {
             hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value + 8) / 16);
@@ -195,9 +205,16 @@ static void hmi_update_temperature(void)
             hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value - 8) / 16);
         }
         hmi_sensor_temperature_valid_ = true;
-    } else {
+    } else if (!ds18b20_is_busy(&hmi_temperature_sensor_)) {
         hmi_sensor_present_ = ds18b20_is_present(&hmi_temperature_sensor_);
         hmi_sensor_temperature_valid_ = false;
+    }
+
+    if ((hmi_state_.current_screen == HMI_SCREEN_HOME)
+        && ((previous_present != hmi_sensor_present_)
+            || (previous_valid != hmi_sensor_temperature_valid_)
+            || (previous_temperature != hmi_sensor_temperature_deci_celsius_))) {
+        hmi_state_.needs_redraw = true;
     }
 }
 
@@ -459,6 +476,9 @@ void hmi_init(void)
     driver_delay_init();
     driver_lcd_write_char('\b');
     hmi_sensor_present_ = ds18b20_init(&hmi_temperature_sensor_, &hmi_ds18b20_pin_);
+    if (hmi_sensor_present_) {
+        (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
+    }
     hmi_update_temperature();
     hmi_render();
 }
@@ -486,12 +506,15 @@ void hmi_process(void)
         break;
     }
 
-    if (hmi_state_.current_screen == HMI_SCREEN_HOME) {
+    hmi_update_temperature();
+
+    if (!ds18b20_is_busy(&hmi_temperature_sensor_)) {
         hmi_sensor_refresh_ticks_++;
         if (hmi_sensor_refresh_ticks_ >= HMI_SENSOR_REFRESH_TICKS) {
             hmi_sensor_refresh_ticks_ = 0U;
-            hmi_update_temperature();
-            hmi_state_.needs_redraw = true;
+            if (hmi_sensor_present_) {
+                (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
+            }
         }
     } else {
         hmi_sensor_refresh_ticks_ = 0U;
@@ -499,5 +522,5 @@ void hmi_process(void)
 
     hmi_render();
     /** @brief Antirrebote simple y control de ritmo del lazo de polling. */
-    driver_delay_ms(20U);
+    driver_delay_ms(HMI_PROCESS_PERIOD_MS);
 }
