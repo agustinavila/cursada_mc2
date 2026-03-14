@@ -17,7 +17,7 @@ find_program(CMAKE_ASM_COMPILER NAMES arm-none-eabi-gcc HINTS ${_arm_gnu_hints} 
 find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy HINTS ${_arm_gnu_hints} REQUIRED)
 find_program(CMAKE_OBJDUMP NAMES arm-none-eabi-objdump HINTS ${_arm_gnu_hints} REQUIRED)
 find_program(CMAKE_SIZE NAMES arm-none-eabi-size HINTS ${_arm_gnu_hints} REQUIRED)
-find_program(CMAKE_GDB NAMES arm-none-eabi-gdb HINTS ${_arm_gnu_hints} REQUIRED)
+find_program(CMAKE_GDB NAMES arm-none-eabi-gdb HINTS ${_arm_gnu_hints})
 
 get_filename_component(ARM_NONE_EABI_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
 get_filename_component(ARM_NONE_EABI_ROOT "${ARM_NONE_EABI_BIN_DIR}" DIRECTORY)
@@ -27,3 +27,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER)
 
 message(STATUS "Using Arm GNU Toolchain from: ${ARM_NONE_EABI_ROOT}")
+if(NOT CMAKE_GDB)
+    message(STATUS "arm-none-eabi-gdb was not found. Build targets will work, but debug integrations that rely on CMAKE_GDB may be unavailable.")
+endif()
