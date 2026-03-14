@@ -45,12 +45,12 @@ void hmi_process(void);
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius);
 
 /**
- * @brief Obtiene la consigna configurada desde la HMI.
+ * @brief Obtiene el setpoint configurado desde la HMI.
  *
  * El valor se devuelve en decimas de grado Celsius para que la aplicacion
  * pueda usarlo directamente en la capa de control.
  *
- * @return Consigna actual en decimas de grado Celsius.
+ * @return Setpoint actual en decimas de grado Celsius.
  */
 int16_t hmi_obtener_setpoint_deci_celsius(void);
 

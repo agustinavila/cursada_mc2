@@ -21,7 +21,7 @@ static const uint8_t app_indice_sensor_proceso_ = 0U;
 
 static const control_on_off_configuracion_t app_control_on_off_configuracion_base_ = {
     .sentido = CONTROL_ON_OFF_SENTIDO_CALENTAR,
-    .consigna_deci_celsius = 270,
+    .setpoint_deci_celsius = 270,
     .histeresis_deci_celsius = 20U,
     .habilitado = true,
 };
@@ -39,13 +39,13 @@ static bool app_sincronizar_parametros_control(void)
     }
 
     nueva_configuracion = app_control_on_off_configuracion_actual_;
-    nueva_configuracion.consigna_deci_celsius = hmi_obtener_setpoint_deci_celsius();
+    nueva_configuracion.setpoint_deci_celsius = hmi_obtener_setpoint_deci_celsius();
     nueva_configuracion.histeresis_deci_celsius = hmi_obtener_histeresis_deci_celsius();
     nueva_configuracion.sentido = hmi_modo_control_es_calentar()
         ? CONTROL_ON_OFF_SENTIDO_CALENTAR
         : CONTROL_ON_OFF_SENTIDO_ENFRIAR;
 
-    if ((nueva_configuracion.consigna_deci_celsius == app_control_on_off_configuracion_actual_.consigna_deci_celsius)
+    if ((nueva_configuracion.setpoint_deci_celsius == app_control_on_off_configuracion_actual_.setpoint_deci_celsius)
         && (nueva_configuracion.histeresis_deci_celsius == app_control_on_off_configuracion_actual_.histeresis_deci_celsius)
         && (nueva_configuracion.sentido == app_control_on_off_configuracion_actual_.sentido)
         && (nueva_configuracion.habilitado == app_control_on_off_configuracion_actual_.habilitado)) {
@@ -98,7 +98,7 @@ void app_init(void)
     driver_lcd_init();
     hmi_init();
     app_control_on_off_configuracion_actual_ = app_control_on_off_configuracion_base_;
-    app_control_on_off_configuracion_actual_.consigna_deci_celsius = hmi_obtener_setpoint_deci_celsius();
+    app_control_on_off_configuracion_actual_.setpoint_deci_celsius = hmi_obtener_setpoint_deci_celsius();
     app_control_on_off_configuracion_actual_.histeresis_deci_celsius = hmi_obtener_histeresis_deci_celsius();
     app_control_on_off_configuracion_actual_.sentido = hmi_modo_control_es_calentar()
         ? CONTROL_ON_OFF_SENTIDO_CALENTAR

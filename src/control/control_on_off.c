@@ -21,13 +21,13 @@ static bool control_on_off_configuracion_es_valida(const control_on_off_configur
 
 static int16_t control_on_off_obtener_umbral_inferior(const control_on_off_t* control)
 {
-    return (int16_t) (control->configuracion.consigna_deci_celsius
+    return (int16_t) (control->configuracion.setpoint_deci_celsius
                       - (int16_t) (control->configuracion.histeresis_deci_celsius / 2U));
 }
 
 static int16_t control_on_off_obtener_umbral_superior(const control_on_off_t* control)
 {
-    return (int16_t) (control->configuracion.consigna_deci_celsius
+    return (int16_t) (control->configuracion.setpoint_deci_celsius
                       + (int16_t) (control->configuracion.histeresis_deci_celsius / 2U));
 }
 

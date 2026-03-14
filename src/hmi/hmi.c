@@ -16,42 +16,42 @@
 #include <stdio.h>
 #include <string.h>
 
-#define HMI_LCD_COLUMNS 16U
-#define HMI_SENSOR_REFRESH_TICKS 50U
-#define HMI_SENSOR_ROTATE_TICKS 150U
-#define HMI_PROCESS_PERIOD_MS 20U
+#define HMI_CANTIDAD_COLUMNAS_LCD 16U
+#define HMI_TICKS_ACTUALIZACION_SENSOR 50U
+#define HMI_TICKS_ROTACION_SENSOR 150U
+#define HMI_PERIODO_PROCESAMIENTO_MS 20U
 
 typedef enum {
-    HMI_EVENT_NONE = 0,  /**< No se detecto ningun evento en el ciclo actual. */
-    HMI_EVENT_MENU,      /**< Se presiono la tecla de menu o cancelacion. */
-    HMI_EVENT_UP,        /**< Se presiono la tecla de incremento o subida. */
-    HMI_EVENT_DOWN,      /**< Se presiono la tecla de decremento o bajada. */
-    HMI_EVENT_ENTER,     /**< Se presiono la tecla de ingreso o confirmacion. */
-} hmi_event_t;
+    HMI_EVENTO_NINGUNO = 0, /**< No se detecto ningun evento en el ciclo actual. */
+    HMI_EVENTO_MENU,        /**< Se presiono la tecla de menu o cancelacion. */
+    HMI_EVENTO_SUBIR,       /**< Se presiono la tecla de incremento o subida. */
+    HMI_EVENTO_BAJAR,       /**< Se presiono la tecla de decremento o bajada. */
+    HMI_EVENTO_ACEPTAR,     /**< Se presiono la tecla de ingreso o confirmacion. */
+} hmi_evento_t;
 
 typedef enum {
-    HMI_SCREEN_HOME = 0, /**< Pantalla principal con el estado del sistema. */
-    HMI_SCREEN_MENU,     /**< Pantalla de navegacion por el arbol de menu. */
-    HMI_SCREEN_EDIT,     /**< Pantalla de edicion de un parametro puntual. */
-} hmi_screen_t;
+    HMI_PANTALLA_INICIO = 0, /**< Pantalla principal con el estado del sistema. */
+    HMI_PANTALLA_MENU,       /**< Pantalla de navegacion por el arbol de menu. */
+    HMI_PANTALLA_EDICION,    /**< Pantalla de edicion de un parametro puntual. */
+} hmi_pantalla_t;
 
 typedef enum {
-    HMI_ITEM_MENU = 0,   /**< Nodo contenedor que agrupa hijos. */
-    HMI_ITEM_INT_PARAM,  /**< Parametro entero editable desde la HMI. */
-} hmi_item_kind_t;
+    HMI_ITEM_MENU = 0,      /**< Nodo contenedor que agrupa hijos. */
+    HMI_ITEM_PARAMETRO,     /**< Parametro entero editable desde la HMI. */
+} hmi_tipo_item_t;
 
 typedef struct {
-    const char* title;           /**< Texto mostrado para este nodo. */
-    uint8_t parent;              /**< Nodo padre dentro del arbol. */
-    uint8_t first_child;         /**< Primer hijo del nodo si es un menu. */
-    uint8_t previous_sibling;    /**< Hermano anterior en el mismo nivel. */
-    uint8_t next_sibling;        /**< Hermano siguiente en el mismo nivel. */
-    hmi_item_kind_t kind;        /**< Tipo de nodo y comportamiento asociado. */
-    int16_t* value;              /**< Variable vinculada cuando el nodo es editable. */
-    int16_t min_value;           /**< Limite inferior permitido para la edicion. */
-    int16_t max_value;           /**< Limite superior permitido para la edicion. */
-    int16_t step;                /**< Incremento o decremento por pulsacion. */
-} hmi_menu_item_t;
+    const char* titulo;          /**< Texto mostrado para este nodo. */
+    uint8_t padre;               /**< Nodo padre dentro del arbol. */
+    uint8_t primer_hijo;         /**< Primer hijo del nodo si es un menu. */
+    uint8_t hermano_anterior;    /**< Hermano anterior en el mismo nivel. */
+    uint8_t hermano_siguiente;   /**< Hermano siguiente en el mismo nivel. */
+    hmi_tipo_item_t tipo;        /**< Tipo de nodo y comportamiento asociado. */
+    int16_t* valor;              /**< Variable vinculada cuando el nodo es editable. */
+    int16_t valor_minimo;        /**< Limite inferior permitido para la edicion. */
+    int16_t valor_maximo;        /**< Limite superior permitido para la edicion. */
+    int16_t paso;                /**< Incremento o decremento por pulsacion. */
+} hmi_item_menu_t;
 
 /**
  * @brief Arbol de menu codificado mediante indices de hijos y hermanos.
@@ -62,7 +62,7 @@ typedef struct {
 enum {
     HMI_NODE_ROOT = 0,   /**< Nodo raiz interno del arbol. */
     HMI_NODE_PARAMS,     /**< Menu de parametros configurables. */
-    HMI_NODE_SETPOINT,   /**< Parametro de consigna del control. */
+    HMI_NODE_SETPOINT,   /**< Parametro de setpoint del control. */
     HMI_NODE_HYSTERESIS, /**< Parametro de banda de histeresis. */
     HMI_NODE_MODE,       /**< Parametro de modo calentar/enfriar. */
 };
@@ -71,15 +71,15 @@ static int16_t hmi_setpoint_celsius_ = 27;
 static int16_t hmi_histeresis_celsius_ = 2;
 static int16_t hmi_modo_calentar_ = 1;
 
-static ds18b20_bus_driver_t hmi_temperature_bus_;
-static uint8_t hmi_sensor_count_ = 0U;
-static uint8_t hmi_sensor_display_index_ = 0U;
-static bool hmi_sensor_temperature_valid_ = false;
-static int16_t hmi_sensor_temperature_deci_celsius_ = 0;
-static uint16_t hmi_sensor_refresh_ticks_ = 0U;
-static uint16_t hmi_sensor_rotate_ticks_ = 0U;
+static ds18b20_bus_driver_t hmi_bus_temperatura_;
+static uint8_t hmi_cantidad_sensores_ = 0U;
+static uint8_t hmi_indice_sensor_mostrado_ = 0U;
+static bool hmi_temperatura_sensor_valida_ = false;
+static int16_t hmi_temperatura_sensor_deci_celsius_ = 0;
+static uint16_t hmi_ticks_actualizacion_sensor_ = 0U;
+static uint16_t hmi_ticks_rotacion_sensor_ = 0U;
 
-static const onewire_pin_config_t hmi_ds18b20_pin_ = {
+static const onewire_pin_config_t hmi_pin_ds18b20_ = {
     .scu_port = 6U,
     .scu_pin = 1U,
     .scu_mode = (uint16_t) (MD_PUP | MD_EZI | MD_ZI),
@@ -88,101 +88,101 @@ static const onewire_pin_config_t hmi_ds18b20_pin_ = {
     .gpio_pin = 0U,
 };
 
-static const hmi_menu_item_t hmi_menu_tree_[] = {
+static const hmi_item_menu_t hmi_menu_tree_[] = {
     [HMI_NODE_ROOT] = {
-        .title = "ROOT",
-        .first_child = HMI_NODE_PARAMS,
-        .kind = HMI_ITEM_MENU,
+        .titulo = "ROOT",
+        .primer_hijo = HMI_NODE_PARAMS,
+        .tipo = HMI_ITEM_MENU,
     },
     [HMI_NODE_PARAMS] = {
-        .title = "Parametros",
-        .parent = HMI_NODE_ROOT,
-        .first_child = HMI_NODE_SETPOINT,
-        .kind = HMI_ITEM_MENU,
+        .titulo = "Parametros",
+        .padre = HMI_NODE_ROOT,
+        .primer_hijo = HMI_NODE_SETPOINT,
+        .tipo = HMI_ITEM_MENU,
     },
     [HMI_NODE_SETPOINT] = {
-        .title = "Setpoint",
-        .parent = HMI_NODE_PARAMS,
-        .next_sibling = HMI_NODE_HYSTERESIS,
-        .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_setpoint_celsius_,
-        .min_value = 0,
-        .max_value = 120,
-        .step = 1,
+        .titulo = "Setpoint",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_siguiente = HMI_NODE_HYSTERESIS,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_setpoint_celsius_,
+        .valor_minimo = 0,
+        .valor_maximo = 120,
+        .paso = 1,
     },
     [HMI_NODE_HYSTERESIS] = {
-        .title = "Histeresis",
-        .parent = HMI_NODE_PARAMS,
-        .previous_sibling = HMI_NODE_SETPOINT,
-        .next_sibling = HMI_NODE_MODE,
-        .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_histeresis_celsius_,
-        .min_value = 1,
-        .max_value = 20,
-        .step = 1,
+        .titulo = "Histeresis",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_SETPOINT,
+        .hermano_siguiente = HMI_NODE_MODE,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_histeresis_celsius_,
+        .valor_minimo = 1,
+        .valor_maximo = 20,
+        .paso = 1,
     },
     [HMI_NODE_MODE] = {
-        .title = "Modo",
-        .parent = HMI_NODE_PARAMS,
-        .previous_sibling = HMI_NODE_HYSTERESIS,
-        .kind = HMI_ITEM_INT_PARAM,
-        .value = &hmi_modo_calentar_,
-        .min_value = 0,
-        .max_value = 1,
-        .step = 1,
+        .titulo = "Modo",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_modo_calentar_,
+        .valor_minimo = 0,
+        .valor_maximo = 1,
+        .paso = 1,
     },
 };
 
 typedef struct {
-    hmi_screen_t current_screen; /**< Pantalla actualmente visible. */
-    uint8_t current_node;        /**< Nodo seleccionado en el arbol de menu. */
-    uint8_t last_button_mask;    /**< Ultimo estado crudo de los pulsadores. */
-    int16_t edit_value;          /**< Valor temporal mientras se edita un parametro. */
-    bool needs_redraw;           /**< Indica si el LCD debe redibujarse. */
-} hmi_state_t;
+    hmi_pantalla_t pantalla_actual;      /**< Pantalla actualmente visible. */
+    uint8_t nodo_actual;                 /**< Nodo seleccionado en el arbol de menu. */
+    uint8_t mascara_botones_anterior;    /**< Ultimo estado crudo de los pulsadores. */
+    int16_t valor_edicion;               /**< Valor temporal mientras se edita un parametro. */
+    bool necesita_redibujado;            /**< Indica si el LCD debe redibujarse. */
+} hmi_estado_t;
 
-static hmi_state_t hmi_state_;
+static hmi_estado_t hmi_estado_;
 
-static void hmi_update_temperature(void)
+static void hmi_actualizar_temperatura(void)
 {
-    const uint8_t previous_sensor_count = hmi_sensor_count_;
-    const uint8_t previous_display_index = hmi_sensor_display_index_;
-    const bool previous_valid = hmi_sensor_temperature_valid_;
-    const int16_t previous_temperature = hmi_sensor_temperature_deci_celsius_;
-    int16_t raw_temperature = 0;
+    const uint8_t cantidad_sensores_anterior = hmi_cantidad_sensores_;
+    const uint8_t indice_mostrado_anterior = hmi_indice_sensor_mostrado_;
+    const bool temperatura_valida_anterior = hmi_temperatura_sensor_valida_;
+    const int16_t temperatura_anterior = hmi_temperatura_sensor_deci_celsius_;
+    int16_t temperatura_cruda = 0;
 
-    ds18b20_bus_process(&hmi_temperature_bus_, HMI_PROCESS_PERIOD_MS);
+    ds18b20_bus_process(&hmi_bus_temperatura_, HMI_PERIODO_PROCESAMIENTO_MS);
 
-    if (hmi_sensor_count_ == 0U) {
-        hmi_sensor_temperature_valid_ = false;
+    if (hmi_cantidad_sensores_ == 0U) {
+        hmi_temperatura_sensor_valida_ = false;
     } else {
-        if (hmi_sensor_display_index_ >= hmi_sensor_count_) {
-            hmi_sensor_display_index_ = 0U;
+        if (hmi_indice_sensor_mostrado_ >= hmi_cantidad_sensores_) {
+            hmi_indice_sensor_mostrado_ = 0U;
         }
 
-        if (ds18b20_bus_get_latest_raw(&hmi_temperature_bus_, hmi_sensor_display_index_, &raw_temperature)) {
-            const int32_t scaled_value = (int32_t) raw_temperature * 10;
-            if (scaled_value >= 0) {
-                hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value + 8) / 16);
+        if (ds18b20_bus_get_latest_raw(&hmi_bus_temperatura_, hmi_indice_sensor_mostrado_, &temperatura_cruda)) {
+            const int32_t valor_escalado = (int32_t) temperatura_cruda * 10;
+            if (valor_escalado >= 0) {
+                hmi_temperatura_sensor_deci_celsius_ = (int16_t) ((valor_escalado + 8) / 16);
             } else {
-                hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value - 8) / 16);
+                hmi_temperatura_sensor_deci_celsius_ = (int16_t) ((valor_escalado - 8) / 16);
             }
-            hmi_sensor_temperature_valid_ = true;
+            hmi_temperatura_sensor_valida_ = true;
         } else {
-            hmi_sensor_temperature_valid_ = false;
+            hmi_temperatura_sensor_valida_ = false;
         }
     }
 
-    if ((hmi_state_.current_screen == HMI_SCREEN_HOME)
-        && ((previous_sensor_count != hmi_sensor_count_)
-            || (previous_display_index != hmi_sensor_display_index_)
-            || (previous_valid != hmi_sensor_temperature_valid_)
-            || (previous_temperature != hmi_sensor_temperature_deci_celsius_))) {
-        hmi_state_.needs_redraw = true;
+    if ((hmi_estado_.pantalla_actual == HMI_PANTALLA_INICIO)
+        && ((cantidad_sensores_anterior != hmi_cantidad_sensores_)
+            || (indice_mostrado_anterior != hmi_indice_sensor_mostrado_)
+            || (temperatura_valida_anterior != hmi_temperatura_sensor_valida_)
+            || (temperatura_anterior != hmi_temperatura_sensor_deci_celsius_))) {
+        hmi_estado_.necesita_redibujado = true;
     }
 }
 
-static void hmi_lcd_write_line(uint8_t row, const char* text)
+static void hmi_escribir_linea_lcd(uint8_t fila, const char* texto)
 {
     /**
      * @brief El LCD no borra automaticamente el resto de la linea.
@@ -190,42 +190,42 @@ static void hmi_lcd_write_line(uint8_t row, const char* text)
      * Por eso cada render escribe siempre 16 caracteres completos, rellenando
      * con espacios cuando hace falta.
      */
-    char line[HMI_LCD_COLUMNS + 1U];
+    char line[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
-    (void) snprintf(line, sizeof(line), "%-*.*s", HMI_LCD_COLUMNS, HMI_LCD_COLUMNS, text);
-    driver_lcd_set_position(1U, row);
+    (void) snprintf(line, sizeof(line), "%-*.*s", HMI_CANTIDAD_COLUMNAS_LCD, HMI_CANTIDAD_COLUMNAS_LCD, texto);
+    driver_lcd_set_position(1U, fila);
     driver_lcd_printf(line);
 }
 
-static uint8_t hmi_get_first_sibling(uint8_t node)
+static uint8_t hmi_obtener_primer_hermano(uint8_t nodo)
 {
-    uint8_t sibling = node;
-    while (hmi_menu_tree_[sibling].previous_sibling != 0U) {
-        sibling = hmi_menu_tree_[sibling].previous_sibling;
+    uint8_t hermano = nodo;
+    while (hmi_menu_tree_[hermano].hermano_anterior != 0U) {
+        hermano = hmi_menu_tree_[hermano].hermano_anterior;
     }
-    return sibling;
+    return hermano;
 }
 
-static uint8_t hmi_get_last_sibling(uint8_t node)
+static uint8_t hmi_obtener_ultimo_hermano(uint8_t nodo)
 {
-    uint8_t sibling = node;
-    while (hmi_menu_tree_[sibling].next_sibling != 0U) {
-        sibling = hmi_menu_tree_[sibling].next_sibling;
+    uint8_t hermano = nodo;
+    while (hmi_menu_tree_[hermano].hermano_siguiente != 0U) {
+        hermano = hmi_menu_tree_[hermano].hermano_siguiente;
     }
-    return sibling;
+    return hermano;
 }
 
-static void hmi_format_temperature_line(char* line, size_t line_size, int16_t deci_celsius)
+static void hmi_formatear_linea_temperatura(char* linea, size_t tamano_linea, int16_t temperatura_deci_celsius)
 {
-    const bool is_negative = (deci_celsius < 0);
-    const int16_t absolute_temperature = (int16_t) abs(deci_celsius);
-    const int16_t integer_part = (int16_t) (absolute_temperature / 10);
-    const int16_t fractional_part = (int16_t) (absolute_temperature % 10);
+    const bool es_negativa = (temperatura_deci_celsius < 0);
+    const int16_t temperatura_absoluta = (int16_t) abs(temperatura_deci_celsius);
+    const int16_t parte_entera = (int16_t) (temperatura_absoluta / 10);
+    const int16_t parte_fraccionaria = (int16_t) (temperatura_absoluta % 10);
 
-    if (is_negative) {
-        (void) snprintf(line, line_size, "T:-%d.%1d C", integer_part, fractional_part);
+    if (es_negativa) {
+        (void) snprintf(linea, tamano_linea, "T:-%d.%1d C", parte_entera, parte_fraccionaria);
     } else {
-        (void) snprintf(line, line_size, "T: %d.%1d C", integer_part, fractional_part);
+        (void) snprintf(linea, tamano_linea, "T: %d.%1d C", parte_entera, parte_fraccionaria);
     }
 }
 
@@ -238,218 +238,219 @@ static const char* hmi_obtener_texto_modo_control_desde_valor(int16_t valor_modo
     return "Enfriar";
 }
 
-static void hmi_render_home(void)
+static void hmi_dibujar_inicio(void)
 {
-    char header_line[HMI_LCD_COLUMNS + 1U];
-    char value_line[HMI_LCD_COLUMNS + 1U];
+    char linea_encabezado[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    char linea_valor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
-    if (hmi_sensor_count_ == 0U) {
-        hmi_lcd_write_line(1U, "DS18B20");
-        hmi_lcd_write_line(2U, "No detectado");
+    if (hmi_cantidad_sensores_ == 0U) {
+        hmi_escribir_linea_lcd(1U, "DS18B20");
+        hmi_escribir_linea_lcd(2U, "No detectado");
         return;
     }
 
-    (void) snprintf(header_line,
-                    sizeof(header_line),
+    (void) snprintf(linea_encabezado,
+                    sizeof(linea_encabezado),
                     "DS18B20 %u/%u",
-                    (unsigned int) (hmi_sensor_display_index_ + 1U),
-                    (unsigned int) hmi_sensor_count_);
+                    (unsigned int) (hmi_indice_sensor_mostrado_ + 1U),
+                    (unsigned int) hmi_cantidad_sensores_);
 
-    if (!hmi_sensor_temperature_valid_) {
-        hmi_lcd_write_line(1U, header_line);
-        hmi_lcd_write_line(2U, "Lectura fallida");
+    if (!hmi_temperatura_sensor_valida_) {
+        hmi_escribir_linea_lcd(1U, linea_encabezado);
+        hmi_escribir_linea_lcd(2U, "Lectura fallida");
         return;
     }
 
-    hmi_format_temperature_line(value_line,
-                                sizeof(value_line),
-                                hmi_sensor_temperature_deci_celsius_);
+    hmi_formatear_linea_temperatura(linea_valor,
+                                    sizeof(linea_valor),
+                                    hmi_temperatura_sensor_deci_celsius_);
 
-    hmi_lcd_write_line(1U, header_line);
-    hmi_lcd_write_line(2U, value_line);
+    hmi_escribir_linea_lcd(1U, linea_encabezado);
+    hmi_escribir_linea_lcd(2U, linea_valor);
 }
 
-static void hmi_render_menu(void)
+static void hmi_dibujar_menu(void)
 {
-    const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
-    const uint8_t parent_node = current_item->parent;
-    char header_line[HMI_LCD_COLUMNS + 1U];
+    const hmi_item_menu_t* item_actual = &hmi_menu_tree_[hmi_estado_.nodo_actual];
+    const uint8_t nodo_padre = item_actual->padre;
+    char linea_encabezado[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
-    if (parent_node == HMI_NODE_ROOT) {
-        (void) snprintf(header_line, sizeof(header_line), "MENU");
+    if (nodo_padre == HMI_NODE_ROOT) {
+        (void) snprintf(linea_encabezado, sizeof(linea_encabezado), "MENU");
     } else {
-        (void) snprintf(header_line, sizeof(header_line), "MENU:%s",
-                        hmi_menu_tree_[parent_node].title);
+        (void) snprintf(linea_encabezado, sizeof(linea_encabezado), "MENU:%s",
+                        hmi_menu_tree_[nodo_padre].titulo);
     }
 
-    hmi_lcd_write_line(1U, header_line);
-    hmi_lcd_write_line(2U, current_item->title);
+    hmi_escribir_linea_lcd(1U, linea_encabezado);
+    hmi_escribir_linea_lcd(2U, item_actual->titulo);
 }
 
-static void hmi_render_edit(void)
+static void hmi_dibujar_edicion(void)
 {
-    const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
-    char value_line[HMI_LCD_COLUMNS + 1U];
+    const hmi_item_menu_t* item_actual = &hmi_menu_tree_[hmi_estado_.nodo_actual];
+    char linea_valor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
-    if (hmi_state_.current_node == HMI_NODE_MODE) {
-        (void) snprintf(value_line, sizeof(value_line), "%s:%s",
-                        current_item->title,
-                        hmi_obtener_texto_modo_control_desde_valor(hmi_state_.edit_value));
+    if (hmi_estado_.nodo_actual == HMI_NODE_MODE) {
+        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s",
+                        item_actual->titulo,
+                        hmi_obtener_texto_modo_control_desde_valor(hmi_estado_.valor_edicion));
     } else {
-        (void) snprintf(value_line, sizeof(value_line), "%s:%d",
-                        current_item->title, hmi_state_.edit_value);
+        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%d",
+                        item_actual->titulo, hmi_estado_.valor_edicion);
     }
 
-    hmi_lcd_write_line(1U, "EDITAR");
-    hmi_lcd_write_line(2U, value_line);
+    hmi_escribir_linea_lcd(1U, "EDITAR");
+    hmi_escribir_linea_lcd(2U, linea_valor);
 }
 
-static void hmi_render(void)
+static void hmi_dibujar(void)
 {
-    if (!hmi_state_.needs_redraw) {
+    if (!hmi_estado_.necesita_redibujado) {
         return;
     }
 
-    switch (hmi_state_.current_screen) {
-    case HMI_SCREEN_HOME:
-        hmi_render_home();
+    switch (hmi_estado_.pantalla_actual) {
+    case HMI_PANTALLA_INICIO:
+        hmi_dibujar_inicio();
         break;
-    case HMI_SCREEN_MENU:
-        hmi_render_menu();
+    case HMI_PANTALLA_MENU:
+        hmi_dibujar_menu();
         break;
-    case HMI_SCREEN_EDIT:
-        hmi_render_edit();
+    case HMI_PANTALLA_EDICION:
+        hmi_dibujar_edicion();
         break;
     default:
         break;
     }
 
-    hmi_state_.needs_redraw = false;
+    hmi_estado_.necesita_redibujado = false;
 }
 
-static hmi_event_t hmi_poll_event(void)
+static hmi_evento_t hmi_leer_evento(void)
 {
-    const uint8_t current_mask = button_read_all_pins();
+    const uint8_t mascara_actual = button_read_all_pins();
     /**
      * @brief Las teclas se convierten en eventos por flanco.
      *
      * De esta manera una tecla mantenida no vuelve a dispararse continuamente
      * en cada iteracion del lazo principal.
      */
-    const uint8_t pressed_edges = (uint8_t) (current_mask & (uint8_t) ~hmi_state_.last_button_mask);
+    const uint8_t flancos_presionados =
+        (uint8_t) (mascara_actual & (uint8_t) ~hmi_estado_.mascara_botones_anterior);
 
-    hmi_state_.last_button_mask = current_mask;
+    hmi_estado_.mascara_botones_anterior = mascara_actual;
 
-    if ((pressed_edges & 0x01U) != 0U) {
-        return HMI_EVENT_MENU;
+    if ((flancos_presionados & 0x01U) != 0U) {
+        return HMI_EVENTO_MENU;
     }
-    if ((pressed_edges & 0x02U) != 0U) {
-        return HMI_EVENT_UP;
+    if ((flancos_presionados & 0x02U) != 0U) {
+        return HMI_EVENTO_SUBIR;
     }
-    if ((pressed_edges & 0x04U) != 0U) {
-        return HMI_EVENT_DOWN;
+    if ((flancos_presionados & 0x04U) != 0U) {
+        return HMI_EVENTO_BAJAR;
     }
-    if ((pressed_edges & 0x08U) != 0U) {
-        return HMI_EVENT_ENTER;
+    if ((flancos_presionados & 0x08U) != 0U) {
+        return HMI_EVENTO_ACEPTAR;
     }
 
-    return HMI_EVENT_NONE;
+    return HMI_EVENTO_NINGUNO;
 }
 
-static void hmi_enter_root_menu(void)
+static void hmi_entrar_menu_raiz(void)
 {
-    hmi_state_.current_node = hmi_menu_tree_[HMI_NODE_ROOT].first_child;
-    hmi_state_.current_screen = HMI_SCREEN_MENU;
-    hmi_state_.needs_redraw = true;
+    hmi_estado_.nodo_actual = hmi_menu_tree_[HMI_NODE_ROOT].primer_hijo;
+    hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+    hmi_estado_.necesita_redibujado = true;
 }
 
-static void hmi_handle_menu_event(hmi_event_t event)
+static void hmi_manejar_evento_menu(hmi_evento_t evento)
 {
-    const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
+    const hmi_item_menu_t* item_actual = &hmi_menu_tree_[hmi_estado_.nodo_actual];
 
-    switch (event) {
-    case HMI_EVENT_MENU:
-        if (current_item->parent == HMI_NODE_ROOT) {
-            hmi_state_.current_screen = HMI_SCREEN_HOME;
+    switch (evento) {
+    case HMI_EVENTO_MENU:
+        if (item_actual->padre == HMI_NODE_ROOT) {
+            hmi_estado_.pantalla_actual = HMI_PANTALLA_INICIO;
         } else {
-            hmi_state_.current_node = current_item->parent;
+            hmi_estado_.nodo_actual = item_actual->padre;
         }
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_UP:
+    case HMI_EVENTO_SUBIR:
         /** @brief La navegacion entre hermanos es ciclica. */
-        if (current_item->previous_sibling != 0U) {
-            hmi_state_.current_node = current_item->previous_sibling;
+        if (item_actual->hermano_anterior != 0U) {
+            hmi_estado_.nodo_actual = item_actual->hermano_anterior;
         } else {
-            hmi_state_.current_node = hmi_get_last_sibling(hmi_state_.current_node);
+            hmi_estado_.nodo_actual = hmi_obtener_ultimo_hermano(hmi_estado_.nodo_actual);
         }
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_DOWN:
+    case HMI_EVENTO_BAJAR:
         /** @brief La navegacion entre hermanos es ciclica. */
-        if (current_item->next_sibling != 0U) {
-            hmi_state_.current_node = current_item->next_sibling;
+        if (item_actual->hermano_siguiente != 0U) {
+            hmi_estado_.nodo_actual = item_actual->hermano_siguiente;
         } else {
-            hmi_state_.current_node = hmi_get_first_sibling(hmi_state_.current_node);
+            hmi_estado_.nodo_actual = hmi_obtener_primer_hermano(hmi_estado_.nodo_actual);
         }
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_ENTER:
-        if (current_item->kind == HMI_ITEM_MENU) {
-            hmi_state_.current_node = current_item->first_child;
-            hmi_state_.current_screen = HMI_SCREEN_MENU;
+    case HMI_EVENTO_ACEPTAR:
+        if (item_actual->tipo == HMI_ITEM_MENU) {
+            hmi_estado_.nodo_actual = item_actual->primer_hijo;
+            hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
         } else {
-            hmi_state_.edit_value = *current_item->value;
-            hmi_state_.current_screen = HMI_SCREEN_EDIT;
+            hmi_estado_.valor_edicion = *item_actual->valor;
+            hmi_estado_.pantalla_actual = HMI_PANTALLA_EDICION;
         }
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_NONE:
+    case HMI_EVENTO_NINGUNO:
     default:
         break;
     }
 }
 
-static void hmi_handle_edit_event(hmi_event_t event)
+static void hmi_manejar_evento_edicion(hmi_evento_t evento)
 {
-    const hmi_menu_item_t* current_item = &hmi_menu_tree_[hmi_state_.current_node];
-    int16_t new_value = hmi_state_.edit_value;
+    const hmi_item_menu_t* item_actual = &hmi_menu_tree_[hmi_estado_.nodo_actual];
+    int16_t nuevo_valor = hmi_estado_.valor_edicion;
 
-    switch (event) {
-    case HMI_EVENT_MENU:
-        hmi_state_.current_screen = HMI_SCREEN_MENU;
-        hmi_state_.needs_redraw = true;
+    switch (evento) {
+    case HMI_EVENTO_MENU:
+        hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_UP:
-        new_value = (int16_t) (new_value + current_item->step);
-        if (new_value > current_item->max_value) {
-            new_value = current_item->max_value;
+    case HMI_EVENTO_SUBIR:
+        nuevo_valor = (int16_t) (nuevo_valor + item_actual->paso);
+        if (nuevo_valor > item_actual->valor_maximo) {
+            nuevo_valor = item_actual->valor_maximo;
         }
-        hmi_state_.edit_value = new_value;
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.valor_edicion = nuevo_valor;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_DOWN:
-        new_value = (int16_t) (new_value - current_item->step);
-        if (new_value < current_item->min_value) {
-            new_value = current_item->min_value;
+    case HMI_EVENTO_BAJAR:
+        nuevo_valor = (int16_t) (nuevo_valor - item_actual->paso);
+        if (nuevo_valor < item_actual->valor_minimo) {
+            nuevo_valor = item_actual->valor_minimo;
         }
-        hmi_state_.edit_value = new_value;
-        hmi_state_.needs_redraw = true;
+        hmi_estado_.valor_edicion = nuevo_valor;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_ENTER:
-        *current_item->value = hmi_state_.edit_value;
-        hmi_state_.current_screen = HMI_SCREEN_MENU;
-        hmi_state_.needs_redraw = true;
+    case HMI_EVENTO_ACEPTAR:
+        *item_actual->valor = hmi_estado_.valor_edicion;
+        hmi_estado_.pantalla_actual = HMI_PANTALLA_MENU;
+        hmi_estado_.necesita_redibujado = true;
         break;
 
-    case HMI_EVENT_NONE:
+    case HMI_EVENTO_NINGUNO:
     default:
         break;
     }
@@ -457,81 +458,81 @@ static void hmi_handle_edit_event(hmi_event_t event)
 
 void hmi_init(void)
 {
-    hmi_state_.current_screen = HMI_SCREEN_HOME;
-    hmi_state_.current_node = HMI_NODE_PARAMS;
-    hmi_state_.last_button_mask = 0U;
-    hmi_state_.edit_value = 0;
-    hmi_state_.needs_redraw = true;
+    hmi_estado_.pantalla_actual = HMI_PANTALLA_INICIO;
+    hmi_estado_.nodo_actual = HMI_NODE_PARAMS;
+    hmi_estado_.mascara_botones_anterior = 0U;
+    hmi_estado_.valor_edicion = 0;
+    hmi_estado_.necesita_redibujado = true;
 
     driver_delay_init();
     driver_lcd_write_char('\b');
-    if (ds18b20_bus_init(&hmi_temperature_bus_, &hmi_ds18b20_pin_)) {
-        hmi_sensor_count_ = ds18b20_bus_discover(&hmi_temperature_bus_);
-        if (hmi_sensor_count_ > 0U) {
-            (void) ds18b20_bus_start_conversion(&hmi_temperature_bus_);
+    if (ds18b20_bus_init(&hmi_bus_temperatura_, &hmi_pin_ds18b20_)) {
+        hmi_cantidad_sensores_ = ds18b20_bus_discover(&hmi_bus_temperatura_);
+        if (hmi_cantidad_sensores_ > 0U) {
+            (void) ds18b20_bus_start_conversion(&hmi_bus_temperatura_);
         }
     }
-    hmi_update_temperature();
-    hmi_render();
+    hmi_actualizar_temperatura();
+    hmi_dibujar();
 }
 
 void hmi_process(void)
 {
-    const hmi_event_t event = hmi_poll_event();
+    const hmi_evento_t evento = hmi_leer_evento();
 
-    switch (hmi_state_.current_screen) {
-    case HMI_SCREEN_HOME:
-        if (event == HMI_EVENT_MENU) {
-            hmi_enter_root_menu();
+    switch (hmi_estado_.pantalla_actual) {
+    case HMI_PANTALLA_INICIO:
+        if (evento == HMI_EVENTO_MENU) {
+            hmi_entrar_menu_raiz();
         }
         break;
 
-    case HMI_SCREEN_MENU:
-        hmi_handle_menu_event(event);
+    case HMI_PANTALLA_MENU:
+        hmi_manejar_evento_menu(evento);
         break;
 
-    case HMI_SCREEN_EDIT:
-        hmi_handle_edit_event(event);
+    case HMI_PANTALLA_EDICION:
+        hmi_manejar_evento_edicion(evento);
         break;
 
     default:
         break;
     }
 
-    hmi_update_temperature();
+    hmi_actualizar_temperatura();
 
-    if (!ds18b20_bus_is_busy(&hmi_temperature_bus_)) {
-        hmi_sensor_refresh_ticks_++;
-        if (hmi_sensor_refresh_ticks_ >= HMI_SENSOR_REFRESH_TICKS) {
-            hmi_sensor_refresh_ticks_ = 0U;
-            if (hmi_sensor_count_ == 0U) {
-                hmi_sensor_count_ = ds18b20_bus_discover(&hmi_temperature_bus_);
+    if (!ds18b20_bus_is_busy(&hmi_bus_temperatura_)) {
+        hmi_ticks_actualizacion_sensor_++;
+        if (hmi_ticks_actualizacion_sensor_ >= HMI_TICKS_ACTUALIZACION_SENSOR) {
+            hmi_ticks_actualizacion_sensor_ = 0U;
+            if (hmi_cantidad_sensores_ == 0U) {
+                hmi_cantidad_sensores_ = ds18b20_bus_discover(&hmi_bus_temperatura_);
             }
-            if (hmi_sensor_count_ > 0U) {
-                (void) ds18b20_bus_start_conversion(&hmi_temperature_bus_);
+            if (hmi_cantidad_sensores_ > 0U) {
+                (void) ds18b20_bus_start_conversion(&hmi_bus_temperatura_);
             }
         }
     } else {
-        hmi_sensor_refresh_ticks_ = 0U;
+        hmi_ticks_actualizacion_sensor_ = 0U;
     }
 
-    if ((hmi_state_.current_screen == HMI_SCREEN_HOME) && (hmi_sensor_count_ > 1U)) {
-        hmi_sensor_rotate_ticks_++;
-        if (hmi_sensor_rotate_ticks_ >= HMI_SENSOR_ROTATE_TICKS) {
-            hmi_sensor_rotate_ticks_ = 0U;
-            hmi_sensor_display_index_++;
-            if (hmi_sensor_display_index_ >= hmi_sensor_count_) {
-                hmi_sensor_display_index_ = 0U;
+    if ((hmi_estado_.pantalla_actual == HMI_PANTALLA_INICIO) && (hmi_cantidad_sensores_ > 1U)) {
+        hmi_ticks_rotacion_sensor_++;
+        if (hmi_ticks_rotacion_sensor_ >= HMI_TICKS_ROTACION_SENSOR) {
+            hmi_ticks_rotacion_sensor_ = 0U;
+            hmi_indice_sensor_mostrado_++;
+            if (hmi_indice_sensor_mostrado_ >= hmi_cantidad_sensores_) {
+                hmi_indice_sensor_mostrado_ = 0U;
             }
-            hmi_update_temperature();
+            hmi_actualizar_temperatura();
         }
     } else {
-        hmi_sensor_rotate_ticks_ = 0U;
+        hmi_ticks_rotacion_sensor_ = 0U;
     }
 
-    hmi_render();
+    hmi_dibujar();
     /** @brief Antirrebote simple y control de ritmo del lazo de polling. */
-    driver_delay_ms(HMI_PROCESS_PERIOD_MS);
+    driver_delay_ms(HMI_PERIODO_PROCESAMIENTO_MS);
 }
 
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius)
@@ -543,7 +544,7 @@ bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_
         return false;
     }
 
-    if (!ds18b20_bus_get_latest_raw(&hmi_temperature_bus_, indice_sensor, &temperatura_cruda)) {
+    if (!ds18b20_bus_get_latest_raw(&hmi_bus_temperatura_, indice_sensor, &temperatura_cruda)) {
         return false;
     }
 

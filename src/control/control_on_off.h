@@ -27,7 +27,7 @@ typedef enum {
  */
 typedef struct {
     control_on_off_sentido_t sentido;
-    int16_t consigna_deci_celsius;      // setpoint en decimas de grado Celsius
+    int16_t setpoint_deci_celsius;      // setpoint en decimas de grado Celsius
     uint16_t histeresis_deci_celsius;   // histeresis en decimas de grado Celsius
     bool habilitado;
 } control_on_off_configuracion_t;
