@@ -1,6 +1,6 @@
 /**
  * @file uart_driver_irq.c
- * @brief UART driver based on LPCOpen ring-buffer interrupt helpers
+ * @brief Implementacion del driver UART por interrupciones
  */
 
 #include "uart_driver_irq.h"
@@ -18,14 +18,22 @@ typedef struct {
     uint8_t tx_data[UART_IRQ_TX_BUFFER_SIZE];
 } driver_uart_irq_state_t;
 
-/* This driver keeps a single active UART instance. If the project later needs
- * multiple channels at once, this state has to become per-instance. */
+/**
+ * @brief Estado global de una unica instancia activa del driver.
+ *
+ * Si mas adelante el proyecto necesita multiples UART en paralelo, este
+ * estado debera pasar a ser por instancia.
+ */
 static driver_uart_irq_state_t driver_uart_irq_state_;
 
 static bool driver_uart_irq_select_channel(uint8_t channel)
 {
-    /* Besides selecting the peripheral and IRQ, this also applies the pinmux
-     * for the chosen channel so init() stays self-contained. */
+    /**
+     * @brief La seleccion del canal incluye tambien el pinmux.
+     *
+     * De esta forma la inicializacion del driver queda autocontenida y no
+     * depende de una configuracion externa previa.
+     */
     switch (channel) {
     case UART_IRQ_CHANNEL_0:
         driver_uart_irq_state_.peripheral = LPC_USART0;
@@ -59,8 +67,12 @@ bool driver_uart_irq_init(uint8_t channel, uint32_t baudrate)
         return false;
     }
 
-    /* RX and TX are decoupled through ring buffers so the application can
-     * enqueue/dequeue data while the IRQ handler services the hardware FIFO. */
+    /**
+     * @brief RX y TX quedan desacopladas mediante buffers circulares.
+     *
+     * La aplicacion trabaja contra estos buffers mientras la rutina de
+     * interrupcion atiende la FIFO fisica del periferico.
+     */
     RingBuffer_Init(&driver_uart_irq_state_.rx_ring,
                     driver_uart_irq_state_.rx_data,
                     sizeof(driver_uart_irq_state_.rx_data[0]),
@@ -163,8 +175,12 @@ void driver_uart_irq_handler(void)
         return;
     }
 
-    /* LPCOpen moves RX bytes into rx_ring and drains tx_ring into the UART
-     * FIFO according to the interrupt source that woke the peripheral up. */
+    /**
+     * @brief LPCOpen mueve bytes entre la UART y los ring buffers.
+     *
+     * Segun la fuente de interrupcion, la libreria deposita bytes recibidos en
+     * rx_ring o drena tx_ring hacia la FIFO de transmision.
+     */
     Chip_UART_IRQRBHandler(driver_uart_irq_state_.peripheral,
                            &driver_uart_irq_state_.rx_ring,
                            &driver_uart_irq_state_.tx_ring);
@@ -172,8 +188,11 @@ void driver_uart_irq_handler(void)
 
 void UART0_IRQHandler(void)
 {
-    /* The wrappers keep the vector table explicit while dispatching only the
-     * channel currently owned by this driver instance. */
+    /**
+     * @brief Wrapper explicito para el vector UART0.
+     *
+     * Solo despacha si el canal actualmente configurado pertenece a esta IRQ.
+     */
     if (driver_uart_irq_state_.channel == UART_IRQ_CHANNEL_0) {
         driver_uart_irq_handler();
     }

@@ -1,12 +1,6 @@
 /**
  * @file lcd_driver.c
- * @author agustinavila (tinto.avila@gmail.com)
- * @brief 
- * @version 0.1
- * @date 2023-05-17
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @brief Implementacion del driver para LCD alfanumerico
  */
 
 #include "lcd_driver.h"
@@ -39,8 +33,12 @@ void lcd_send(uint8_t nibble, bool is_data)
     const bool bit_3 = (bool) ((nibble >> 3) & 0x01);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD4 + 4, bit_3);
 
-    /* The controller latches the nibble on the EN pulse, so the pulse width
-     * and post-write delay are part of the LCD protocol, not optional waits. */
+    /**
+     * @brief El controlador toma el nibble en el flanco de EN.
+     *
+     * Por eso el ancho del pulso y el retardo posterior son parte del
+     * protocolo del LCD, no esperas opcionales.
+     */
     driver_delay_us(1U);
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
     driver_delay_us(1U);
@@ -51,8 +49,12 @@ void lcd_send(uint8_t nibble, bool is_data)
 
 void send_byte(uint8_t payload, bool data_type)
 {
-    /* The display is wired in 4-bit mode, so every byte is split into two
-     * transfers, upper nibble first. */
+    /**
+     * @brief El LCD esta cableado en modo de 4 bits.
+     *
+     * Cada byte se transmite en dos pasos: primero el nibble alto y luego el
+     * nibble bajo.
+     */
     const uint8_t upper_nibble = (payload >> 4) & 0x0F;
     lcd_send(upper_nibble, data_type);
     const uint8_t lower_nibble = payload & 0x0F;
@@ -95,8 +97,12 @@ void driver_lcd_init(void)
     driver_delay_init();
     driver_delay_ms(50U);
 
-    /* Standard HD44780 power-on sequence for 4-bit mode. The repeated 0x03
-     * writes force the controller into a known state before switching to 0x02. */
+    /**
+     * @brief Secuencia estandar de arranque HD44780 en modo 4 bits.
+     *
+     * Las escrituras repetidas de 0x03 fuerzan al controlador a un estado
+     * conocido antes de conmutar definitivamente a 0x02.
+     */
     lcd_send(0x03, LCD_IS_COMMAND);
     driver_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);

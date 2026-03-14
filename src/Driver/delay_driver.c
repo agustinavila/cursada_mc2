@@ -1,6 +1,6 @@
 /**
  * @file delay_driver.c
- * @brief Common busy-wait delays backed by LPCOpen stopwatch primitives
+ * @brief Implementacion de delays bloqueantes basada en stopwatch de LPCOpen
  */
 
 #include "delay_driver.h"
@@ -11,6 +11,7 @@ static bool driver_delay_initialized_;
 
 static void driver_delay_ensure_initialized(void)
 {
+    /** @brief La base de tiempos se inicializa una sola vez de forma perezosa. */
     if (!driver_delay_initialized_) {
         StopWatch_Init();
         driver_delay_initialized_ = true;
