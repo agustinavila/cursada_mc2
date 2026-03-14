@@ -64,15 +64,20 @@ typedef struct {
 enum {
     HMI_NODE_ROOT = 0,   /**< Nodo raiz interno del arbol. */
     HMI_NODE_PARAMS,     /**< Menu de parametros configurables. */
+    HMI_NODE_SENSOR_CFG, /**< Menu de configuracion del sensor de proceso. */
+    HMI_NODE_RESET,      /**< Accion para restablecer valores por defecto. */
     HMI_NODE_SETPOINT,   /**< Parametro de setpoint del control. */
     HMI_NODE_HYSTERESIS, /**< Parametro de banda de histeresis. */
     HMI_NODE_MODE,       /**< Parametro de modo calentar/enfriar. */
-    HMI_NODE_RESET,      /**< Accion para restablecer valores por defecto. */
+    HMI_NODE_SENSOR_MODE, /**< Parametro de modo auto/fijo del sensor de proceso. */
+    HMI_NODE_PROCESS_SENSOR, /**< Parametro de seleccion del sensor de proceso. */
 };
 
 static int16_t hmi_setpoint_celsius_ = 27;
 static int16_t hmi_histeresis_celsius_ = 2;
 static int16_t hmi_modo_calentar_ = 1;
+static int16_t hmi_sensor_proceso_automatico_ = 1;
+static int16_t hmi_sensor_proceso_seleccion_ = 0;
 static bool hmi_solicitud_restablecer_parametros_ = false;
 
 static ds18b20_bus_driver_t hmi_bus_temperatura_;
@@ -99,10 +104,25 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .tipo = HMI_ITEM_MENU,
     },
     [HMI_NODE_PARAMS] = {
-        .titulo = "Parametros",
+        .titulo = "Param control",
         .padre = HMI_NODE_ROOT,
         .primer_hijo = HMI_NODE_SETPOINT,
+        .hermano_siguiente = HMI_NODE_SENSOR_CFG,
         .tipo = HMI_ITEM_MENU,
+    },
+    [HMI_NODE_SENSOR_CFG] = {
+        .titulo = "Config sensor",
+        .padre = HMI_NODE_ROOT,
+        .primer_hijo = HMI_NODE_SENSOR_MODE,
+        .hermano_anterior = HMI_NODE_PARAMS,
+        .hermano_siguiente = HMI_NODE_RESET,
+        .tipo = HMI_ITEM_MENU,
+    },
+    [HMI_NODE_RESET] = {
+        .titulo = "Rest ajus def",
+        .padre = HMI_NODE_ROOT,
+        .hermano_anterior = HMI_NODE_SENSOR_CFG,
+        .tipo = HMI_ITEM_ACCION,
     },
     [HMI_NODE_SETPOINT] = {
         .titulo = "Setpoint",
@@ -129,18 +149,31 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .titulo = "Modo",
         .padre = HMI_NODE_PARAMS,
         .hermano_anterior = HMI_NODE_HYSTERESIS,
-        .hermano_siguiente = HMI_NODE_RESET,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_modo_calentar_,
         .valor_minimo = 0,
         .valor_maximo = 1,
         .paso = 1,
     },
-    [HMI_NODE_RESET] = {
-        .titulo = "Restablecer",
-        .padre = HMI_NODE_PARAMS,
-        .hermano_anterior = HMI_NODE_MODE,
-        .tipo = HMI_ITEM_ACCION,
+    [HMI_NODE_SENSOR_MODE] = {
+        .titulo = "Modo",
+        .padre = HMI_NODE_SENSOR_CFG,
+        .hermano_siguiente = HMI_NODE_PROCESS_SENSOR,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_sensor_proceso_automatico_,
+        .valor_minimo = 0,
+        .valor_maximo = 1,
+        .paso = 1,
+    },
+    [HMI_NODE_PROCESS_SENSOR] = {
+        .titulo = "Sensor proc",
+        .padre = HMI_NODE_SENSOR_CFG,
+        .hermano_anterior = HMI_NODE_SENSOR_MODE,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_sensor_proceso_seleccion_,
+        .valor_minimo = 0,
+        .valor_maximo = 0,
+        .paso = 1,
     },
 };
 
@@ -249,6 +282,56 @@ static const char* hmi_obtener_texto_modo_control_desde_valor(int16_t valor_modo
     return "Enfriar";
 }
 
+static const char* hmi_obtener_texto_modo_sensor_desde_valor(int16_t valor_modo)
+{
+    if (valor_modo != 0) {
+        return "Auto";
+    }
+
+    return "Fijo";
+}
+
+static void hmi_formatear_texto_sensor_proceso(char* texto, size_t tamano_texto, int16_t seleccion)
+{
+    uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE];
+
+    if ((hmi_cantidad_sensores_ <= 1U) || (seleccion <= 0)) {
+        (void) snprintf(texto, tamano_texto, "Auto");
+        return;
+    }
+
+    if (hmi_obtener_rom_sensor((uint8_t) (seleccion - 1), rom)) {
+        /**
+         * @brief El LCD solo permite 16 caracteres, por eso la ROM se muestra
+         * abreviada usando los primeros 4 bytes en hexadecimal.
+         */
+        (void) snprintf(texto,
+                        tamano_texto,
+                        "S%d %02X%02X%02X%02X",
+                        seleccion,
+                        rom[0],
+                        rom[1],
+                        rom[2],
+                        rom[3]);
+        return;
+    }
+
+    (void) snprintf(texto, tamano_texto, "S%d", seleccion);
+}
+
+static bool hmi_edicion_es_ciclica(uint8_t nodo)
+{
+    switch (nodo) {
+    case HMI_NODE_MODE:
+    case HMI_NODE_SENSOR_MODE:
+    case HMI_NODE_PROCESS_SENSOR:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 static void hmi_dibujar_inicio(void)
 {
     char linea_encabezado[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
@@ -306,6 +389,17 @@ static void hmi_dibujar_edicion(void)
         (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s",
                         item_actual->titulo,
                         hmi_obtener_texto_modo_control_desde_valor(hmi_estado_.valor_edicion));
+    } else if (hmi_estado_.nodo_actual == HMI_NODE_SENSOR_MODE) {
+        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s",
+                        item_actual->titulo,
+                        hmi_obtener_texto_modo_sensor_desde_valor(hmi_estado_.valor_edicion));
+    } else if (hmi_estado_.nodo_actual == HMI_NODE_PROCESS_SENSOR) {
+        char texto_sensor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+
+        hmi_formatear_texto_sensor_proceso(texto_sensor, sizeof(texto_sensor), hmi_estado_.valor_edicion);
+        hmi_escribir_linea_lcd(1U, item_actual->titulo);
+        hmi_escribir_linea_lcd(2U, texto_sensor);
+        return;
     } else {
         (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%d",
                         item_actual->titulo, hmi_estado_.valor_edicion);
@@ -463,6 +557,15 @@ static void hmi_manejar_evento_confirmacion(hmi_evento_t evento)
 static void hmi_manejar_evento_edicion(hmi_evento_t evento)
 {
     const hmi_item_menu_t* item_actual = &hmi_menu_tree_[hmi_estado_.nodo_actual];
+    const bool edicion_ciclica = hmi_edicion_es_ciclica(hmi_estado_.nodo_actual);
+    const int16_t valor_minimo =
+        (hmi_estado_.nodo_actual == HMI_NODE_PROCESS_SENSOR)
+            ? ((hmi_cantidad_sensores_ > 1U) ? 1 : 0)
+            : item_actual->valor_minimo;
+    const int16_t valor_maximo =
+        (hmi_estado_.nodo_actual == HMI_NODE_PROCESS_SENSOR)
+            ? ((hmi_cantidad_sensores_ > 1U) ? (int16_t) hmi_cantidad_sensores_ : 0)
+            : item_actual->valor_maximo;
     int16_t nuevo_valor = hmi_estado_.valor_edicion;
 
     switch (evento) {
@@ -473,8 +576,8 @@ static void hmi_manejar_evento_edicion(hmi_evento_t evento)
 
     case HMI_EVENTO_SUBIR:
         nuevo_valor = (int16_t) (nuevo_valor + item_actual->paso);
-        if (nuevo_valor > item_actual->valor_maximo) {
-            nuevo_valor = item_actual->valor_maximo;
+        if (nuevo_valor > valor_maximo) {
+            nuevo_valor = edicion_ciclica ? valor_minimo : valor_maximo;
         }
         hmi_estado_.valor_edicion = nuevo_valor;
         hmi_estado_.necesita_redibujado = true;
@@ -482,8 +585,8 @@ static void hmi_manejar_evento_edicion(hmi_evento_t evento)
 
     case HMI_EVENTO_BAJAR:
         nuevo_valor = (int16_t) (nuevo_valor - item_actual->paso);
-        if (nuevo_valor < item_actual->valor_minimo) {
-            nuevo_valor = item_actual->valor_minimo;
+        if (nuevo_valor < valor_minimo) {
+            nuevo_valor = edicion_ciclica ? valor_maximo : valor_minimo;
         }
         hmi_estado_.valor_edicion = nuevo_valor;
         hmi_estado_.necesita_redibujado = true;
@@ -606,6 +709,20 @@ bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_
     return true;
 }
 
+uint8_t hmi_obtener_cantidad_sensores(void)
+{
+    return hmi_cantidad_sensores_;
+}
+
+bool hmi_obtener_rom_sensor(uint8_t indice_sensor, uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE])
+{
+    if (rom == 0) {
+        return false;
+    }
+
+    return ds18b20_bus_get_rom_code(&hmi_bus_temperatura_, indice_sensor, rom);
+}
+
 int16_t hmi_obtener_setpoint_deci_celsius(void)
 {
     return (int16_t) (hmi_setpoint_celsius_ * 10);
@@ -621,6 +738,20 @@ bool hmi_modo_control_es_calentar(void)
     return (hmi_modo_calentar_ != 0);
 }
 
+bool hmi_sensor_proceso_es_automatico(void)
+{
+    return (hmi_sensor_proceso_automatico_ != 0);
+}
+
+uint8_t hmi_obtener_sensor_proceso_seleccion(void)
+{
+    if (hmi_sensor_proceso_seleccion_ <= 0) {
+        return 1U;
+    }
+
+    return (uint8_t) hmi_sensor_proceso_seleccion_;
+}
+
 void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
                                    bool modo_calentar)
@@ -634,6 +765,18 @@ void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
     hmi_setpoint_celsius_ = (int16_t) (setpoint_deci_celsius / 10);
     hmi_histeresis_celsius_ = (int16_t) (histeresis_deci_celsius / 10U);
     hmi_modo_calentar_ = modo_calentar ? 1 : 0;
+    hmi_estado_.valor_edicion = 0;
+    hmi_estado_.necesita_redibujado = true;
+}
+
+void hmi_cargar_configuracion_sensor_proceso(bool automatico, uint8_t seleccion)
+{
+    hmi_sensor_proceso_automatico_ = automatico ? 1 : 0;
+    if (hmi_cantidad_sensores_ > 1U) {
+        hmi_sensor_proceso_seleccion_ = (seleccion > 0U) ? (int16_t) seleccion : 1;
+    } else {
+        hmi_sensor_proceso_seleccion_ = 0;
+    }
     hmi_estado_.valor_edicion = 0;
     hmi_estado_.necesita_redibujado = true;
 }

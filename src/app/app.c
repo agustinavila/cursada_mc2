@@ -18,10 +18,12 @@
 #include "control/control_on_off.h"
 #include "hmi/hmi.h"
 
-static control_selector_t app_selector_control_;
-static const uint8_t app_indice_sensor_proceso_ = 0U;
+#include <string.h>
 
+static control_selector_t app_selector_control_;
 static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
+static uint8_t app_indice_sensor_proceso_ = 0U;
+static bool app_sensor_proceso_resuelto_ = false;
 
 /**
  * @brief Copia en la HMI los parametros persistidos actualmente cargados.
@@ -32,10 +34,30 @@ static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
 static void app_cargar_parametros_en_hmi(void)
 {
     const parametros_t* parametros = parametros_obtener();
+    bool sensor_automatico = true;
+    uint8_t seleccion_sensor = 0U;
 
     hmi_cargar_parametros_control(parametros->control.setpoint_deci_celsius,
                                   parametros->control.histeresis_deci_celsius,
                                   parametros->control.modo_calentar);
+
+    if ((hmi_obtener_cantidad_sensores() > 1U)
+        && (parametros->sensor_proceso.modo == PARAMETROS_SENSOR_MODO_ROM)
+        && parametros->sensor_proceso.rom_valida) {
+        sensor_automatico = false;
+        uint8_t indice = 0U;
+        uint8_t rom_sensor[PARAMETROS_SENSOR_ROM_SIZE];
+
+        for (indice = 0U; indice < hmi_obtener_cantidad_sensores(); ++indice) {
+            if (hmi_obtener_rom_sensor(indice, rom_sensor)
+                && (memcmp(rom_sensor, parametros->sensor_proceso.rom, PARAMETROS_SENSOR_ROM_SIZE) == 0)) {
+                seleccion_sensor = (uint8_t) (indice + 1U);
+                break;
+            }
+        }
+    }
+
+    hmi_cargar_configuracion_sensor_proceso(sensor_automatico, seleccion_sensor);
 }
 
 static control_on_off_configuracion_t app_obtener_configuracion_control_desde_parametros(void)
@@ -51,6 +73,50 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
     };
 
     return configuracion;
+}
+
+/**
+ * @brief Resuelve que sensor descubierto debe usarse como entrada del lazo.
+ *
+ * Politica actual:
+ * - sin sensores: no hay control posible
+ * - un solo sensor: se usa automaticamente
+ * - multiples sensores: solo se acepta una ROM persistida valida
+ */
+static bool app_resolver_sensor_proceso(void)
+{
+    const parametros_t* parametros = parametros_obtener();
+    const uint8_t cantidad_sensores = hmi_obtener_cantidad_sensores();
+    uint8_t indice = 0U;
+    uint8_t rom_sensor[PARAMETROS_SENSOR_ROM_SIZE];
+
+    app_sensor_proceso_resuelto_ = false;
+
+    if (cantidad_sensores == 0U) {
+        return false;
+    }
+
+    if (cantidad_sensores == 1U) {
+        app_indice_sensor_proceso_ = 0U;
+        app_sensor_proceso_resuelto_ = true;
+        return true;
+    }
+
+    if ((parametros->sensor_proceso.modo != PARAMETROS_SENSOR_MODO_ROM)
+        || !parametros->sensor_proceso.rom_valida) {
+        return false;
+    }
+
+    for (indice = 0U; indice < cantidad_sensores; ++indice) {
+        if (hmi_obtener_rom_sensor(indice, rom_sensor)
+            && (memcmp(rom_sensor, parametros->sensor_proceso.rom, PARAMETROS_SENSOR_ROM_SIZE) == 0)) {
+            app_indice_sensor_proceso_ = indice;
+            app_sensor_proceso_resuelto_ = true;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -91,10 +157,30 @@ static bool app_sincronizar_hmi_en_parametros(void)
     const int16_t setpoint_deci_celsius = hmi_obtener_setpoint_deci_celsius();
     const uint16_t histeresis_deci_celsius = hmi_obtener_histeresis_deci_celsius();
     const bool modo_calentar = hmi_modo_control_es_calentar();
+    const bool sensor_automatico = hmi_sensor_proceso_es_automatico();
+    const uint8_t seleccion_sensor = hmi_obtener_sensor_proceso_seleccion();
+    const uint8_t cantidad_sensores = hmi_obtener_cantidad_sensores();
+    uint8_t rom_sensor[PARAMETROS_SENSOR_ROM_SIZE];
+    bool hubo_cambios = false;
 
-    if (!parametros_actualizar_control(setpoint_deci_celsius,
-                                       histeresis_deci_celsius,
-                                       modo_calentar)) {
+    if (parametros_actualizar_control(setpoint_deci_celsius,
+                                      histeresis_deci_celsius,
+                                      modo_calentar)) {
+        hubo_cambios = true;
+    }
+
+    if (sensor_automatico || (cantidad_sensores <= 1U)) {
+        if (parametros_configurar_sensor_proceso_auto()) {
+            hubo_cambios = true;
+        }
+    } else if ((seleccion_sensor <= cantidad_sensores)
+               && hmi_obtener_rom_sensor((uint8_t) (seleccion_sensor - 1U), rom_sensor)) {
+        if (parametros_configurar_sensor_proceso_por_rom(rom_sensor)) {
+            hubo_cambios = true;
+        }
+    }
+
+    if (!hubo_cambios) {
         return true;
     }
 
@@ -115,6 +201,7 @@ static void app_actualizar_control(void)
     control_activo = control_selector_obtener_activo(&app_selector_control_);
 
     if ((control_activo == 0)
+        || !app_resolver_sensor_proceso()
         || !hmi_obtener_temperatura_sensor(app_indice_sensor_proceso_, &temperatura_deci_celsius)) {
         led_turn_off(LED1);
         return;
