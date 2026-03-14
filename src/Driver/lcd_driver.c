@@ -10,6 +10,7 @@
  */
 
 #include "lcd_driver.h"
+#include "delay_driver.h"
 
 #define LCD_PORT 4
 #define LCD4 10 ///< LCD4 = D7 on lcd pinout
@@ -21,27 +22,6 @@
 
 #define LCD_IS_DATA 1
 #define LCD_IS_COMMAND 0
-
-static void lcd_delay_cycles(volatile uint32_t cycles)
-{
-    while (cycles-- > 0U) {
-        __asm volatile ("nop");
-    }
-}
-
-static void lcd_delay_us(uint32_t microseconds)
-{
-    const uint32_t core_clock_hz = (SystemCoreClock != 0U) ? SystemCoreClock : 12000000U;
-    const uint32_t cycles_per_us = (core_clock_hz / 3000000U) + 1U;
-    lcd_delay_cycles(cycles_per_us * microseconds);
-}
-
-static void lcd_delay_ms(uint32_t milliseconds)
-{
-    while (milliseconds-- > 0U) {
-        lcd_delay_us(1000U);
-    }
-}
 
 void lcd_send(uint8_t nibble, bool is_data)
 {
@@ -59,11 +39,11 @@ void lcd_send(uint8_t nibble, bool is_data)
     const bool bit_3 = (bool) ((nibble >> 3) & 0x01);
     Chip_GPIO_SetPinState(LPC_GPIO_PORT, 5, LCD4 + 4, bit_3);
 
-    lcd_delay_us(1U);
+    driver_delay_us(1U);
     Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    lcd_delay_us(1U);
+    driver_delay_us(1U);
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, 5, LCD_EN + 4);
-    lcd_delay_us(50U);
+    driver_delay_us(50U);
 }
 
 
@@ -108,28 +88,29 @@ void driver_lcd_init_port()
 void driver_lcd_init(void)
 {
     driver_lcd_init_port();
-    lcd_delay_ms(50U);
+    driver_delay_init();
+    driver_delay_ms(50U);
 
     // HD44780 4-bit initialization sequence
     lcd_send(0x03, LCD_IS_COMMAND);
-    lcd_delay_ms(10U);
+    driver_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);
-    lcd_delay_ms(10U);
+    driver_delay_ms(10U);
     lcd_send(0x03, LCD_IS_COMMAND);
-    lcd_delay_ms(5U);
+    driver_delay_ms(5U);
     lcd_send(0x02, LCD_IS_COMMAND);
-    lcd_delay_ms(5U);
+    driver_delay_ms(5U);
 
     send_byte(0x28, LCD_IS_COMMAND); // 4-bit, 2 lines, 5x8 font
-    lcd_delay_ms(2U);
+    driver_delay_ms(2U);
     send_byte(0x08, LCD_IS_COMMAND); // Display off
-    lcd_delay_ms(2U);
+    driver_delay_ms(2U);
     send_byte(0x01, LCD_IS_COMMAND); // Display clear
-    lcd_delay_ms(5U);
+    driver_delay_ms(5U);
     send_byte(0x06, LCD_IS_COMMAND); // 0b0000 ' 0 1 I/D S - Increment by 1, no shift
-    lcd_delay_ms(2U);
+    driver_delay_ms(2U);
     send_byte(0x0C, LCD_IS_COMMAND); // Display on, cursor off
-    lcd_delay_ms(2U);
+    driver_delay_ms(2U);
 }
 
 
@@ -153,7 +134,7 @@ void driver_lcd_write_char(char C)
         break;
     case '\b':
         send_byte(0x01, LCD_IS_COMMAND); // Clear display screen
-        lcd_delay_ms(5U);
+        driver_delay_ms(5U);
         break;
     default:
         send_byte(C, LCD_IS_DATA);

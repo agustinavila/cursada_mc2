@@ -2,6 +2,7 @@ add_library(cursada_mc2_drivers STATIC
     adc_driver.c
     buttons_driver.c
     buzzer_driver.c
+    delay_driver.c
     keyboard_driver.c
     lcd_driver.c
     led_Driver.c
