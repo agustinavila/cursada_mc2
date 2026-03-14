@@ -3,6 +3,7 @@ set(CURSADA_MC2_DRIVER_SOURCES
     buttons_driver.c
     buzzer_driver.c
     delay_driver.c
+    eeprom_driver.c
     ds18b20_driver.c
     keyboard_driver.c
     lcd_driver.c
