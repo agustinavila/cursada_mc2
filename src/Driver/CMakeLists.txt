@@ -3,9 +3,11 @@ add_library(cursada_mc2_drivers STATIC
     buttons_driver.c
     buzzer_driver.c
     delay_driver.c
+    ds18b20_driver.c
     keyboard_driver.c
     lcd_driver.c
     led_Driver.c
+    onewire_driver.c
     timer_driver.c
     uart_driver.c
     uart_driver_irq.c

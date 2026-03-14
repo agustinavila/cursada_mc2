@@ -7,14 +7,17 @@
 
 #include "Driver/buttons_driver.h"
 #include "Driver/delay_driver.h"
+#include "Driver/ds18b20_driver.h"
 #include "Driver/lcd_driver.h"
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #define HMI_LCD_COLUMNS 16U
+#define HMI_SENSOR_REFRESH_TICKS 50U
 
 typedef enum {
     HMI_EVENT_NONE = 0,
@@ -71,6 +74,21 @@ static int16_t hmi_time_seconds_ = 5;
 static int16_t hmi_adc_preview_ = 0;
 static int16_t hmi_button_mode_ = 1;
 static int16_t hmi_buzzer_enable_ = 0;
+
+static ds18b20_driver_t hmi_temperature_sensor_;
+static bool hmi_sensor_present_ = false;
+static bool hmi_sensor_temperature_valid_ = false;
+static int16_t hmi_sensor_temperature_deci_celsius_ = 0;
+static uint16_t hmi_sensor_refresh_ticks_ = 0U;
+
+static const onewire_pin_config_t hmi_ds18b20_pin_ = {
+    .scu_port = 6U,
+    .scu_pin = 1U,
+    .scu_mode = (uint16_t) (MD_PUP | MD_EZI | MD_ZI),
+    .scu_func = FUNC0,
+    .gpio_port = 3U,
+    .gpio_pin = 0U,
+};
 
 static const hmi_menu_item_t hmi_menu_tree_[] = {
     [HMI_NODE_ROOT] = {
@@ -160,6 +178,29 @@ typedef struct {
 
 static hmi_state_t hmi_state_;
 
+static void hmi_update_temperature(void)
+{
+    int16_t raw_temperature = 0;
+
+    if (!hmi_sensor_present_) {
+        hmi_sensor_temperature_valid_ = false;
+        return;
+    }
+
+    if (ds18b20_read_raw(&hmi_temperature_sensor_, &raw_temperature)) {
+        const int32_t scaled_value = (int32_t) raw_temperature * 10;
+        if (scaled_value >= 0) {
+            hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value + 8) / 16);
+        } else {
+            hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value - 8) / 16);
+        }
+        hmi_sensor_temperature_valid_ = true;
+    } else {
+        hmi_sensor_present_ = ds18b20_is_present(&hmi_temperature_sensor_);
+        hmi_sensor_temperature_valid_ = false;
+    }
+}
+
 static void hmi_lcd_write_line(uint8_t row, const char* text)
 {
     /**
@@ -207,10 +248,26 @@ static uint8_t hmi_get_last_sibling(uint8_t node)
 static void hmi_render_home(void)
 {
     char value_line[HMI_LCD_COLUMNS + 1U];
-    (void) snprintf(value_line, sizeof(value_line), "SP:%3d T:%2ds",
-                    hmi_setpoint_, hmi_time_seconds_);
 
-    hmi_lcd_write_line(1U, "ESTADO");
+    if (!hmi_sensor_present_) {
+        hmi_lcd_write_line(1U, "DS18B20");
+        hmi_lcd_write_line(2U, "No detectado");
+        return;
+    }
+
+    if (!hmi_sensor_temperature_valid_) {
+        hmi_lcd_write_line(1U, "DS18B20");
+        hmi_lcd_write_line(2U, "Lectura fallida");
+        return;
+    }
+
+    (void) snprintf(value_line,
+                    sizeof(value_line),
+                    "T:%3d.%1d C",
+                    hmi_sensor_temperature_deci_celsius_ / 10,
+                    abs(hmi_sensor_temperature_deci_celsius_ % 10));
+
+    hmi_lcd_write_line(1U, "DS18B20");
     hmi_lcd_write_line(2U, value_line);
 }
 
@@ -401,6 +458,8 @@ void hmi_init(void)
 
     driver_delay_init();
     driver_lcd_write_char('\b');
+    hmi_sensor_present_ = ds18b20_init(&hmi_temperature_sensor_, &hmi_ds18b20_pin_);
+    hmi_update_temperature();
     hmi_render();
 }
 
@@ -425,6 +484,17 @@ void hmi_process(void)
 
     default:
         break;
+    }
+
+    if (hmi_state_.current_screen == HMI_SCREEN_HOME) {
+        hmi_sensor_refresh_ticks_++;
+        if (hmi_sensor_refresh_ticks_ >= HMI_SENSOR_REFRESH_TICKS) {
+            hmi_sensor_refresh_ticks_ = 0U;
+            hmi_update_temperature();
+            hmi_state_.needs_redraw = true;
+        }
+    } else {
+        hmi_sensor_refresh_ticks_ = 0U;
     }
 
     hmi_render();
