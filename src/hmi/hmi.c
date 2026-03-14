@@ -18,6 +18,7 @@
 
 #define HMI_LCD_COLUMNS 16U
 #define HMI_SENSOR_REFRESH_TICKS 50U
+#define HMI_SENSOR_ROTATE_TICKS 150U
 #define HMI_PROCESS_PERIOD_MS 20U
 
 typedef enum {
@@ -76,11 +77,13 @@ static int16_t hmi_adc_preview_ = 0;
 static int16_t hmi_button_mode_ = 1;
 static int16_t hmi_buzzer_enable_ = 0;
 
-static ds18b20_driver_t hmi_temperature_sensor_;
-static bool hmi_sensor_present_ = false;
+static ds18b20_bus_driver_t hmi_temperature_bus_;
+static uint8_t hmi_sensor_count_ = 0U;
+static uint8_t hmi_sensor_display_index_ = 0U;
 static bool hmi_sensor_temperature_valid_ = false;
 static int16_t hmi_sensor_temperature_deci_celsius_ = 0;
 static uint16_t hmi_sensor_refresh_ticks_ = 0U;
+static uint16_t hmi_sensor_rotate_ticks_ = 0U;
 
 static const onewire_pin_config_t hmi_ds18b20_pin_ = {
     .scu_port = 6U,
@@ -181,37 +184,37 @@ static hmi_state_t hmi_state_;
 
 static void hmi_update_temperature(void)
 {
-    const bool previous_present = hmi_sensor_present_;
+    const uint8_t previous_sensor_count = hmi_sensor_count_;
+    const uint8_t previous_display_index = hmi_sensor_display_index_;
     const bool previous_valid = hmi_sensor_temperature_valid_;
     const int16_t previous_temperature = hmi_sensor_temperature_deci_celsius_;
     int16_t raw_temperature = 0;
 
-    ds18b20_process(&hmi_temperature_sensor_, HMI_PROCESS_PERIOD_MS);
+    ds18b20_bus_process(&hmi_temperature_bus_, HMI_PROCESS_PERIOD_MS);
 
-    if (!hmi_sensor_present_) {
-        hmi_sensor_present_ = ds18b20_is_present(&hmi_temperature_sensor_);
-        if (hmi_sensor_present_) {
-            (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
-        }
+    if (hmi_sensor_count_ == 0U) {
         hmi_sensor_temperature_valid_ = false;
-        return;
-    }
+    } else {
+        if (hmi_sensor_display_index_ >= hmi_sensor_count_) {
+            hmi_sensor_display_index_ = 0U;
+        }
 
-    if (ds18b20_get_latest_raw(&hmi_temperature_sensor_, &raw_temperature)) {
-        const int32_t scaled_value = (int32_t) raw_temperature * 10;
-        if (scaled_value >= 0) {
-            hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value + 8) / 16);
+        if (ds18b20_bus_get_latest_raw(&hmi_temperature_bus_, hmi_sensor_display_index_, &raw_temperature)) {
+            const int32_t scaled_value = (int32_t) raw_temperature * 10;
+            if (scaled_value >= 0) {
+                hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value + 8) / 16);
+            } else {
+                hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value - 8) / 16);
+            }
+            hmi_sensor_temperature_valid_ = true;
         } else {
-            hmi_sensor_temperature_deci_celsius_ = (int16_t) ((scaled_value - 8) / 16);
+            hmi_sensor_temperature_valid_ = false;
         }
-        hmi_sensor_temperature_valid_ = true;
-    } else if (!ds18b20_is_busy(&hmi_temperature_sensor_)) {
-        hmi_sensor_present_ = ds18b20_is_present(&hmi_temperature_sensor_);
-        hmi_sensor_temperature_valid_ = false;
     }
 
     if ((hmi_state_.current_screen == HMI_SCREEN_HOME)
-        && ((previous_present != hmi_sensor_present_)
+        && ((previous_sensor_count != hmi_sensor_count_)
+            || (previous_display_index != hmi_sensor_display_index_)
             || (previous_valid != hmi_sensor_temperature_valid_)
             || (previous_temperature != hmi_sensor_temperature_deci_celsius_))) {
         hmi_state_.needs_redraw = true;
@@ -264,16 +267,23 @@ static uint8_t hmi_get_last_sibling(uint8_t node)
 
 static void hmi_render_home(void)
 {
+    char header_line[HMI_LCD_COLUMNS + 1U];
     char value_line[HMI_LCD_COLUMNS + 1U];
 
-    if (!hmi_sensor_present_) {
+    if (hmi_sensor_count_ == 0U) {
         hmi_lcd_write_line(1U, "DS18B20");
         hmi_lcd_write_line(2U, "No detectado");
         return;
     }
 
+    (void) snprintf(header_line,
+                    sizeof(header_line),
+                    "DS18B20 %u/%u",
+                    (unsigned int) (hmi_sensor_display_index_ + 1U),
+                    (unsigned int) hmi_sensor_count_);
+
     if (!hmi_sensor_temperature_valid_) {
-        hmi_lcd_write_line(1U, "DS18B20");
+        hmi_lcd_write_line(1U, header_line);
         hmi_lcd_write_line(2U, "Lectura fallida");
         return;
     }
@@ -284,7 +294,7 @@ static void hmi_render_home(void)
                     hmi_sensor_temperature_deci_celsius_ / 10,
                     abs(hmi_sensor_temperature_deci_celsius_ % 10));
 
-    hmi_lcd_write_line(1U, "DS18B20");
+    hmi_lcd_write_line(1U, header_line);
     hmi_lcd_write_line(2U, value_line);
 }
 
@@ -475,9 +485,11 @@ void hmi_init(void)
 
     driver_delay_init();
     driver_lcd_write_char('\b');
-    hmi_sensor_present_ = ds18b20_init(&hmi_temperature_sensor_, &hmi_ds18b20_pin_);
-    if (hmi_sensor_present_) {
-        (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
+    if (ds18b20_bus_init(&hmi_temperature_bus_, &hmi_ds18b20_pin_)) {
+        hmi_sensor_count_ = ds18b20_bus_discover(&hmi_temperature_bus_);
+        if (hmi_sensor_count_ > 0U) {
+            (void) ds18b20_bus_start_conversion(&hmi_temperature_bus_);
+        }
     }
     hmi_update_temperature();
     hmi_render();
@@ -508,16 +520,33 @@ void hmi_process(void)
 
     hmi_update_temperature();
 
-    if (!ds18b20_is_busy(&hmi_temperature_sensor_)) {
+    if (!ds18b20_bus_is_busy(&hmi_temperature_bus_)) {
         hmi_sensor_refresh_ticks_++;
         if (hmi_sensor_refresh_ticks_ >= HMI_SENSOR_REFRESH_TICKS) {
             hmi_sensor_refresh_ticks_ = 0U;
-            if (hmi_sensor_present_) {
-                (void) ds18b20_start_conversion(&hmi_temperature_sensor_);
+            if (hmi_sensor_count_ == 0U) {
+                hmi_sensor_count_ = ds18b20_bus_discover(&hmi_temperature_bus_);
+            }
+            if (hmi_sensor_count_ > 0U) {
+                (void) ds18b20_bus_start_conversion(&hmi_temperature_bus_);
             }
         }
     } else {
         hmi_sensor_refresh_ticks_ = 0U;
+    }
+
+    if ((hmi_state_.current_screen == HMI_SCREEN_HOME) && (hmi_sensor_count_ > 1U)) {
+        hmi_sensor_rotate_ticks_++;
+        if (hmi_sensor_rotate_ticks_ >= HMI_SENSOR_ROTATE_TICKS) {
+            hmi_sensor_rotate_ticks_ = 0U;
+            hmi_sensor_display_index_++;
+            if (hmi_sensor_display_index_ >= hmi_sensor_count_) {
+                hmi_sensor_display_index_ = 0U;
+            }
+            hmi_update_temperature();
+        }
+    } else {
+        hmi_sensor_rotate_ticks_ = 0U;
     }
 
     hmi_render();

@@ -17,6 +17,8 @@
 #define DS18B20_CONVERSION_TIME_MS 750U
 /** @brief Codigo de familia 1-Wire del DS18B20. */
 #define DS18B20_FAMILY_CODE 0x28U
+/** @brief Cantidad maxima de sensores DS18B20 por bus en esta implementacion. */
+#define DS18B20_MAX_DEVICES 8U
 
 /**
  * @brief Estado interno de la conversion no bloqueante del sensor.
@@ -27,6 +29,16 @@ typedef enum {
     DS18B20_STATE_DATA_READY,
     DS18B20_STATE_ERROR,
 } ds18b20_state_t;
+
+/**
+ * @brief Estado del gestor multi-sensor para un bus 1-Wire compartido.
+ */
+typedef enum {
+    DS18B20_BUS_STATE_IDLE = 0,
+    DS18B20_BUS_STATE_CONVERTING,
+    DS18B20_BUS_STATE_READING,
+    DS18B20_BUS_STATE_ERROR,
+} ds18b20_bus_state_t;
 
 /**
  * @brief Estado del driver DS18B20 para un sensor individual.
@@ -44,6 +56,28 @@ typedef struct {
     uint16_t conversion_elapsed_ms;
     ds18b20_state_t state;
 } ds18b20_driver_t;
+
+/**
+ * @brief Datos cacheados de un sensor DS18B20 descubierto en un bus compartido.
+ */
+typedef struct {
+    uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE];
+    bool sample_valid;
+    int16_t last_raw_temperature;
+} ds18b20_device_t;
+
+/**
+ * @brief Estado del driver para multiples sensores DS18B20 sobre un mismo bus.
+ */
+typedef struct {
+    onewire_driver_t bus;
+    bool initialized;
+    uint8_t device_count;
+    uint8_t current_index;
+    uint16_t conversion_elapsed_ms;
+    ds18b20_bus_state_t state;
+    ds18b20_device_t devices[DS18B20_MAX_DEVICES];
+} ds18b20_bus_driver_t;
 
 /**
  * @brief Inicializa el driver DS18B20 sobre el pin indicado.
@@ -203,5 +237,121 @@ bool ds18b20_read_temperature_celsius(ds18b20_driver_t* driver, float* temperatu
  * @retval false Si hubo error de presencia, lectura o CRC.
  */
 bool ds18b20_read_raw(ds18b20_driver_t* driver, int16_t* raw_temperature);
+
+/**
+ * @brief Inicializa un bus compartido para varios sensores DS18B20.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param pin_config Configuracion fisica del pin del bus 1-Wire.
+ *
+ * @retval true Si el bus pudo inicializarse.
+ * @retval false Si hubo error de parametros o de inicializacion del bus.
+ */
+bool ds18b20_bus_init(ds18b20_bus_driver_t* driver, const onewire_pin_config_t* pin_config);
+
+/**
+ * @brief Descubre sensores DS18B20 y actualiza la tabla interna del bus.
+ *
+ * @param driver Instancia del driver de bus.
+ *
+ * @return Cantidad de sensores DS18B20 descubiertos y almacenados.
+ */
+uint8_t ds18b20_bus_discover(ds18b20_bus_driver_t* driver);
+
+/**
+ * @brief Inicia una conversion global para todos los sensores del bus.
+ *
+ * Usa el comando Skip ROM seguido de Convert T, de modo que todos los sensores
+ * comienzan la conversion en paralelo.
+ *
+ * @param driver Instancia del driver de bus.
+ *
+ * @retval true Si la conversion se inicio correctamente.
+ * @retval false Si no habia sensores, no habia presencia o hubo error de bus.
+ */
+bool ds18b20_bus_start_conversion(ds18b20_bus_driver_t* driver);
+
+/**
+ * @brief Avanza la maquina de estados multi-sensor del bus.
+ *
+ * Cuando termina la conversion global, esta funcion lee un sensor por llamada
+ * mediante Match ROM y actualiza su ultima muestra cacheada.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param elapsed_ms Tiempo transcurrido desde la ultima llamada, en ms.
+ */
+void ds18b20_bus_process(ds18b20_bus_driver_t* driver, uint16_t elapsed_ms);
+
+/**
+ * @brief Indica si el bus esta ocupado convirtiendo o leyendo sensores.
+ *
+ * @param driver Instancia del driver de bus.
+ *
+ * @retval true Si el driver de bus sigue ocupado.
+ * @retval false Si esta ocioso o el driver es invalido.
+ */
+bool ds18b20_bus_is_busy(const ds18b20_bus_driver_t* driver);
+
+/**
+ * @brief Devuelve la cantidad de sensores actualmente descubiertos.
+ *
+ * @param driver Instancia del driver de bus.
+ *
+ * @return Cantidad de sensores validos almacenados.
+ */
+uint8_t ds18b20_bus_get_device_count(const ds18b20_bus_driver_t* driver);
+
+/**
+ * @brief Indica si un sensor del bus tiene una muestra valida disponible.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param index Indice del sensor dentro de la tabla descubierta.
+ *
+ * @retval true Si el sensor tiene una muestra cacheada valida.
+ * @retval false Si el indice es invalido o aun no hay muestra.
+ */
+bool ds18b20_bus_has_valid_sample(const ds18b20_bus_driver_t* driver, uint8_t index);
+
+/**
+ * @brief Obtiene la ultima temperatura cruda cacheada de un sensor del bus.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param index Indice del sensor dentro de la tabla descubierta.
+ * @param raw_temperature Destino para el valor crudo de 16 bits.
+ *
+ * @retval true Si la muestra era valida.
+ * @retval false Si el indice es invalido o no habia muestra.
+ */
+bool ds18b20_bus_get_latest_raw(const ds18b20_bus_driver_t* driver,
+                                uint8_t index,
+                                int16_t* raw_temperature);
+
+/**
+ * @brief Obtiene la ultima temperatura cacheada de un sensor del bus en Celsius.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param index Indice del sensor dentro de la tabla descubierta.
+ * @param temperature_celsius Destino para la temperatura en Celsius.
+ *
+ * @retval true Si la muestra era valida.
+ * @retval false Si el indice es invalido o no habia muestra.
+ */
+bool ds18b20_bus_get_latest_temperature_celsius(const ds18b20_bus_driver_t* driver,
+                                                uint8_t index,
+                                                float* temperature_celsius);
+
+/**
+ * @brief Copia el codigo ROM de un sensor descubierto en el bus.
+ *
+ * @param driver Instancia del driver de bus.
+ * @param index Indice del sensor dentro de la tabla descubierta.
+ * @param rom_code Buffer destino para el codigo ROM.
+ *
+ * @retval true Si el indice era valido.
+ * @retval false Si el indice o el puntero eran invalidos.
+ */
+bool ds18b20_bus_get_rom_code(const ds18b20_bus_driver_t* driver,
+                              uint8_t index,
+                              uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE]);
 
 #endif // DRIVER_DS18B20_DRIVER_H_
