@@ -78,8 +78,8 @@ enum {
     HMI_NODE_PROCESS_SENSOR, /**< Parametro de seleccion del sensor de proceso. */
 };
 
-static int16_t hmi_setpoint_celsius_ = 27;
-static int16_t hmi_histeresis_celsius_ = 2;
+static int16_t hmi_setpoint_deci_celsius_ = 270;
+static int16_t hmi_histeresis_deci_celsius_ = 20;
 static int16_t hmi_modo_calentar_ = 1;
 static int16_t hmi_sensor_proceso_automatico_ = 1;
 static int16_t hmi_sensor_proceso_seleccion_ = 0;
@@ -137,9 +137,9 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .padre = HMI_NODE_PARAMS,
         .hermano_siguiente = HMI_NODE_HYSTERESIS,
         .tipo = HMI_ITEM_PARAMETRO,
-        .valor = &hmi_setpoint_celsius_,
+        .valor = &hmi_setpoint_deci_celsius_,
         .valor_minimo = 0,
-        .valor_maximo = 120,
+        .valor_maximo = 1200,
         .paso = 1,
     },
     [HMI_NODE_HYSTERESIS] = {
@@ -148,10 +148,10 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .hermano_anterior = HMI_NODE_SETPOINT,
         .hermano_siguiente = HMI_NODE_MODE,
         .tipo = HMI_ITEM_PARAMETRO,
-        .valor = &hmi_histeresis_celsius_,
-        .valor_minimo = 1,
-        .valor_maximo = 20,
-        .paso = 1,
+        .valor = &hmi_histeresis_deci_celsius_,
+        .valor_minimo = 10,
+        .valor_maximo = 200,
+        .paso = 10,
     },
     [HMI_NODE_MODE] = {
         .titulo = "Modo",
@@ -282,6 +282,20 @@ static void hmi_formatear_linea_temperatura_corta(char* linea, size_t tamano_lin
     }
 }
 
+static void hmi_formatear_linea_valor_deci(char* linea, size_t tamano_linea, int16_t valor_deci)
+{
+    const bool es_negativo = (valor_deci < 0);
+    const int16_t valor_absoluto = (int16_t) abs(valor_deci);
+    const int16_t parte_entera = (int16_t) (valor_absoluto / 10);
+    const int16_t parte_fraccionaria = (int16_t) (valor_absoluto % 10);
+
+    if (es_negativo) {
+        (void) snprintf(linea, tamano_linea, "-%d.%1d", parte_entera, parte_fraccionaria);
+    } else {
+        (void) snprintf(linea, tamano_linea, "%d.%1d", parte_entera, parte_fraccionaria);
+    }
+}
+
 static void hmi_formatear_texto_modo_control(char* texto, size_t tamano_texto, int16_t valor_modo)
 {
     if (valor_modo != 0) {
@@ -375,6 +389,8 @@ static void hmi_dibujar_inicio_resumen(void)
     char linea_superior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
     char linea_inferior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
     char texto_temperatura[8];
+    char texto_setpoint[8];
+    char texto_histeresis[8];
     const char* texto_salida = hmi_control_salida_activa_ ? "ON" : "OFF";
     const char* texto_modo = (hmi_modo_calentar_ != 0) ? "CAL" : "ENF";
 
@@ -387,6 +403,9 @@ static void hmi_dibujar_inicio_resumen(void)
         (void) snprintf(texto_temperatura, sizeof(texto_temperatura), "--.-C");
     }
 
+    hmi_formatear_linea_valor_deci(texto_setpoint, sizeof(texto_setpoint), hmi_setpoint_deci_celsius_);
+    hmi_formatear_linea_valor_deci(texto_histeresis, sizeof(texto_histeresis), hmi_histeresis_deci_celsius_);
+
     (void) snprintf(linea_superior,
                     sizeof(linea_superior),
                     "T:%s %s %s",
@@ -395,9 +414,9 @@ static void hmi_dibujar_inicio_resumen(void)
                     texto_modo);
     (void) snprintf(linea_inferior,
                     sizeof(linea_inferior),
-                    "SP:%d H:%d",
-                    hmi_setpoint_celsius_,
-                    hmi_histeresis_celsius_);
+                    "SP:%s H:%s",
+                    texto_setpoint,
+                    texto_histeresis);
 
     hmi_escribir_linea_lcd(1U, linea_superior);
     hmi_escribir_linea_lcd(2U, linea_inferior);
@@ -495,6 +514,12 @@ static void hmi_dibujar_edicion(void)
         hmi_escribir_linea_lcd(1U, item_actual->titulo);
         hmi_escribir_linea_lcd(2U, texto_sensor);
         return;
+    } else if ((hmi_estado_.nodo_actual == HMI_NODE_SETPOINT)
+               || (hmi_estado_.nodo_actual == HMI_NODE_HYSTERESIS)) {
+        char texto_valor[8];
+
+        hmi_formatear_linea_valor_deci(texto_valor, sizeof(texto_valor), hmi_estado_.valor_edicion);
+        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s", item_actual->titulo, texto_valor);
     } else {
         (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%d",
                         item_actual->titulo, hmi_estado_.valor_edicion);
@@ -817,12 +842,12 @@ bool hmi_obtener_rom_sensor(uint8_t indice_sensor, uint8_t rom[PARAMETROS_SENSOR
 
 int16_t hmi_obtener_setpoint_deci_celsius(void)
 {
-    return (int16_t) (hmi_setpoint_celsius_ * 10);
+    return hmi_setpoint_deci_celsius_;
 }
 
 uint16_t hmi_obtener_histeresis_deci_celsius(void)
 {
-    return (uint16_t) (hmi_histeresis_celsius_ * 10);
+    return (uint16_t) hmi_histeresis_deci_celsius_;
 }
 
 bool hmi_modo_control_es_calentar(void)
@@ -848,14 +873,8 @@ void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
                                    bool modo_calentar)
 {
-    /**
-     * @brief La HMI edita grados enteros, mientras que la app persiste decimos.
-     *
-     * La conversion se centraliza aca para que el resto de la HMI siga
-     * trabajando con valores simples de mostrar y editar en el LCD.
-     */
-    hmi_setpoint_celsius_ = (int16_t) (setpoint_deci_celsius / 10);
-    hmi_histeresis_celsius_ = (int16_t) (histeresis_deci_celsius / 10U);
+    hmi_setpoint_deci_celsius_ = setpoint_deci_celsius;
+    hmi_histeresis_deci_celsius_ = (int16_t) histeresis_deci_celsius;
     hmi_modo_calentar_ = modo_calentar ? 1 : 0;
     hmi_estado_.valor_edicion = 0;
     hmi_estado_.necesita_redibujado = true;

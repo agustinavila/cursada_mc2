@@ -19,16 +19,20 @@ static bool control_on_off_configuracion_es_valida(const control_on_off_configur
     return true;
 }
 
-static int16_t control_on_off_obtener_umbral_inferior(const control_on_off_t* control)
+static int16_t control_on_off_obtener_umbral_activacion(const control_on_off_t* control)
 {
+    if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
+        return (int16_t) (control->configuracion.setpoint_deci_celsius
+                          - (int16_t) control->configuracion.histeresis_deci_celsius);
+    }
+
     return (int16_t) (control->configuracion.setpoint_deci_celsius
-                      - (int16_t) (control->configuracion.histeresis_deci_celsius / 2U));
+                      + (int16_t) control->configuracion.histeresis_deci_celsius);
 }
 
-static int16_t control_on_off_obtener_umbral_superior(const control_on_off_t* control)
+static int16_t control_on_off_obtener_umbral_corte(const control_on_off_t* control)
 {
-    return (int16_t) (control->configuracion.setpoint_deci_celsius
-                      + (int16_t) (control->configuracion.histeresis_deci_celsius / 2U));
+    return control->configuracion.setpoint_deci_celsius;
 }
 
 static void control_on_off_reiniciar_impl(control_generico_t* base)
@@ -61,21 +65,21 @@ static bool control_on_off_procesar_impl(control_generico_t* base, int16_t medic
     }
 
     if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
-        const int16_t umbral_inferior = control_on_off_obtener_umbral_inferior(control);
-        const int16_t umbral_superior = control_on_off_obtener_umbral_superior(control);
+        const int16_t umbral_activacion = control_on_off_obtener_umbral_activacion(control);
+        const int16_t umbral_corte = control_on_off_obtener_umbral_corte(control);
 
-        if (medicion <= umbral_inferior) {
+        if (medicion <= umbral_activacion) {
             control->salida_activa = true;
-        } else if (medicion >= umbral_superior) {
+        } else if (medicion >= umbral_corte) {
             control->salida_activa = false;
         }
     } else {
-        const int16_t umbral_inferior = control_on_off_obtener_umbral_inferior(control);
-        const int16_t umbral_superior = control_on_off_obtener_umbral_superior(control);
+        const int16_t umbral_activacion = control_on_off_obtener_umbral_activacion(control);
+        const int16_t umbral_corte = control_on_off_obtener_umbral_corte(control);
 
-        if (medicion >= umbral_superior) {
+        if (medicion >= umbral_activacion) {
             control->salida_activa = true;
-        } else if (medicion <= umbral_inferior) {
+        } else if (medicion <= umbral_corte) {
             control->salida_activa = false;
         }
     }
