@@ -15,6 +15,8 @@
 #define DS18B20_SCRATCHPAD_SIZE 9U
 /** @brief Tiempo maximo de conversion del DS18B20 a 12 bits. */
 #define DS18B20_CONVERSION_TIME_MS 750U
+/** @brief Codigo de familia 1-Wire del DS18B20. */
+#define DS18B20_FAMILY_CODE 0x28U
 
 /**
  * @brief Estado interno de la conversion no bloqueante del sensor.
@@ -35,6 +37,8 @@ typedef enum {
 typedef struct {
     onewire_driver_t bus;
     bool initialized;
+    bool use_match_rom;
+    uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE];
     bool sample_valid;
     int16_t last_raw_temperature;
     uint16_t conversion_elapsed_ms;
@@ -51,6 +55,36 @@ typedef struct {
  * @retval false Si hubo un error de parametros o no se detecto presencia.
  */
 bool ds18b20_init(ds18b20_driver_t* driver, const onewire_pin_config_t* pin_config);
+
+/**
+ * @brief Inicializa un sensor DS18B20 concreto identificado por su ROM.
+ *
+ * Esta funcion permite trabajar con multiples sensores en el mismo bus
+ * 1-Wire, direccionando cada uno mediante Match ROM.
+ *
+ * @param driver Instancia del driver a inicializar.
+ * @param pin_config Configuracion fisica del pin del bus 1-Wire.
+ * @param rom_code Codigo ROM del sensor a asociar con la instancia.
+ *
+ * @retval true Si la inicializacion fue correcta.
+ * @retval false Si hubo error de parametros, ROM invalida o el sensor no respondio.
+ */
+bool ds18b20_init_with_rom(ds18b20_driver_t* driver,
+                           const onewire_pin_config_t* pin_config,
+                           const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE]);
+
+/**
+ * @brief Busca sensores DS18B20 presentes en el bus indicado.
+ *
+ * @param pin_config Configuracion fisica del pin del bus 1-Wire.
+ * @param rom_codes Tabla de salida con los ROMs encontrados.
+ * @param max_devices Cantidad maxima de sensores a almacenar.
+ *
+ * @return Cantidad de sensores DS18B20 encontrados.
+ */
+uint8_t ds18b20_discover(const onewire_pin_config_t* pin_config,
+                         uint8_t rom_codes[][ONEWIRE_ROM_CODE_SIZE],
+                         uint8_t max_devices);
 
 /**
  * @brief Verifica si hay un dispositivo presente en el bus del sensor.

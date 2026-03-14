@@ -7,7 +7,8 @@
 
 #include "delay_driver.h"
 
-#define DS18B20_CMD_SKIP_ROM 0xCCU
+#include <string.h>
+
 #define DS18B20_CMD_CONVERT_T 0x44U
 #define DS18B20_CMD_READ_SCRATCHPAD 0xBEU
 
@@ -32,6 +33,19 @@ static uint8_t ds18b20_crc8(const uint8_t* data, uint8_t length)
     return crc;
 }
 
+static bool ds18b20_crc8_is_valid(const uint8_t* data, uint8_t length)
+{
+    return (ds18b20_crc8(data, length) == 0U);
+}
+
+static void ds18b20_reset_state(ds18b20_driver_t* driver)
+{
+    driver->sample_valid = false;
+    driver->last_raw_temperature = 0;
+    driver->conversion_elapsed_ms = 0U;
+    driver->state = DS18B20_STATE_IDLE;
+}
+
 static bool ds18b20_begin_command(ds18b20_driver_t* driver, uint8_t command)
 {
     if ((driver == 0) || !driver->initialized) {
@@ -42,7 +56,11 @@ static bool ds18b20_begin_command(ds18b20_driver_t* driver, uint8_t command)
         return false;
     }
 
-    onewire_write_byte(&driver->bus, DS18B20_CMD_SKIP_ROM);
+    if (driver->use_match_rom) {
+        onewire_match_rom(&driver->bus, driver->rom_code);
+    } else {
+        onewire_skip_rom(&driver->bus);
+    }
     onewire_write_byte(&driver->bus, command);
     return true;
 }
@@ -73,12 +91,70 @@ bool ds18b20_init(ds18b20_driver_t* driver, const onewire_pin_config_t* pin_conf
         return false;
     }
 
-    driver->sample_valid = false;
-    driver->last_raw_temperature = 0;
-    driver->conversion_elapsed_ms = 0U;
-    driver->state = DS18B20_STATE_IDLE;
+    driver->use_match_rom = false;
+    (void) memset(driver->rom_code, 0, sizeof(driver->rom_code));
+    ds18b20_reset_state(driver);
     driver->initialized = ds18b20_is_present(driver);
     return driver->initialized;
+}
+
+bool ds18b20_init_with_rom(ds18b20_driver_t* driver,
+                           const onewire_pin_config_t* pin_config,
+                           const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE])
+{
+    if ((driver == 0) || (pin_config == 0) || (rom_code == 0)) {
+        return false;
+    }
+
+    if ((rom_code[0] != DS18B20_FAMILY_CODE)
+        || !ds18b20_crc8_is_valid(rom_code, ONEWIRE_ROM_CODE_SIZE)) {
+        return false;
+    }
+
+    if (!onewire_init(&driver->bus, pin_config)) {
+        return false;
+    }
+
+    driver->use_match_rom = true;
+    (void) memcpy(driver->rom_code, rom_code, sizeof(driver->rom_code));
+    ds18b20_reset_state(driver);
+    driver->initialized = ds18b20_is_present(driver);
+    return driver->initialized;
+}
+
+uint8_t ds18b20_discover(const onewire_pin_config_t* pin_config,
+                         uint8_t rom_codes[][ONEWIRE_ROM_CODE_SIZE],
+                         uint8_t max_devices)
+{
+    onewire_driver_t bus;
+    uint8_t raw_rom_codes[16U][ONEWIRE_ROM_CODE_SIZE];
+    uint8_t raw_count = 0U;
+    uint8_t valid_count = 0U;
+    uint8_t index = 0U;
+
+    if ((pin_config == 0) || (rom_codes == 0) || (max_devices == 0U)) {
+        return 0U;
+    }
+
+    if (max_devices > 16U) {
+        max_devices = 16U;
+    }
+
+    if (!onewire_init(&bus, pin_config)) {
+        return 0U;
+    }
+
+    raw_count = onewire_search_roms(&bus, raw_rom_codes, max_devices);
+
+    for (index = 0U; index < raw_count; ++index) {
+        if ((raw_rom_codes[index][0] == DS18B20_FAMILY_CODE)
+            && ds18b20_crc8_is_valid(raw_rom_codes[index], ONEWIRE_ROM_CODE_SIZE)) {
+            (void) memcpy(rom_codes[valid_count], raw_rom_codes[index], ONEWIRE_ROM_CODE_SIZE);
+            valid_count++;
+        }
+    }
+
+    return valid_count;
 }
 
 bool ds18b20_is_present(ds18b20_driver_t* driver)
@@ -175,7 +251,7 @@ bool ds18b20_read_scratchpad(ds18b20_driver_t* driver, uint8_t scratchpad[DS18B2
         scratchpad[index] = onewire_read_byte(&driver->bus);
     }
 
-    return (ds18b20_crc8(scratchpad, DS18B20_SCRATCHPAD_SIZE) == 0U);
+    return ds18b20_crc8_is_valid(scratchpad, DS18B20_SCRATCHPAD_SIZE);
 }
 
 bool ds18b20_read_raw(ds18b20_driver_t* driver, int16_t* raw_temperature)
