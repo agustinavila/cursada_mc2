@@ -66,6 +66,70 @@ Cada target genera:
 
 Los artefactos quedan en `build/debug/` o `build/release/`.
 
+## Como mantener la configuracion de CMake
+
+La idea de esta base es que los archivos de CMake se puedan seguir sin conocer demasiado la herramienta. Cada archivo tiene un rol concreto:
+
+- `CMakeLists.txt`
+  - configura el proyecto completo
+  - define la biblioteca comun `lpc43xx_common`
+  - agrega el codigo vendor y el subdirectorio `src/`
+- `src/CMakeLists.txt`
+  - define el startup del micro
+  - arma el ejecutable `cursada_mc2_app`
+  - lista los modulos de aplicacion, control y HMI que se compilan
+- `src/Driver/CMakeLists.txt`
+  - lista los drivers propios que forman la biblioteca `cursada_mc2_drivers`
+- `cmake/lpc4337.cmake`
+  - concentra la configuracion especifica del LPC4337
+  - genera el linker script efectivo
+  - configura `.elf`, `.bin`, `.hex` y el target de flash con OpenOCD
+- `cmake/toolchain-arm-none-eabi.cmake`
+  - busca el toolchain `arm-none-eabi-*`
+  - define como CMake encuentra compilador y herramientas auxiliares
+- `CMakePresets.json`
+  - define los presets `debug` y `release`
+  - indica en que carpeta se construye cada configuracion
+
+### Que archivo tocar segun el cambio
+
+Si agregas o eliminas codigo propio, normalmente alcanza con editar uno de estos dos archivos:
+
+- nuevo modulo de aplicacion, HMI o control:
+  - agregar o quitar el `.c` en `src/CMakeLists.txt`
+- nuevo driver propio:
+  - agregar o quitar el `.c` en `src/Driver/CMakeLists.txt`
+
+Ejemplo: si agregas `src/control/control_pi.c`, tenes que sumarlo a la lista `CURSADA_MC2_APP_SOURCES` en `src/CMakeLists.txt`.
+
+Ejemplo: si agregas `src/Driver/eeprom_driver.c`, tenes que sumarlo a la lista `CURSADA_MC2_DRIVER_SOURCES` en `src/Driver/CMakeLists.txt`.
+
+### Cuando hace falta tocar otros archivos
+
+- cambiar flags generales, includes o defines comunes:
+  - revisar `CMakeLists.txt`
+- cambiar formato de salida, linker o comando de flash:
+  - revisar `cmake/lpc4337.cmake`
+- cambiar como se encuentra el toolchain:
+  - revisar `cmake/toolchain-arm-none-eabi.cmake`
+- cambiar carpetas de build o presets:
+  - revisar `CMakePresets.json`
+
+### Flujo recomendado despues de tocar CMake
+
+Cada vez que agregues, quites o muevas fuentes en CMake, conviene repetir:
+
+```powershell
+cmake --preset debug
+cmake --build --preset debug --target cursada_mc2_app
+```
+
+Si tambien cambiaste tooling o integracion local, conviene correr ademas:
+
+```powershell
+cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver
+```
+
 ## Build desde terminal
 
 Configurar y compilar en debug:
