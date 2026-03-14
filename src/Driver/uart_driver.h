@@ -45,7 +45,7 @@ void driver_uart_send_char(uint8_t data);
  * @param data Puntero al buffer a transmitir.
  * @param num_bytes Cantidad de bytes a transmitir.
  */
-void driver_uart_send_string(void* data, uint16_t num_bytes);
+void driver_uart_send_string(const void* data, uint16_t num_bytes);
 
 /**
  * @brief Recibe un byte por UART en modo bloqueante.

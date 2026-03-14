@@ -15,12 +15,11 @@
 static uint8_t ds18b20_crc8(const uint8_t* data, uint8_t length)
 {
     uint8_t index = 0U;
-    uint8_t bit_index = 0U;
     uint8_t crc = 0U;
 
     for (index = 0U; index < length; ++index) {
         uint8_t current_byte = data[index];
-        for (bit_index = 0U; bit_index < 8U; ++bit_index) {
+        for (uint8_t bit_index = 0U; bit_index < 8U; ++bit_index) {
             const uint8_t mix = (uint8_t) ((crc ^ current_byte) & 0x01U);
             crc >>= 1U;
             if (mix != 0U) {
@@ -65,7 +64,7 @@ static bool ds18b20_begin_command(ds18b20_driver_t* driver, uint8_t command)
     return true;
 }
 
-static bool ds18b20_bus_begin_command(onewire_driver_t* bus,
+static bool ds18b20_bus_begin_command(const onewire_driver_t* bus,
                                       const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE],
                                       uint8_t command)
 {
@@ -103,7 +102,7 @@ static bool ds18b20_finish_conversion(ds18b20_driver_t* driver)
     return true;
 }
 
-static bool ds18b20_bus_read_raw(onewire_driver_t* bus,
+static bool ds18b20_bus_read_raw(const onewire_driver_t* bus,
                                  const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE],
                                  int16_t* raw_temperature)
 {

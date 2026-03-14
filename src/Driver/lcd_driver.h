@@ -33,6 +33,6 @@ void driver_lcd_write_char(char c);
  *
  * @param string Cadena a imprimir.
  */
-void driver_lcd_printf(char* string);
+void driver_lcd_printf(const char* string);
 
 #endif // DRIVER_LCD_DRIVER_H_

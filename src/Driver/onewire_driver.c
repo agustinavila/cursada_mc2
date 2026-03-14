@@ -11,18 +11,18 @@
 #define ONEWIRE_CMD_MATCH_ROM  0x55U
 #define ONEWIRE_CMD_SKIP_ROM   0xCCU
 
-static void onewire_drive_low(onewire_driver_t* driver)
+static void onewire_drive_low(const onewire_driver_t* driver)
 {
     Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, driver->pin.gpio_port, driver->pin.gpio_pin);
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, driver->pin.gpio_port, driver->pin.gpio_pin, true);
 }
 
-static void onewire_release_line(onewire_driver_t* driver)
+static void onewire_release_line(const onewire_driver_t* driver)
 {
     Chip_GPIO_SetPinDIR(LPC_GPIO_PORT, driver->pin.gpio_port, driver->pin.gpio_pin, false);
 }
 
-static bool onewire_read_line(onewire_driver_t* driver)
+static bool onewire_read_line(const onewire_driver_t* driver)
 {
     return (bool) Chip_GPIO_GetPinState(LPC_GPIO_PORT, driver->pin.gpio_port, driver->pin.gpio_pin);
 }
@@ -47,7 +47,7 @@ bool onewire_init(onewire_driver_t* driver, const onewire_pin_config_t* pin_conf
     return true;
 }
 
-bool onewire_reset(onewire_driver_t* driver)
+bool onewire_reset(const onewire_driver_t* driver)
 {
     bool presence_detected = false;
 
@@ -67,7 +67,7 @@ bool onewire_reset(onewire_driver_t* driver)
     return presence_detected;
 }
 
-void onewire_write_bit(onewire_driver_t* driver, bool bit_value)
+void onewire_write_bit(const onewire_driver_t* driver, bool bit_value)
 {
     if ((driver == 0) || !driver->initialized) {
         return;
@@ -86,7 +86,7 @@ void onewire_write_bit(onewire_driver_t* driver, bool bit_value)
     }
 }
 
-bool onewire_read_bit(onewire_driver_t* driver)
+bool onewire_read_bit(const onewire_driver_t* driver)
 {
     bool bit_value = false;
 
@@ -105,7 +105,7 @@ bool onewire_read_bit(onewire_driver_t* driver)
     return bit_value;
 }
 
-void onewire_write_byte(onewire_driver_t* driver, uint8_t value)
+void onewire_write_byte(const onewire_driver_t* driver, uint8_t value)
 {
     uint8_t bit_index = 0U;
 
@@ -119,7 +119,7 @@ void onewire_write_byte(onewire_driver_t* driver, uint8_t value)
     }
 }
 
-uint8_t onewire_read_byte(onewire_driver_t* driver)
+uint8_t onewire_read_byte(const onewire_driver_t* driver)
 {
     uint8_t bit_index = 0U;
     uint8_t value = 0U;
@@ -137,7 +137,7 @@ uint8_t onewire_read_byte(onewire_driver_t* driver)
     return value;
 }
 
-void onewire_skip_rom(onewire_driver_t* driver)
+void onewire_skip_rom(const onewire_driver_t* driver)
 {
     if ((driver == 0) || !driver->initialized) {
         return;
@@ -146,7 +146,7 @@ void onewire_skip_rom(onewire_driver_t* driver)
     onewire_write_byte(driver, ONEWIRE_CMD_SKIP_ROM);
 }
 
-void onewire_match_rom(onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE])
+void onewire_match_rom(const onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE])
 {
     uint8_t byte_index = 0U;
 
@@ -161,7 +161,7 @@ void onewire_match_rom(onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_
     }
 }
 
-uint8_t onewire_search_roms(onewire_driver_t* driver,
+uint8_t onewire_search_roms(const onewire_driver_t* driver,
                             uint8_t rom_codes[][ONEWIRE_ROM_CODE_SIZE],
                             uint8_t max_devices)
 {

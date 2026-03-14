@@ -230,19 +230,8 @@ static void hmi_lcd_write_line(uint8_t row, const char* text)
      * con espacios cuando hace falta.
      */
     char line[HMI_LCD_COLUMNS + 1U];
-    size_t index = 0U;
 
-    while ((index < HMI_LCD_COLUMNS) && (text[index] != '\0')) {
-        line[index] = text[index];
-        index++;
-    }
-
-    while (index < HMI_LCD_COLUMNS) {
-        line[index] = ' ';
-        index++;
-    }
-
-    line[HMI_LCD_COLUMNS] = '\0';
+    (void) snprintf(line, sizeof(line), "%-*.*s", HMI_LCD_COLUMNS, HMI_LCD_COLUMNS, text);
     driver_lcd_set_position(1U, row);
     driver_lcd_printf(line);
 }

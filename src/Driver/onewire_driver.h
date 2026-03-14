@@ -58,7 +58,7 @@ bool onewire_init(onewire_driver_t* driver, const onewire_pin_config_t* pin_conf
  * @retval true Si algun dispositivo respondio con pulso de presencia.
  * @retval false Si no hubo presencia o el driver no esta inicializado.
  */
-bool onewire_reset(onewire_driver_t* driver);
+bool onewire_reset(const onewire_driver_t* driver);
 
 /**
  * @brief Escribe un bit en el bus 1-Wire.
@@ -66,7 +66,7 @@ bool onewire_reset(onewire_driver_t* driver);
  * @param driver Instancia del driver.
  * @param bit_value Valor del bit a transmitir.
  */
-void onewire_write_bit(onewire_driver_t* driver, bool bit_value);
+void onewire_write_bit(const onewire_driver_t* driver, bool bit_value);
 
 /**
  * @brief Lee un bit desde el bus 1-Wire.
@@ -76,7 +76,7 @@ void onewire_write_bit(onewire_driver_t* driver, bool bit_value);
  * @retval true Si el bit leido fue '1'.
  * @retval false Si el bit leido fue '0' o el driver no esta inicializado.
  */
-bool onewire_read_bit(onewire_driver_t* driver);
+bool onewire_read_bit(const onewire_driver_t* driver);
 
 /**
  * @brief Escribe un byte en el bus 1-Wire.
@@ -84,7 +84,7 @@ bool onewire_read_bit(onewire_driver_t* driver);
  * @param driver Instancia del driver.
  * @param value Byte a transmitir, comenzando por el bit menos significativo.
  */
-void onewire_write_byte(onewire_driver_t* driver, uint8_t value);
+void onewire_write_byte(const onewire_driver_t* driver, uint8_t value);
 
 /**
  * @brief Lee un byte desde el bus 1-Wire.
@@ -93,7 +93,7 @@ void onewire_write_byte(onewire_driver_t* driver, uint8_t value);
  *
  * @return Byte leido, comenzando por el bit menos significativo.
  */
-uint8_t onewire_read_byte(onewire_driver_t* driver);
+uint8_t onewire_read_byte(const onewire_driver_t* driver);
 
 /**
  * @brief Emite el comando Skip ROM sobre el bus.
@@ -103,7 +103,7 @@ uint8_t onewire_read_byte(onewire_driver_t* driver);
  *
  * @param driver Instancia del driver.
  */
-void onewire_skip_rom(onewire_driver_t* driver);
+void onewire_skip_rom(const onewire_driver_t* driver);
 
 /**
  * @brief Selecciona un dispositivo concreto por su codigo ROM.
@@ -111,7 +111,7 @@ void onewire_skip_rom(onewire_driver_t* driver);
  * @param driver Instancia del driver.
  * @param rom_code Codigo ROM de 64 bits del dispositivo a seleccionar.
  */
-void onewire_match_rom(onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE]);
+void onewire_match_rom(const onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_ROM_CODE_SIZE]);
 
 /**
  * @brief Busca dispositivos presentes en el bus mediante el comando Search ROM.
@@ -122,7 +122,7 @@ void onewire_match_rom(onewire_driver_t* driver, const uint8_t rom_code[ONEWIRE_
  *
  * @return Cantidad de dispositivos encontrados y almacenados.
  */
-uint8_t onewire_search_roms(onewire_driver_t* driver,
+uint8_t onewire_search_roms(const onewire_driver_t* driver,
                             uint8_t rom_codes[][ONEWIRE_ROM_CODE_SIZE],
                             uint8_t max_devices);
 

@@ -154,7 +154,7 @@ void driver_lcd_write_char(char C)
 }
 
 
-void driver_lcd_printf(char* string)
+void driver_lcd_printf(const char* string)
 {
     uint16_t i = 0;
     while (string[i] != '\0') {

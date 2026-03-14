@@ -57,7 +57,7 @@ void driver_uart_send_char(uint8_t data)
     Chip_UART_SendByte(uart_channel_, data);
 }
 
-void driver_uart_send_string(void* data, uint16_t numBytes)
+void driver_uart_send_string(const void* data, uint16_t numBytes)
 { //
     Chip_UART_SendBlocking(uart_channel_, data, numBytes);
 }
