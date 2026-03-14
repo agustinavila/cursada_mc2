@@ -1,6 +1,10 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
+    "C_Cpp.default.compilerPath": "arm-none-eabi-gcc",
     "C_Cpp.default.intelliSenseMode": "windows-gcc-arm",
+    "C_Cpp.default.cStandard": "c11",
+    "C_Cpp.intelliSenseEngine": "default",
     "cmake.useCMakePresets": "always",
     "cmake.configureOnOpen": false,
     "cmake.defaultConfigurePreset": "debug",

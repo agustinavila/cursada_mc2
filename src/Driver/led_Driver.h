@@ -1,25 +1,50 @@
-/*
- * led_Driver.h
- *
- *  Created on: 12 abr. 2023
- *      Author: agustin
+/**
+ * @file led_Driver.h
+ * @brief Interfaz del driver de LEDs discretos
  */
 
-#ifndef LED_DRIVER_H_
+#if !defined(LED_DRIVER_H_)
 #define LED_DRIVER_H_
-
-#define LED0R 1
-#define LED0G 2
-#define LED0B 3
-#define LED1 4
-#define LED2 5
-#define LED3 6
 
 #include "chip.h"
 
-void led_init(void);
-void led_turn_on(uint8_t);
-void led_turn_off(uint8_t);
-void led_toggle(uint8_t);
+/** @brief LED rojo del LED RGB de placa. */
+#define LED0R 1
+/** @brief LED verde del LED RGB de placa. */
+#define LED0G 2
+/** @brief LED azul del LED RGB de placa. */
+#define LED0B 3
+/** @brief LED discreto 1. */
+#define LED1 4
+/** @brief LED discreto 2. */
+#define LED2 5
+/** @brief LED discreto 3. */
+#define LED3 6
 
-#endif /* LED_DRIVER_H_ */
+/**
+ * @brief Inicializa los pines asociados a los LEDs.
+ */
+void led_init(void);
+
+/**
+ * @brief Enciende un LED.
+ *
+ * @param led_id Identificador del LED a encender.
+ */
+void led_turn_on(uint8_t led_id);
+
+/**
+ * @brief Apaga un LED.
+ *
+ * @param led_id Identificador del LED a apagar.
+ */
+void led_turn_off(uint8_t led_id);
+
+/**
+ * @brief Invierte el estado actual de un LED.
+ *
+ * @param led_id Identificador del LED a conmutar.
+ */
+void led_toggle(uint8_t led_id);
+
+#endif // LED_DRIVER_H_

@@ -1,12 +1,6 @@
 /**
- * @file buzzer.h
- * @author agustinavila (tinto.avila@gmail.com)
- * @brief 
- * @version 0.1
- * @date 2023-05-02
- * 
- * @copyright Copyright (c) 2023
- * 
+ * @file buzzer_driver.h
+ * @brief Interfaz del driver de buzzer
  */
 
 #if !defined(DRIVER_BUZZER_H)
@@ -14,8 +8,19 @@
 
 #include "chip.h"
 
-void buzzer_init();
-void buzzer_turn_on();
-void buzzer_turn_off();
+/**
+ * @brief Inicializa el pin de control del buzzer.
+ */
+void buzzer_init(void);
+
+/**
+ * @brief Activa el buzzer.
+ */
+void buzzer_turn_on(void);
+
+/**
+ * @brief Desactiva el buzzer.
+ */
+void buzzer_turn_off(void);
 
 #endif // DRIVER_BUZZER_H

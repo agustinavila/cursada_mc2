@@ -11,9 +11,9 @@
             "problemMatcher": []
         },
         {
-            "label": "Build Blink [debug]",
+            "label": "Build App [debug]",
             "type": "shell",
-            "command": "cmake --build --preset debug --target cursada_mc2_blink",
+            "command": "cmake --build --preset debug --target cursada_mc2_app",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -26,32 +26,6 @@
                 "isDefault": true
             },
             "problemMatcher": "$gcc"
-        },
-        {
-            "label": "Build App [debug]",
-            "type": "shell",
-            "command": "cmake --build --preset debug --target cursada_mc2_app",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": [
-                "Configure [debug]"
-            ],
-            "dependsOrder": "sequence",
-            "problemMatcher": "$gcc"
-        },
-        {
-            "label": "Flash Blink [debug]",
-            "type": "shell",
-            "command": "cmake --build --preset debug --target flash_cursada_mc2_blink",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": [
-                "Build Blink [debug]"
-            ],
-            "dependsOrder": "sequence",
-            "problemMatcher": []
         },
         {
             "label": "Flash App [debug]",

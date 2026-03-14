@@ -22,16 +22,15 @@
 #include "Driver/buzzer_driver.h"
 #include "Driver/keyboard_driver.h"
 #include "Driver/lcd_driver.h"
-#include "Driver/led_driver.h"
+#include "Driver/led_Driver.h"
 #include "Driver/timer_driver.h"
+#include "hmi/hmi.h"
 
 #include <stdint.h>
 
 void main_init();
 
 void handle_keyboard();
-
-void lcd_start_message();
 
 int main(void)
 {
@@ -53,16 +52,9 @@ int main(void)
     // static volatile uint16_t adc_val = 0;
 
     main_init();
-
-    lcd_start_message();
     // Infinite loop
     while (1) {
-        // i++;
-        // if (i > 10000000) {
-        //     handle_keyboard();
-        //     adc_val = board_adc_polling();
-        //     i = 0;
-        // }
+        hmi_process();
     }
     return 0;
 }
@@ -76,15 +68,8 @@ void main_init()
     buttons_init();
     board_keyboard_init();
     board_adc_init(ADC_CH2);
-    board_timer_init(5000);
     driver_lcd_init();
-
-    // Interrupts enabling
-    board_keyboard_int_enable();
-    button_int_enable(TECLA1);
-    button_int_enable(TECLA2);
-    button_int_enable(TECLA3);
-    button_int_enable(TECLA4);
+    hmi_init();
 }
 
 void handle_keyboard()
@@ -120,50 +105,33 @@ void handle_keyboard()
     }
 }
 
-void lcd_start_message()
-{
-    driver_lcd_write_char('\b');
-    driver_lcd_set_position(1, 1);
-    driver_lcd_printf("ADC value:");
-    driver_lcd_set_position(1, 2);
-    driver_lcd_printf("xxxxx");
-}
-
-
 void PININT0_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH0);
-    led_toggle(LED0R);
 }
 
 
 void PININT1_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH1);
-    led_toggle(LED1);
 }
 
 
 void PININT2_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH2);
-    led_toggle(LED2);
 }
 
 
 void PININT3_IRQ_HANDLER(void)
 {
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH3);
-    led_toggle(LED3);
 }
 
 
 void RIT_Handler(void)
 {
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
-    uint16_t adc_val = board_adc_polling();
-    driver_lcd_set_position(1, 2);
-    driver_lcd_printf("xxxxx"); // TODO: convert number to char
     NVIC_EnableIRQ(RITIMER_IRQn);
     Chip_RIT_ClearInt(LPC_RITIMER);
 }

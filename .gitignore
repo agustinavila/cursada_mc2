@@ -2,6 +2,7 @@ Debug
 build/
 .codex-tmp/
 .settings
+poncho_Educativo_UNSJ/*
 # Prerequisites
 *.d
 

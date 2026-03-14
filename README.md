@@ -44,7 +44,7 @@ Versiones validadas en esta maquina para el flujo actual:
 Con estas versiones se validaron:
 
 - configuracion `debug` y `release`
-- build de `cursada_mc2_blink` y `cursada_mc2_app`
+- build de `cursada_mc2_app`
 - flash con OpenOCD
 - sesion de GDB detenida en `main`
 
@@ -56,7 +56,6 @@ cmake --preset debug -DARM_NONE_EABI_TOOLCHAIN_PATH="<ruta-al-toolchain-o-bin>"
 
 ## Targets disponibles
 
-- `cursada_mc2_blink`: firmware minimo para validar build, flash y debug.
 - `cursada_mc2_app`: aplicacion actual con los drivers existentes.
 
 Cada target genera:
@@ -73,7 +72,6 @@ Configurar y compilar en debug:
 
 ```powershell
 cmake --preset debug
-cmake --build --preset debug --target cursada_mc2_blink
 cmake --build --preset debug --target cursada_mc2_app
 ```
 
@@ -81,17 +79,10 @@ Release:
 
 ```powershell
 cmake --preset release
-cmake --build --preset release --target cursada_mc2_blink
 cmake --build --preset release --target cursada_mc2_app
 ```
 
 ## Flash desde terminal
-
-Blink:
-
-```powershell
-cmake --build --preset debug --target flash_cursada_mc2_blink
-```
 
 Aplicacion actual:
 
@@ -116,8 +107,8 @@ Extensiones recomendadas:
 Flujo:
 
 1. Ejecutar `Configure [debug]` o usar el preset `debug` de CMake Tools.
-2. Ejecutar `Build Blink [debug]` o `Build App [debug]`.
-3. Elegir `Debug Blink (OpenOCD)` o `Debug App (OpenOCD)` en la pestana Run and Debug.
+2. Ejecutar `Build App [debug]`.
+3. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
 4. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
 
 ## Validacion de OpenOCD y del probe FTDI
@@ -153,6 +144,83 @@ LPCOpen queda reducido a vendor code de soporte:
 - startup/system integration alineada con LPC4337
 
 No se usa board library. El codigo propio vive en `src/` y se apoya en `lpc_chip_43xx` como capa de bajo nivel.
+
+## Sensores DS18B20 por 1-Wire
+
+La base actual incluye soporte para sensores `DS18B20` conectados sobre un bus `1-Wire` implementado por bit-banging sobre GPIO.
+
+### Conexionado validado
+
+Conexionado probado sobre el Poncho Educativo UNSJ:
+
+- bus `1-Wire` en `P8.GPIO0`
+- mapeo interno: `P6_1 / GPIO3[0]`
+- `DQ` del sensor -> `P8.GPIO0`
+- `VDD` del sensor -> `3.3V`
+- `GND` del sensor -> `GND`
+- resistencia `4.7 kOhm` entre `DQ` y `3.3V`
+
+Alimentacion soportada y documentada:
+
+- modo alimentado normal a `3.3V`
+- no se usa `parasite power`
+
+### Comportamiento actual del firmware
+
+La HMI usa el bus `1-Wire` al iniciar la app:
+
+- descubre sensores `DS18B20` presentes en el bus
+- si no hay sensores, muestra `No detectado`
+- si hay un sensor, muestra `DS18B20 1/1`
+- si hay varios sensores, muestra `DS18B20 X/Y` y rota automaticamente entre ellos
+- la segunda linea del LCD muestra la temperatura del sensor activo
+
+### Alcance actual del driver
+
+- `onewire_driver`: implementa el bus `1-Wire` por bit-banging sobre GPIO
+- `ds18b20_driver`: soporta lectura de un sensor, seleccion por `ROM` y gestion de multiples sensores sobre un mismo bus
+- la HMI usa conversion no bloqueante para no frenar el lazo principal mientras espera la conversion del sensor
+
+### Limitaciones actuales
+
+- cantidad maxima de sensores por bus: `DS18B20_MAX_DEVICES`
+- solo se consideran sensores con codigo de familia `0x28`
+- todos los sensores comparten un unico pin fisico de bus
+- la HMI rota automaticamente entre sensores; todavia no hay seleccion manual desde el menu
+
+### Archivos relevantes
+
+- [src/Driver/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/onewire_driver.h)
+- [src/Driver/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/ds18b20_driver.h)
+- [src/hmi/hmi.c](e:/Users/agust/Documents/cursada_mc2/src/hmi/hmi.c)
+
+### Prueba en hardware
+
+1. Conectar uno o mas sensores `DS18B20` al mismo bus `P8.GPIO0`.
+2. Verificar que el bus tenga la resistencia pull-up de `4.7 kOhm`.
+3. Compilar la app:
+
+```powershell
+cmake --build --preset debug --target cursada_mc2_app
+```
+
+4. Flashear la app:
+
+```powershell
+cmake --build --preset debug --target flash_cursada_mc2_app
+```
+
+5. Observar la pantalla principal:
+   - sin sensores: `No detectado`
+   - con un sensor: `DS18B20 1/1`
+   - con varios sensores: `DS18B20 X/Y` rotando automaticamente
+
+### Troubleshooting DS18B20
+
+- `No detectado`: revisar cableado, `3.3V`, `GND`, `DQ` y la resistencia pull-up
+- lectura inestable: revisar longitud del cable y masa comun entre placa y sensores
+- solo detecta uno de varios: revisar que todos compartan el mismo bus y la misma alimentacion
+- OpenOCD falla al flashear: verificar que no haya un proceso `openocd` previo reteniendo la interfaz FTDI
 
 ## Troubleshooting
 
@@ -197,12 +265,11 @@ No se usa board library. El codigo propio vive en `src/` y se apoya en `lpc_chip
 
 ## Validacion minima sugerida
 
-1. Compilar `cursada_mc2_blink`.
-2. Verificar `build/debug/cursada_mc2_blink.elf`, `.bin` y `.hex`.
-3. Flashear `cursada_mc2_blink`.
-4. Abrir `Debug Blink (OpenOCD)` en VS Code.
+1. Compilar `cursada_mc2_app`.
+2. Verificar `build/debug/cursada_mc2_app.elf`, `.bin` y `.hex`.
+3. Flashear `cursada_mc2_app`.
+4. Abrir `Debug App (OpenOCD)` en VS Code.
 5. Confirmar que el debugger se detiene en `main`.
-6. Repetir el flujo con `cursada_mc2_app`.
 
 ## Nota sobre el arbol `Debug/`
 
