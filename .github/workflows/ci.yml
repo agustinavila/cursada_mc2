@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-app:
+    if: startsWith(github.head_ref, 'dev/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            gcc-arm-none-eabi \
+            binutils-arm-none-eabi \
+            libnewlib-arm-none-eabi
+
+      - name: Show tool versions
+        run: |
+          cmake --version
+          ninja --version
+          arm-none-eabi-gcc --version
+          arm-none-eabi-objdump --version
+
+      - name: Configure debug
+        run: cmake --preset debug
+
+      - name: Build app debug
+        run: cmake --build --preset debug --target cursada_mc2_app
+
+      - name: Configure release
+        run: cmake --preset release
+
+      - name: Build app release
+        run: cmake --build --preset release --target cursada_mc2_app
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cursada_mc2_app-debug
+          path: |
+            build/debug/cursada_mc2_app.elf
+            build/debug/cursada_mc2_app.bin
+            build/debug/cursada_mc2_app.hex
+            build/debug/cursada_mc2_app.map
+          if-no-files-found: error
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cursada_mc2_app-release
+          path: |
+            build/release/cursada_mc2_app.elf
+            build/release/cursada_mc2_app.bin
+            build/release/cursada_mc2_app.hex
+            build/release/cursada_mc2_app.map
+          if-no-files-found: error
