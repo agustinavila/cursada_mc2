@@ -218,6 +218,7 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
     },
 };
 
+static int16_t hmi_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda);
 static void hmi_actualizar_temperatura(void)
 {
     const uint8_t cantidad_sensores_anterior = hmi_.sensores.cantidad;
@@ -238,12 +239,7 @@ static void hmi_actualizar_temperatura(void)
         if (ds18b20_bus_get_latest_raw(&hmi_.sensores.bus_temperatura,
                                        hmi_.sensores.indice_mostrado,
                                        &temperatura_cruda)) {
-            const int32_t valor_escalado = (int32_t) temperatura_cruda * 10;
-            if (valor_escalado >= 0) {
-                hmi_.sensores.temperatura_deci_celsius = (int16_t) ((valor_escalado + 8) / 16);
-            } else {
-                hmi_.sensores.temperatura_deci_celsius = (int16_t) ((valor_escalado - 8) / 16);
-            }
+            hmi_.sensores.temperatura_deci_celsius = hmi_convertir_temperatura_raw_a_deci(temperatura_cruda);
             hmi_.sensores.temperatura_valida = true;
         } else {
             hmi_.sensores.temperatura_valida = false;
@@ -320,6 +316,17 @@ static void hmi_formatear_linea_valor_deci(char* linea, size_t tamano_linea, int
     }
 }
 
+static int16_t hmi_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
+{
+    const int32_t temperatura_escalada = (int32_t) temperatura_cruda * 10;
+
+    if (temperatura_escalada >= 0) {
+        return (int16_t) ((temperatura_escalada + 8) / 16);
+    }
+
+    return (int16_t) ((temperatura_escalada - 8) / 16);
+}
+
 static void hmi_formatear_texto_modo_control(char* texto, size_t tamano_texto, int16_t valor_modo)
 {
     if (valor_modo != 0) {
@@ -376,6 +383,12 @@ static bool hmi_edicion_es_ciclica(uint8_t nodo)
     default:
         return false;
     }
+}
+
+static void hmi_dibujar_edicion_texto(const char* titulo, const char* texto)
+{
+    hmi_escribir_linea_lcd(1U, titulo);
+    hmi_escribir_linea_lcd(2U, texto);
 }
 
 static void hmi_entrar_vista_resumen(void)
@@ -528,20 +541,17 @@ static void hmi_dibujar_edicion(void)
 
     if (hmi_.interfaz.nodo_actual == HMI_NODE_MODE) {
         hmi_formatear_texto_modo_control(linea_valor, sizeof(linea_valor), hmi_.interfaz.valor_edicion);
-        hmi_escribir_linea_lcd(1U, item_actual->titulo);
-        hmi_escribir_linea_lcd(2U, linea_valor);
+        hmi_dibujar_edicion_texto(item_actual->titulo, linea_valor);
         return;
     } else if (hmi_.interfaz.nodo_actual == HMI_NODE_SENSOR_MODE) {
         hmi_formatear_texto_modo_sensor(linea_valor, sizeof(linea_valor), hmi_.interfaz.valor_edicion);
-        hmi_escribir_linea_lcd(1U, item_actual->titulo);
-        hmi_escribir_linea_lcd(2U, linea_valor);
+        hmi_dibujar_edicion_texto(item_actual->titulo, linea_valor);
         return;
     } else if (hmi_.interfaz.nodo_actual == HMI_NODE_PROCESS_SENSOR) {
         char texto_sensor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
         hmi_formatear_texto_sensor_proceso(texto_sensor, sizeof(texto_sensor), hmi_.interfaz.valor_edicion);
-        hmi_escribir_linea_lcd(1U, item_actual->titulo);
-        hmi_escribir_linea_lcd(2U, texto_sensor);
+        hmi_dibujar_edicion_texto(item_actual->titulo, texto_sensor);
         return;
     } else if ((hmi_.interfaz.nodo_actual == HMI_NODE_SETPOINT)
                || (hmi_.interfaz.nodo_actual == HMI_NODE_HYSTERESIS)) {
@@ -833,7 +843,6 @@ void hmi_process(void)
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius)
 {
     int16_t temperatura_cruda = 0;
-    int32_t temperatura_escalada = 0;
 
     if (temperatura_deci_celsius == 0) {
         return false;
@@ -843,13 +852,7 @@ bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_
         return false;
     }
 
-    temperatura_escalada = (int32_t) temperatura_cruda * 10;
-    if (temperatura_escalada >= 0) {
-        *temperatura_deci_celsius = (int16_t) ((temperatura_escalada + 8) / 16);
-    } else {
-        *temperatura_deci_celsius = (int16_t) ((temperatura_escalada - 8) / 16);
-    }
-
+    *temperatura_deci_celsius = hmi_convertir_temperatura_raw_a_deci(temperatura_cruda);
     return true;
 }
 
