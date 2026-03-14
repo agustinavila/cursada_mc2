@@ -6,7 +6,6 @@
 #include "hmi/hmi.h"
 
 #include "Driver/buttons_driver.h"
-#include "Driver/delay_driver.h"
 #include "Driver/ds18b20_driver.h"
 #include "Driver/lcd_driver.h"
 
@@ -733,7 +732,6 @@ void hmi_init(void)
     hmi_estado_.valor_edicion = 0;
     hmi_estado_.necesita_redibujado = true;
 
-    driver_delay_init();
     driver_lcd_write_char('\b');
     if (ds18b20_bus_init(&hmi_bus_temperatura_, &hmi_pin_ds18b20_)) {
         hmi_cantidad_sensores_ = ds18b20_bus_discover(&hmi_bus_temperatura_);
@@ -799,8 +797,6 @@ void hmi_process(void)
     }
 
     hmi_dibujar();
-    /** @brief Antirrebote simple y control de ritmo del lazo de polling. */
-    driver_delay_ms(HMI_PERIODO_PROCESAMIENTO_MS);
 }
 
 bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius)

@@ -8,6 +8,7 @@
 #include "Driver/adc_driver.h"
 #include "Driver/buttons_driver.h"
 #include "Driver/buzzer_driver.h"
+#include "Driver/delay_driver.h"
 #include "Driver/eeprom_driver.h"
 #include "Driver/keyboard_driver.h"
 #include "Driver/lcd_driver.h"
@@ -233,6 +234,7 @@ static void app_actualizar_control(void)
 
 void app_init(void)
 {
+    driver_delay_init();
     led_init();
     buzzer_init();
     buzzer_turn_off();
@@ -259,4 +261,5 @@ void app_process(void)
         app_cargar_parametros_en_hmi();
     }
     app_actualizar_control();
+    driver_delay_ms(20U);
 }
