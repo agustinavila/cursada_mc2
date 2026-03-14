@@ -18,7 +18,7 @@
 
 #define HMI_CANTIDAD_COLUMNAS_LCD 16U
 #define HMI_TICKS_ACTUALIZACION_SENSOR 50U
-#define HMI_TICKS_ROTACION_SENSOR 150U
+#define HMI_TICKS_RETORNO_RESUMEN 250U
 #define HMI_PERIODO_PROCESAMIENTO_MS 20U
 
 typedef enum {
@@ -41,6 +41,11 @@ typedef enum {
     HMI_ITEM_PARAMETRO,     /**< Parametro entero editable desde la HMI. */
     HMI_ITEM_ACCION,        /**< Accion disparada desde la HMI. */
 } hmi_tipo_item_t;
+
+typedef enum {
+    HMI_VISTA_INICIO_RESUMEN = 0, /**< Vista principal con resumen del control. */
+    HMI_VISTA_INICIO_SENSORES,    /**< Vista secundaria para recorrer sensores. */
+} hmi_vista_inicio_t;
 
 typedef struct {
     const char* titulo;          /**< Texto mostrado para este nodo. */
@@ -83,10 +88,13 @@ static bool hmi_solicitud_restablecer_parametros_ = false;
 static ds18b20_bus_driver_t hmi_bus_temperatura_;
 static uint8_t hmi_cantidad_sensores_ = 0U;
 static uint8_t hmi_indice_sensor_mostrado_ = 0U;
+static uint8_t hmi_indice_sensor_proceso_ = 0U;
 static bool hmi_temperatura_sensor_valida_ = false;
 static int16_t hmi_temperatura_sensor_deci_celsius_ = 0;
 static uint16_t hmi_ticks_actualizacion_sensor_ = 0U;
-static uint16_t hmi_ticks_rotacion_sensor_ = 0U;
+static uint16_t hmi_ticks_retorno_resumen_ = 0U;
+static bool hmi_control_salida_activa_ = false;
+static bool hmi_control_sensor_resuelto_ = false;
 
 static const onewire_pin_config_t hmi_pin_ds18b20_ = {
     .scu_port = 6U,
@@ -179,6 +187,7 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
 
 typedef struct {
     hmi_pantalla_t pantalla_actual;      /**< Pantalla actualmente visible. */
+    hmi_vista_inicio_t vista_inicio;     /**< Subvista activa dentro de la pantalla principal. */
     uint8_t nodo_actual;                 /**< Nodo seleccionado en el arbol de menu. */
     uint8_t mascara_botones_anterior;    /**< Ultimo estado crudo de los pulsadores. */
     int16_t valor_edicion;               /**< Valor temporal mientras se edita un parametro. */
@@ -259,7 +268,7 @@ static uint8_t hmi_obtener_ultimo_hermano(uint8_t nodo)
     return hermano;
 }
 
-static void hmi_formatear_linea_temperatura(char* linea, size_t tamano_linea, int16_t temperatura_deci_celsius)
+static void hmi_formatear_linea_temperatura_corta(char* linea, size_t tamano_linea, int16_t temperatura_deci_celsius)
 {
     const bool es_negativa = (temperatura_deci_celsius < 0);
     const int16_t temperatura_absoluta = (int16_t) abs(temperatura_deci_celsius);
@@ -267,28 +276,28 @@ static void hmi_formatear_linea_temperatura(char* linea, size_t tamano_linea, in
     const int16_t parte_fraccionaria = (int16_t) (temperatura_absoluta % 10);
 
     if (es_negativa) {
-        (void) snprintf(linea, tamano_linea, "T:-%d.%1d C", parte_entera, parte_fraccionaria);
+        (void) snprintf(linea, tamano_linea, "-%d.%1dC", parte_entera, parte_fraccionaria);
     } else {
-        (void) snprintf(linea, tamano_linea, "T: %d.%1d C", parte_entera, parte_fraccionaria);
+        (void) snprintf(linea, tamano_linea, "%d.%1dC", parte_entera, parte_fraccionaria);
     }
 }
 
-static const char* hmi_obtener_texto_modo_control_desde_valor(int16_t valor_modo)
+static void hmi_formatear_texto_modo_control(char* texto, size_t tamano_texto, int16_t valor_modo)
 {
     if (valor_modo != 0) {
-        return "Calentar";
+        (void) snprintf(texto, tamano_texto, "[X]CAL [ ]ENF");
+    } else {
+        (void) snprintf(texto, tamano_texto, "[ ]CAL [X]ENF");
     }
-
-    return "Enfriar";
 }
 
-static const char* hmi_obtener_texto_modo_sensor_desde_valor(int16_t valor_modo)
+static void hmi_formatear_texto_modo_sensor(char* texto, size_t tamano_texto, int16_t valor_modo)
 {
     if (valor_modo != 0) {
-        return "Auto";
+        (void) snprintf(texto, tamano_texto, "[X]Auto [ ]Fij");
+    } else {
+        (void) snprintf(texto, tamano_texto, "[ ]Auto [X]Fij");
     }
-
-    return "Fijo";
 }
 
 static void hmi_formatear_texto_sensor_proceso(char* texto, size_t tamano_texto, int16_t seleccion)
@@ -296,7 +305,7 @@ static void hmi_formatear_texto_sensor_proceso(char* texto, size_t tamano_texto,
     uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE];
 
     if ((hmi_cantidad_sensores_ <= 1U) || (seleccion <= 0)) {
-        (void) snprintf(texto, tamano_texto, "Auto");
+        (void) snprintf(texto, tamano_texto, "[X] Auto");
         return;
     }
 
@@ -307,16 +316,15 @@ static void hmi_formatear_texto_sensor_proceso(char* texto, size_t tamano_texto,
          */
         (void) snprintf(texto,
                         tamano_texto,
-                        "S%d %02X%02X%02X%02X",
+                        "[X]S%d %02X%02X%02X",
                         seleccion,
                         rom[0],
                         rom[1],
-                        rom[2],
-                        rom[3]);
+                        rom[2]);
         return;
     }
 
-    (void) snprintf(texto, tamano_texto, "S%d", seleccion);
+    (void) snprintf(texto, tamano_texto, "[X]S%d", seleccion);
 }
 
 static bool hmi_edicion_es_ciclica(uint8_t nodo)
@@ -332,35 +340,120 @@ static bool hmi_edicion_es_ciclica(uint8_t nodo)
     }
 }
 
-static void hmi_dibujar_inicio(void)
+static void hmi_entrar_vista_resumen(void)
 {
-    char linea_encabezado[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
-    char linea_valor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    hmi_estado_.vista_inicio = HMI_VISTA_INICIO_RESUMEN;
+    hmi_ticks_retorno_resumen_ = 0U;
+    hmi_estado_.necesita_redibujado = true;
+}
+
+static void hmi_avanzar_vista_sensores(void)
+{
+    if (hmi_cantidad_sensores_ == 0U) {
+        hmi_entrar_vista_resumen();
+        return;
+    }
+
+    if (hmi_estado_.vista_inicio == HMI_VISTA_INICIO_RESUMEN) {
+        hmi_estado_.vista_inicio = HMI_VISTA_INICIO_SENSORES;
+        hmi_indice_sensor_mostrado_ = hmi_control_sensor_resuelto_ ? hmi_indice_sensor_proceso_ : 0U;
+    } else {
+        hmi_indice_sensor_mostrado_++;
+        if (hmi_indice_sensor_mostrado_ >= hmi_cantidad_sensores_) {
+            hmi_entrar_vista_resumen();
+            return;
+        }
+    }
+
+    hmi_ticks_retorno_resumen_ = 0U;
+    hmi_actualizar_temperatura();
+    hmi_estado_.necesita_redibujado = true;
+}
+
+static void hmi_dibujar_inicio_resumen(void)
+{
+    char linea_superior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    char linea_inferior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    char texto_temperatura[8];
+    const char* texto_salida = hmi_control_salida_activa_ ? "ON" : "OFF";
+    const char* texto_modo = (hmi_modo_calentar_ != 0) ? "CAL" : "ENF";
+
+    if (hmi_control_sensor_resuelto_
+        && hmi_obtener_temperatura_sensor(hmi_indice_sensor_proceso_, &hmi_temperatura_sensor_deci_celsius_)) {
+        hmi_formatear_linea_temperatura_corta(texto_temperatura,
+                                              sizeof(texto_temperatura),
+                                              hmi_temperatura_sensor_deci_celsius_);
+    } else {
+        (void) snprintf(texto_temperatura, sizeof(texto_temperatura), "--.-C");
+    }
+
+    (void) snprintf(linea_superior,
+                    sizeof(linea_superior),
+                    "T:%s %s %s",
+                    texto_temperatura,
+                    texto_salida,
+                    texto_modo);
+    (void) snprintf(linea_inferior,
+                    sizeof(linea_inferior),
+                    "SP:%d H:%d",
+                    hmi_setpoint_celsius_,
+                    hmi_histeresis_celsius_);
+
+    hmi_escribir_linea_lcd(1U, linea_superior);
+    hmi_escribir_linea_lcd(2U, linea_inferior);
+}
+
+static void hmi_dibujar_inicio_sensor(void)
+{
+    char linea_superior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    char linea_inferior[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
+    char texto_temperatura[8];
 
     if (hmi_cantidad_sensores_ == 0U) {
-        hmi_escribir_linea_lcd(1U, "DS18B20");
+        hmi_escribir_linea_lcd(1U, "Sensores");
         hmi_escribir_linea_lcd(2U, "No detectado");
         return;
     }
 
-    (void) snprintf(linea_encabezado,
-                    sizeof(linea_encabezado),
-                    "DS18B20 %u/%u",
-                    (unsigned int) (hmi_indice_sensor_mostrado_ + 1U),
-                    (unsigned int) hmi_cantidad_sensores_);
-
-    if (!hmi_temperatura_sensor_valida_) {
-        hmi_escribir_linea_lcd(1U, linea_encabezado);
-        hmi_escribir_linea_lcd(2U, "Lectura fallida");
-        return;
+    if (hmi_indice_sensor_mostrado_ >= hmi_cantidad_sensores_) {
+        hmi_indice_sensor_mostrado_ = 0U;
     }
 
-    hmi_formatear_linea_temperatura(linea_valor,
-                                    sizeof(linea_valor),
-                                    hmi_temperatura_sensor_deci_celsius_);
+    if (!hmi_obtener_temperatura_sensor(hmi_indice_sensor_mostrado_, &hmi_temperatura_sensor_deci_celsius_)) {
+        (void) snprintf(texto_temperatura, sizeof(texto_temperatura), "Lect fallida");
+    } else {
+        hmi_formatear_linea_temperatura_corta(texto_temperatura,
+                                              sizeof(texto_temperatura),
+                                              hmi_temperatura_sensor_deci_celsius_);
+    }
 
-    hmi_escribir_linea_lcd(1U, linea_encabezado);
-    hmi_escribir_linea_lcd(2U, linea_valor);
+    if (hmi_control_sensor_resuelto_ && (hmi_indice_sensor_mostrado_ == hmi_indice_sensor_proceso_)) {
+        (void) snprintf(linea_superior, sizeof(linea_superior), "Sensor proc");
+    } else {
+        (void) snprintf(linea_superior,
+                        sizeof(linea_superior),
+                        "Sensor %u/%u",
+                        (unsigned int) (hmi_indice_sensor_mostrado_ + 1U),
+                        (unsigned int) hmi_cantidad_sensores_);
+    }
+
+    (void) snprintf(linea_inferior,
+                    sizeof(linea_inferior),
+                    "S%u %s",
+                    (unsigned int) (hmi_indice_sensor_mostrado_ + 1U),
+                    texto_temperatura);
+
+    hmi_escribir_linea_lcd(1U, linea_superior);
+    hmi_escribir_linea_lcd(2U, linea_inferior);
+}
+
+static void hmi_dibujar_inicio(void)
+{
+    if (hmi_estado_.vista_inicio == HMI_VISTA_INICIO_RESUMEN) {
+        hmi_dibujar_inicio_resumen();
+    } else {
+        hmi_dibujar_inicio_sensor();
+    }
 }
 
 static void hmi_dibujar_menu(void)
@@ -386,13 +479,15 @@ static void hmi_dibujar_edicion(void)
     char linea_valor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
     if (hmi_estado_.nodo_actual == HMI_NODE_MODE) {
-        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s",
-                        item_actual->titulo,
-                        hmi_obtener_texto_modo_control_desde_valor(hmi_estado_.valor_edicion));
+        hmi_formatear_texto_modo_control(linea_valor, sizeof(linea_valor), hmi_estado_.valor_edicion);
+        hmi_escribir_linea_lcd(1U, item_actual->titulo);
+        hmi_escribir_linea_lcd(2U, linea_valor);
+        return;
     } else if (hmi_estado_.nodo_actual == HMI_NODE_SENSOR_MODE) {
-        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s",
-                        item_actual->titulo,
-                        hmi_obtener_texto_modo_sensor_desde_valor(hmi_estado_.valor_edicion));
+        hmi_formatear_texto_modo_sensor(linea_valor, sizeof(linea_valor), hmi_estado_.valor_edicion);
+        hmi_escribir_linea_lcd(1U, item_actual->titulo);
+        hmi_escribir_linea_lcd(2U, linea_valor);
+        return;
     } else if (hmi_estado_.nodo_actual == HMI_NODE_PROCESS_SENSOR) {
         char texto_sensor[HMI_CANTIDAD_COLUMNAS_LCD + 1U];
 
@@ -607,6 +702,7 @@ static void hmi_manejar_evento_edicion(hmi_evento_t evento)
 void hmi_init(void)
 {
     hmi_estado_.pantalla_actual = HMI_PANTALLA_INICIO;
+    hmi_estado_.vista_inicio = HMI_VISTA_INICIO_RESUMEN;
     hmi_estado_.nodo_actual = HMI_NODE_PARAMS;
     hmi_estado_.mascara_botones_anterior = 0U;
     hmi_estado_.valor_edicion = 0;
@@ -632,6 +728,8 @@ void hmi_process(void)
     case HMI_PANTALLA_INICIO:
         if (evento == HMI_EVENTO_MENU) {
             hmi_entrar_menu_raiz();
+        } else if (evento == HMI_EVENTO_ACEPTAR) {
+            hmi_avanzar_vista_sensores();
         }
         break;
 
@@ -667,18 +765,12 @@ void hmi_process(void)
         hmi_ticks_actualizacion_sensor_ = 0U;
     }
 
-    if ((hmi_estado_.pantalla_actual == HMI_PANTALLA_INICIO) && (hmi_cantidad_sensores_ > 1U)) {
-        hmi_ticks_rotacion_sensor_++;
-        if (hmi_ticks_rotacion_sensor_ >= HMI_TICKS_ROTACION_SENSOR) {
-            hmi_ticks_rotacion_sensor_ = 0U;
-            hmi_indice_sensor_mostrado_++;
-            if (hmi_indice_sensor_mostrado_ >= hmi_cantidad_sensores_) {
-                hmi_indice_sensor_mostrado_ = 0U;
-            }
-            hmi_actualizar_temperatura();
+    if ((hmi_estado_.pantalla_actual == HMI_PANTALLA_INICIO)
+        && (hmi_estado_.vista_inicio == HMI_VISTA_INICIO_SENSORES)) {
+        hmi_ticks_retorno_resumen_++;
+        if (hmi_ticks_retorno_resumen_ >= HMI_TICKS_RETORNO_RESUMEN) {
+            hmi_entrar_vista_resumen();
         }
-    } else {
-        hmi_ticks_rotacion_sensor_ = 0U;
     }
 
     hmi_dibujar();
@@ -779,6 +871,23 @@ void hmi_cargar_configuracion_sensor_proceso(bool automatico, uint8_t seleccion)
     }
     hmi_estado_.valor_edicion = 0;
     hmi_estado_.necesita_redibujado = true;
+}
+
+void hmi_cargar_estado_control(bool salida_activa,
+                               bool sensor_resuelto,
+                               uint8_t indice_sensor_proceso)
+{
+    const bool hubo_cambios = (hmi_control_salida_activa_ != salida_activa)
+        || (hmi_control_sensor_resuelto_ != sensor_resuelto)
+        || (hmi_indice_sensor_proceso_ != indice_sensor_proceso);
+
+    hmi_control_salida_activa_ = salida_activa;
+    hmi_control_sensor_resuelto_ = sensor_resuelto;
+    hmi_indice_sensor_proceso_ = indice_sensor_proceso;
+
+    if (hubo_cambios && (hmi_estado_.pantalla_actual == HMI_PANTALLA_INICIO)) {
+        hmi_estado_.necesita_redibujado = true;
+    }
 }
 
 bool hmi_consumir_solicitud_restablecer_parametros(void)

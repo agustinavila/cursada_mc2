@@ -85,6 +85,17 @@ void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    bool modo_calentar);
 
 /**
+ * @brief Carga en la HMI el estado actual del lazo de control.
+ *
+ * @param salida_activa `true` si la salida del control esta activa.
+ * @param sensor_resuelto `true` si hay un sensor de proceso valido asignado.
+ * @param indice_sensor_proceso Indice del sensor de proceso actualmente usado.
+ */
+void hmi_cargar_estado_control(bool salida_activa,
+                               bool sensor_resuelto,
+                               uint8_t indice_sensor_proceso);
+
+/**
  * @brief Obtiene el setpoint configurado desde la HMI.
  *
  * El valor se devuelve en decimas de grado Celsius para que la aplicacion

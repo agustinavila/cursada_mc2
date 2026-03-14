@@ -197,27 +197,34 @@ static void app_actualizar_control(void)
 {
     control_generico_t* control_activo = 0;
     int16_t temperatura_deci_celsius = 0;
+    bool salida_activa = false;
 
     control_activo = control_selector_obtener_activo(&app_selector_control_);
 
-    if ((control_activo == 0)
-        || !app_resolver_sensor_proceso()
-        || !hmi_obtener_temperatura_sensor(app_indice_sensor_proceso_, &temperatura_deci_celsius)) {
+    if (!app_sincronizar_hmi_en_parametros() || !app_sincronizar_control_desde_parametros()) {
+        hmi_cargar_estado_control(false, false, 0U);
         led_turn_off(LED1);
         return;
     }
 
-    if (!app_sincronizar_hmi_en_parametros() || !app_sincronizar_control_desde_parametros()) {
+    if ((control_activo == 0)
+        || !app_resolver_sensor_proceso()
+        || !hmi_obtener_temperatura_sensor(app_indice_sensor_proceso_, &temperatura_deci_celsius)) {
+        hmi_cargar_estado_control(false, false, 0U);
         led_turn_off(LED1);
         return;
     }
 
     if (!control_procesar(control_activo, temperatura_deci_celsius)) {
+        hmi_cargar_estado_control(false, true, app_indice_sensor_proceso_);
         led_turn_off(LED1);
         return;
     }
 
-    if (control_esta_salida_activa(control_activo)) {
+    salida_activa = control_esta_salida_activa(control_activo);
+    hmi_cargar_estado_control(salida_activa, true, app_indice_sensor_proceso_);
+
+    if (salida_activa) {
         led_turn_on(LED1);
     } else {
         led_turn_off(LED1);
