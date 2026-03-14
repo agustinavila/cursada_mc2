@@ -2,25 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Blink (OpenOCD)",
-            "type": "cortex-debug",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "servertype": "openocd",
-            "serverpath": "openocd",
-            "gdbPath": "arm-none-eabi-gdb",
-            "objdumpPath": "arm-none-eabi-objdump",
-            "device": "LPC4337",
-            "configFiles": [
-                "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
-            ],
-            "executable": "${workspaceFolder}/build/debug/cursada_mc2_blink.elf",
-            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
-            "runToEntryPoint": "main",
-            "showDevDebugOutput": "raw",
-            "preLaunchTask": "Build Blink [debug]"
-        },
-        {
             "name": "Debug App (OpenOCD)",
             "type": "cortex-debug",
             "request": "launch",

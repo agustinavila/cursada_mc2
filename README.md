@@ -44,7 +44,7 @@ Versiones validadas en esta maquina para el flujo actual:
 Con estas versiones se validaron:
 
 - configuracion `debug` y `release`
-- build de `cursada_mc2_blink` y `cursada_mc2_app`
+- build de `cursada_mc2_app`
 - flash con OpenOCD
 - sesion de GDB detenida en `main`
 
@@ -56,7 +56,6 @@ cmake --preset debug -DARM_NONE_EABI_TOOLCHAIN_PATH="<ruta-al-toolchain-o-bin>"
 
 ## Targets disponibles
 
-- `cursada_mc2_blink`: firmware minimo para validar build, flash y debug.
 - `cursada_mc2_app`: aplicacion actual con los drivers existentes.
 
 Cada target genera:
@@ -73,7 +72,6 @@ Configurar y compilar en debug:
 
 ```powershell
 cmake --preset debug
-cmake --build --preset debug --target cursada_mc2_blink
 cmake --build --preset debug --target cursada_mc2_app
 ```
 
@@ -81,17 +79,10 @@ Release:
 
 ```powershell
 cmake --preset release
-cmake --build --preset release --target cursada_mc2_blink
 cmake --build --preset release --target cursada_mc2_app
 ```
 
 ## Flash desde terminal
-
-Blink:
-
-```powershell
-cmake --build --preset debug --target flash_cursada_mc2_blink
-```
 
 Aplicacion actual:
 
@@ -116,8 +107,8 @@ Extensiones recomendadas:
 Flujo:
 
 1. Ejecutar `Configure [debug]` o usar el preset `debug` de CMake Tools.
-2. Ejecutar `Build Blink [debug]` o `Build App [debug]`.
-3. Elegir `Debug Blink (OpenOCD)` o `Debug App (OpenOCD)` en la pestana Run and Debug.
+2. Ejecutar `Build App [debug]`.
+3. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
 4. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
 
 ## Validacion de OpenOCD y del probe FTDI
@@ -274,12 +265,11 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 
 ## Validacion minima sugerida
 
-1. Compilar `cursada_mc2_blink`.
-2. Verificar `build/debug/cursada_mc2_blink.elf`, `.bin` y `.hex`.
-3. Flashear `cursada_mc2_blink`.
-4. Abrir `Debug Blink (OpenOCD)` en VS Code.
+1. Compilar `cursada_mc2_app`.
+2. Verificar `build/debug/cursada_mc2_app.elf`, `.bin` y `.hex`.
+3. Flashear `cursada_mc2_app`.
+4. Abrir `Debug App (OpenOCD)` en VS Code.
 5. Confirmar que el debugger se detiene en `main`.
-6. Repetir el flujo con `cursada_mc2_app`.
 
 ## Nota sobre el arbol `Debug/`
 
