@@ -22,35 +22,35 @@
 #define HMI_PROCESS_PERIOD_MS 20U
 
 typedef enum {
-    HMI_EVENT_NONE = 0,
-    HMI_EVENT_MENU,
-    HMI_EVENT_UP,
-    HMI_EVENT_DOWN,
-    HMI_EVENT_ENTER,
+    HMI_EVENT_NONE = 0,  /**< No se detecto ningun evento en el ciclo actual. */
+    HMI_EVENT_MENU,      /**< Se presiono la tecla de menu o cancelacion. */
+    HMI_EVENT_UP,        /**< Se presiono la tecla de incremento o subida. */
+    HMI_EVENT_DOWN,      /**< Se presiono la tecla de decremento o bajada. */
+    HMI_EVENT_ENTER,     /**< Se presiono la tecla de ingreso o confirmacion. */
 } hmi_event_t;
 
 typedef enum {
-    HMI_SCREEN_HOME = 0,
-    HMI_SCREEN_MENU,
-    HMI_SCREEN_EDIT,
+    HMI_SCREEN_HOME = 0, /**< Pantalla principal con el estado del sistema. */
+    HMI_SCREEN_MENU,     /**< Pantalla de navegacion por el arbol de menu. */
+    HMI_SCREEN_EDIT,     /**< Pantalla de edicion de un parametro puntual. */
 } hmi_screen_t;
 
 typedef enum {
-    HMI_ITEM_MENU = 0,
-    HMI_ITEM_INT_PARAM,
+    HMI_ITEM_MENU = 0,   /**< Nodo contenedor que agrupa hijos. */
+    HMI_ITEM_INT_PARAM,  /**< Parametro entero editable desde la HMI. */
 } hmi_item_kind_t;
 
 typedef struct {
-    const char* title;
-    uint8_t parent;
-    uint8_t first_child;
-    uint8_t previous_sibling;
-    uint8_t next_sibling;
-    hmi_item_kind_t kind;
-    int16_t* value;
-    int16_t min_value;
-    int16_t max_value;
-    int16_t step;
+    const char* title;           /**< Texto mostrado para este nodo. */
+    uint8_t parent;              /**< Nodo padre dentro del arbol. */
+    uint8_t first_child;         /**< Primer hijo del nodo si es un menu. */
+    uint8_t previous_sibling;    /**< Hermano anterior en el mismo nivel. */
+    uint8_t next_sibling;        /**< Hermano siguiente en el mismo nivel. */
+    hmi_item_kind_t kind;        /**< Tipo de nodo y comportamiento asociado. */
+    int16_t* value;              /**< Variable vinculada cuando el nodo es editable. */
+    int16_t min_value;           /**< Limite inferior permitido para la edicion. */
+    int16_t max_value;           /**< Limite superior permitido para la edicion. */
+    int16_t step;                /**< Incremento o decremento por pulsacion. */
 } hmi_menu_item_t;
 
 /**
@@ -60,11 +60,11 @@ typedef struct {
  * deterministica dentro del microcontrolador.
  */
 enum {
-    HMI_NODE_ROOT = 0,
-    HMI_NODE_PARAMS,
-    HMI_NODE_SETPOINT,
-    HMI_NODE_HYSTERESIS,
-    HMI_NODE_MODE,
+    HMI_NODE_ROOT = 0,   /**< Nodo raiz interno del arbol. */
+    HMI_NODE_PARAMS,     /**< Menu de parametros configurables. */
+    HMI_NODE_SETPOINT,   /**< Parametro de consigna del control. */
+    HMI_NODE_HYSTERESIS, /**< Parametro de banda de histeresis. */
+    HMI_NODE_MODE,       /**< Parametro de modo calentar/enfriar. */
 };
 
 static int16_t hmi_setpoint_celsius_ = 27;
@@ -134,11 +134,11 @@ static const hmi_menu_item_t hmi_menu_tree_[] = {
 };
 
 typedef struct {
-    hmi_screen_t current_screen;
-    uint8_t current_node;
-    uint8_t last_button_mask;
-    int16_t edit_value;
-    bool needs_redraw;
+    hmi_screen_t current_screen; /**< Pantalla actualmente visible. */
+    uint8_t current_node;        /**< Nodo seleccionado en el arbol de menu. */
+    uint8_t last_button_mask;    /**< Ultimo estado crudo de los pulsadores. */
+    int16_t edit_value;          /**< Valor temporal mientras se edita un parametro. */
+    bool needs_redraw;           /**< Indica si el LCD debe redibujarse. */
 } hmi_state_t;
 
 static hmi_state_t hmi_state_;
