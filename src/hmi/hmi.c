@@ -149,9 +149,9 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .hermano_siguiente = HMI_NODE_MODE,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_histeresis_deci_celsius_,
-        .valor_minimo = 10,
+        .valor_minimo = 1,
         .valor_maximo = 200,
-        .paso = 10,
+        .paso = 1,
     },
     [HMI_NODE_MODE] = {
         .titulo = "Modo",
