@@ -19,12 +19,43 @@
 static control_selector_t app_selector_control_;
 static const uint8_t app_indice_sensor_proceso_ = 0U;
 
-static const control_on_off_configuracion_t app_control_on_off_configuracion_inicial_ = {
+static const control_on_off_configuracion_t app_control_on_off_configuracion_base_ = {
     .sentido = CONTROL_ON_OFF_SENTIDO_CALENTAR,
     .consigna_deci_celsius = 270,
     .histeresis_deci_celsius = 20U,
     .habilitado = true,
 };
+
+static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
+
+static bool app_sincronizar_parametros_control(void)
+{
+    control_generico_t* control_activo = 0;
+    control_on_off_configuracion_t nueva_configuracion;
+
+    control_activo = control_selector_obtener_activo(&app_selector_control_);
+    if (control_activo == 0) {
+        return false;
+    }
+
+    nueva_configuracion = app_control_on_off_configuracion_actual_;
+    nueva_configuracion.consigna_deci_celsius = hmi_obtener_setpoint_deci_celsius();
+    nueva_configuracion.histeresis_deci_celsius = hmi_obtener_histeresis_deci_celsius();
+    nueva_configuracion.sentido = hmi_modo_control_es_calentar()
+        ? CONTROL_ON_OFF_SENTIDO_CALENTAR
+        : CONTROL_ON_OFF_SENTIDO_ENFRIAR;
+
+    if ((nueva_configuracion.consigna_deci_celsius == app_control_on_off_configuracion_actual_.consigna_deci_celsius)
+        && (nueva_configuracion.histeresis_deci_celsius == app_control_on_off_configuracion_actual_.histeresis_deci_celsius)
+        && (nueva_configuracion.sentido == app_control_on_off_configuracion_actual_.sentido)
+        && (nueva_configuracion.habilitado == app_control_on_off_configuracion_actual_.habilitado)) {
+        return true;
+    }
+
+    app_control_on_off_configuracion_actual_ = nueva_configuracion;
+    return control_on_off_configurar((control_on_off_t*) control_activo,
+                                     &app_control_on_off_configuracion_actual_);
+}
 
 static void app_actualizar_control(void)
 {
@@ -35,6 +66,11 @@ static void app_actualizar_control(void)
 
     if ((control_activo == 0)
         || !hmi_obtener_temperatura_sensor(app_indice_sensor_proceso_, &temperatura_deci_celsius)) {
+        led_turn_off(LED1);
+        return;
+    }
+
+    if (!app_sincronizar_parametros_control()) {
         led_turn_off(LED1);
         return;
     }
@@ -61,9 +97,15 @@ void app_init(void)
     board_adc_init(ADC_CH2);
     driver_lcd_init();
     hmi_init();
+    app_control_on_off_configuracion_actual_ = app_control_on_off_configuracion_base_;
+    app_control_on_off_configuracion_actual_.consigna_deci_celsius = hmi_obtener_setpoint_deci_celsius();
+    app_control_on_off_configuracion_actual_.histeresis_deci_celsius = hmi_obtener_histeresis_deci_celsius();
+    app_control_on_off_configuracion_actual_.sentido = hmi_modo_control_es_calentar()
+        ? CONTROL_ON_OFF_SENTIDO_CALENTAR
+        : CONTROL_ON_OFF_SENTIDO_ENFRIAR;
     (void) control_selector_inicializar(&app_selector_control_);
     (void) control_selector_seleccionar_on_off(&app_selector_control_,
-                                               &app_control_on_off_configuracion_inicial_);
+                                               &app_control_on_off_configuracion_actual_);
 }
 
 void app_process(void)
