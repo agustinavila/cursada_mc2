@@ -9,6 +9,9 @@ add_subdirectory(Driver)
 
 add_executable(cursada_mc2_app
     app/app.c
+    control/control.c
+    control/control_on_off.c
+    control/control_selector.c
     hmi/hmi.c
     main.c
     $<TARGET_OBJECTS:cursada_mc2_startup>
