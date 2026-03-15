@@ -30,6 +30,9 @@ jobs:
           doxygen --version
           dot -V
 
+      - name: Create docs output directory
+        run: mkdir -p build/docs/doxygen
+
       - name: Generate documentation
         run: doxygen Doxyfile
 
