@@ -28,6 +28,29 @@
             "problemMatcher": "$gcc"
         },
         {
+            "label": "Cppcheck",
+            "type": "shell",
+            "command": "cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr \"--suppress=missingIncludeSystem\" \"--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*\" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Cppcheck + Build App [debug]",
+            "type": "shell",
+            "command": "Write-Output \"Cppcheck y build completados\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Cppcheck",
+                "Build App [debug]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
             "label": "Flash App [debug]",
             "type": "shell",
             "command": "cmake --build --preset debug --target flash_cursada_mc2_app",
