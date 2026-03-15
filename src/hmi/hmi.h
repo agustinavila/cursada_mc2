@@ -6,8 +6,6 @@
 #if !defined(HMI_H_)
 #define HMI_H_
 
-#include "app/parametros.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -32,46 +30,15 @@ void hmi_init(void);
 void hmi_process(void);
 
 /**
- * @brief Obtiene la temperatura cacheada de un sensor especifico.
+ * @brief Carga en la HMI el estado actual del sensor de proceso.
  *
- * Esta funcion desacopla la logica de control de la rotacion visual de la HMI.
- * Permite fijar un sensor concreto como entrada de proceso, independientemente
- * de cual se este mostrando en la pantalla principal.
+ * La aplicacion es la dueña del bus DS18B20 y le entrega a la HMI solamente
+ * el valor visible del sensor usado por el control.
  *
- * @param indice_sensor Indice del sensor dentro de la tabla descubierta.
- * @param temperatura_deci_celsius Variable de salida.
- *
- * @retval true Si hay una medicion valida para ese sensor.
- * @retval false Si el indice es invalido, no hay muestra valida o el puntero es invalido.
+ * @param temperatura_valida `true` si la temperatura actual es valida.
+ * @param temperatura_deci_celsius Temperatura en decimas de grado Celsius.
  */
-bool hmi_obtener_temperatura_sensor(uint8_t indice_sensor, int16_t* temperatura_deci_celsius);
-
-/**
- * @brief Devuelve la cantidad de sensores DS18B20 descubiertos actualmente.
- *
- * @return Cantidad de sensores presentes en el bus.
- */
-uint8_t hmi_obtener_cantidad_sensores(void);
-
-/**
- * @brief Copia el codigo ROM del sensor indicado.
- *
- * @param indice_sensor Indice del sensor dentro de la tabla descubierta.
- * @param rom Buffer destino de 8 bytes.
- *
- * @retval true Si el indice es valido y el ROM se pudo copiar.
- * @retval false Si el indice o el puntero son invalidos.
- */
-bool hmi_obtener_rom_sensor(uint8_t indice_sensor, uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE]);
-
-/**
- * @brief Carga en la HMI la configuracion actual del sensor de proceso.
- *
- * @param automatico `true` si el sensor de proceso usa modo automatico.
- * @param seleccion Seleccion actual del sensor de proceso. Los valores `1..N`
- * representan un sensor explicito mostrado como `Sensor 1`, `Sensor 2`, etc.
- */
-void hmi_cargar_configuracion_sensor_proceso(bool automatico, uint8_t seleccion);
+void hmi_cargar_estado_sensor(bool temperatura_valida, int16_t temperatura_deci_celsius);
 
 /**
  * @brief Carga en la HMI los parametros de control vigentes.
@@ -122,28 +89,5 @@ uint16_t hmi_obtener_histeresis_deci_celsius(void);
  * @retval false Si el modo actual es enfriar.
  */
 bool hmi_modo_control_es_calentar(void);
-
-/**
- * @brief Indica si la HMI tiene configurado el sensor de proceso en automatico.
- *
- * @retval true Si el modo actual es automatico.
- * @retval false Si el modo actual es fijo.
- */
-bool hmi_sensor_proceso_es_automatico(void);
-
-/**
- * @brief Devuelve la seleccion actual del sensor de proceso.
- *
- * @return `1..N` para un sensor explicito.
- */
-uint8_t hmi_obtener_sensor_proceso_seleccion(void);
-
-/**
- * @brief Consume la solicitud de restablecer parametros a defaults.
- *
- * @retval true Si la HMI solicito restablecer valores.
- * @retval false Si no hay solicitud pendiente.
- */
-bool hmi_consumir_solicitud_restablecer_parametros(void);
 
 #endif // HMI_H_
