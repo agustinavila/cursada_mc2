@@ -27,15 +27,15 @@ La aplicacion actual implementa una base para control de temperatura sobre la ED
 A grandes rasgos, el flujo es este:
 
 - uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
-- la HMI muestra esas mediciones en el LCD y permite navegar un menu jerarquico con cuatro pulsadores
-- la logica de aplicacion toma un sensor fijo como variable de proceso
-- sobre esa medicion corre un control `on/off` con histéresis
+- la aplicacion descubre los sensores presentes, pero por ahora usa siempre el primero encontrado como variable de proceso
+- la HMI muestra el estado general del control en el LCD y permite editar sus parametros principales con cuatro pulsadores
+- sobre esa medicion corre un control `on/off` con histeresis
 - la salida del control se refleja hoy en `LED1` como actuador de prueba
 
 En el estado actual:
 
 - el sensor de proceso esta fijado al indice `0`
-- la HMI puede rotar visualmente entre sensores, pero esa rotacion no cambia la entrada del lazo de control
+- la logica de sensores vive en `app`, no en la HMI
 - la estrategia implementada hoy es `on/off`
 - la estructura de `src/control/` ya esta preparada para sumar otras estrategias mas adelante
 
@@ -47,10 +47,9 @@ La interfaz de usuario usa el LCD de 16x2 y los cuatro pulsadores del poncho.
 
 La pantalla principal muestra el estado general del sistema:
 
-- si no hay sensores: `No detectado`
-- si hay un sensor: `DS18B20 1/1`
-- si hay varios sensores: `DS18B20 X/Y` y va rotando automaticamente
-- la segunda linea muestra la temperatura del sensor visible
+- la linea superior muestra temperatura actual, estado de salida y modo de control
+- la linea inferior muestra `SP` e `H`
+- si no hay un sensor valido, la temperatura se muestra como `--.-C`
 
 ### Pulsadores
 
@@ -61,7 +60,7 @@ La navegacion actual se hace asi:
 - `Tecla 3`: baja o decrementa
 - `Tecla 4`: entra en una opcion o confirma edicion
 
-Por ahora no hay una accion especial asociada a mantener una tecla presionada, aunque la estructura de HMI permite agregarla mas adelante.
+Por ahora no hay una accion especial asociada a mantener una tecla presionada.
 
 ### Menu actual
 
@@ -70,18 +69,14 @@ La HMI implementa un menu jerarquico simple. En el LCD:
 - la linea superior indica si estas en `MENU`, en un submenu o en modo `EDITAR`
 - la linea inferior muestra la opcion actual o el valor que se esta editando
 
-Categorias actuales:
+Menu actual:
 
-- `Parametros`
+- `Param control`
   - `Setpoint`
-  - `Tiempo`
-- `Monitoreo`
-  - `ADC preview`
-  - `Btn mode`
-- `Sistema`
-  - `Buzzer`
+  - `Histeresis`
+  - `Modo`
 
-Hoy esa estructura sirve como base de navegacion. La idea es que despues la configuracion real del control y del sistema se vaya moviendo a estas pantallas.
+Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale de la edicion con `Menu`, el valor temporal se descarta.
 
 ## Estructura
 
@@ -389,31 +384,32 @@ Alimentacion soportada y documentada:
 
 ### Comportamiento actual del firmware
 
-La HMI usa el bus `1-Wire` al iniciar la app:
+La aplicacion usa el bus `1-Wire` al iniciar:
 
 - descubre sensores `DS18B20` presentes en el bus
-- si no hay sensores, muestra `No detectado`
-- si hay un sensor, muestra `DS18B20 1/1`
-- si hay varios sensores, muestra `DS18B20 X/Y` y rota automaticamente entre ellos
-- la segunda linea del LCD muestra la temperatura del sensor activo
+- si no hay sensores validos, el control queda sin medicion
+- si hay uno o mas sensores, por ahora usa siempre el primero encontrado como sensor de proceso
+- la HMI muestra la temperatura de ese sensor de proceso en la pantalla principal
+- el estado de salida del control se refleja en `LED1`
 
 ### Alcance actual del driver
 
 - `onewire_driver`: implementa el bus `1-Wire` por bit-banging sobre GPIO
 - `ds18b20_driver`: soporta lectura de un sensor, seleccion por `ROM` y gestion de multiples sensores sobre un mismo bus
-- la HMI usa conversion no bloqueante para no frenar el lazo principal mientras espera la conversion del sensor
+- la aplicacion usa conversion no bloqueante para no frenar el lazo principal mientras espera la conversion del sensor
 
 ### Limitaciones actuales
 
 - cantidad maxima de sensores por bus: `DS18B20_MAX_DEVICES`
 - solo se consideran sensores con codigo de familia `0x28`
 - todos los sensores comparten un unico pin fisico de bus
-- la HMI rota automaticamente entre sensores; todavia no hay seleccion manual desde el menu
+- aunque el driver soporta multiples sensores, la app usa solo el primero detectado
 
 ### Archivos relevantes
 
 - [src/Driver/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/onewire_driver.h)
 - [src/Driver/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/ds18b20_driver.h)
+- [src/app/app.c](e:/Users/agust/Documents/cursada_mc2/src/app/app.c)
 - [src/hmi/hmi.c](e:/Users/agust/Documents/cursada_mc2/src/hmi/hmi.c)
 
 ### Prueba en hardware
@@ -433,9 +429,8 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ```
 
 5. Observar la pantalla principal:
-   - sin sensores: `No detectado`
-   - con un sensor: `DS18B20 1/1`
-   - con varios sensores: `DS18B20 X/Y` rotando automaticamente
+   - sin sensores: temperatura invalida y salida inactiva
+   - con uno o mas sensores: el firmware usa el primero detectado como sensor de proceso
 
 ### Troubleshooting DS18B20
 
@@ -496,3 +491,4 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ## Nota sobre el arbol `Debug/`
 
 El directorio `Debug/` heredado de MCUXpresso quedo como referencia historica. El flujo reproducible actual usa exclusivamente `build/debug` y `build/release`.
+
