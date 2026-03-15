@@ -211,6 +211,33 @@ Cada target genera:
 
 Los artefactos quedan en `build/debug/` o `build/release/`.
 
+## Documentacion API
+
+El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir
+de `README.md`, `src/` y los comentarios Doxygen del codigo.
+
+Uso local:
+
+```powershell
+doxygen Doxyfile
+```
+
+La salida queda en:
+
+- `build/docs/doxygen/html`
+
+GitHub Actions:
+
+- el workflow `Doxygen Docs` genera la documentacion en cada PR contra `main`
+- al hacer `push` a `main`, publica automaticamente la documentacion en `GitHub Pages`
+
+Paso manual necesario en GitHub:
+
+1. abrir `Settings -> Pages`
+2. en `Build and deployment`, elegir `Source: GitHub Actions`
+
+Una vez habilitado, la documentacion quedara publicada desde el sitio de Pages del repo.
+
 ## Como mantener la configuracion de CMake
 
 La idea de esta base es que los archivos de CMake se puedan seguir sin conocer demasiado la herramienta. Cada archivo tiene un rol concreto:
