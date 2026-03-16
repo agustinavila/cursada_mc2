@@ -9,9 +9,10 @@ add_library(cursada_mc2_startup OBJECT
     ${CURSADA_MC2_STARTUP_SOURCES}
 )
 target_link_libraries(cursada_mc2_startup PRIVATE lpc43xx_common)
+target_include_directories(cursada_mc2_startup PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Drivers y modulos de mas bajo nivel.
-add_subdirectory(Driver)
+add_subdirectory(drivers)
 
 set(CURSADA_MC2_APP_SOURCES
     app/app.c

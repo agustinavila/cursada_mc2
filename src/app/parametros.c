@@ -5,7 +5,7 @@
 
 #include "app/parametros.h"
 
-#include "Driver/eeprom_driver.h"
+#include "drivers/eeprom_driver.h"
 #include "app/parametros_default.h"
 
 #include <string.h>

@@ -10,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(lpc4337)
 
 # Rutas base del chip, scripts de linker y configuracion de OpenOCD.
-set(LPC4337_CHIP_DIR "${CMAKE_SOURCE_DIR}/platform/lpc43xx/lpc_chip_43xx")
+set(LPC4337_CHIP_DIR "${CMAKE_SOURCE_DIR}/third_party/lpcopen/chip_43xx")
 set(LPC4337_LINKER_DIR "${CMAKE_SOURCE_DIR}/platform/lpc43xx/ldscripts/default")
 set(OPENOCD_CONFIG "${CMAKE_SOURCE_DIR}/platform/openocd/ciaa-nxp.cfg" CACHE FILEPATH "OpenOCD configuration file for the EDU-CIAA-NXP debug probe")
 
@@ -33,11 +33,10 @@ endif()
 lpc4337_generate_linker_script(LPC4337_LINKER_SCRIPT "${LPC4337_LINKER_DIR}")
 
 # Biblioteca de configuracion comun para todos los targets del firmware.
-# Agrupa includes, defines y flags base del Cortex-M4.
+# Agrupa solo configuracion compartida del micro y del chip vendor.
 add_library(lpc43xx_common INTERFACE)
-target_include_directories(lpc43xx_common INTERFACE
+target_include_directories(lpc43xx_common SYSTEM INTERFACE
     "${LPC4337_CHIP_DIR}/inc"
-    "${CMAKE_SOURCE_DIR}/src"
 )
 target_compile_definitions(lpc43xx_common INTERFACE
     CORE_M4
@@ -62,7 +61,7 @@ target_compile_options(lpc43xx_common INTERFACE
 )
 
 # Primero se agrega el codigo vendor del chip y luego la aplicacion.
-add_subdirectory(platform/lpc43xx/lpc_chip_43xx)
+add_subdirectory(third_party/lpcopen/chip_43xx)
 add_subdirectory(src)
 
 # Target opcional de analisis estatico. No participa de la build normal y se
@@ -75,18 +74,18 @@ if(CPPCHECK_EXECUTABLE)
             --error-exitcode=1
             --inline-suppr
             --suppress=missingIncludeSystem
-            --suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*
+            --suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*
             -D__GNUC__
             -DCORE_M4
             -Isrc
-            -Isrc/Driver
-            -Iplatform/lpc43xx/lpc_chip_43xx/inc
+            -Isrc/drivers
+            -Ithird_party/lpcopen/chip_43xx/inc
             src/main.c
             src/sysinit.c
             src/hmi
             src/app
             src/control
-            src/Driver
+            src/drivers
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         USES_TERMINAL
         VERBATIM

@@ -5,8 +5,8 @@
 
 #include "hmi/hmi.h"
 
-#include "Driver/buttons_driver.h"
-#include "Driver/lcd_driver.h"
+#include "drivers/buttons_driver.h"
+#include "drivers/lcd_driver.h"
 
 #include <stdbool.h>
 #include <stdint.h>
