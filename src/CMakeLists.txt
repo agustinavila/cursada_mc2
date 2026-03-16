@@ -21,9 +21,7 @@ set(CURSADA_MC2_APP_SOURCES
     app/app.c
     app/parametros.c
     app/parametros_default.c
-    control/control.c
     control/control_on_off.c
-    control/control_selector.c
     hmi/hmi.c
     main.c
 )

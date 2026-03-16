@@ -15,12 +15,10 @@
 #include "drivers/lcd_driver.h"
 #include "drivers/led_driver.h"
 #include "app/parametros.h"
-#include "control/control.h"
 #include "control/control_on_off.h"
-#include "control/control_selector.h"
 #include "hmi/hmi.h"
 
-static control_selector_t app_selector_control_;
+static control_on_off_t app_control_on_off_;
 static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
 
 typedef struct {
@@ -39,6 +37,8 @@ static const onewire_pin_config_t app_pin_ds18b20_ = {
     .gpio_port = 3U,
     .gpio_pin = 0U,
 };
+
+#define APP_LOOP_DELTA_MS 20U
 
 static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 {
@@ -119,6 +119,8 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
             : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
         .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
         .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = 0U,
+        .tiempo_minimo_apagado_ms = 0U,
         .habilitado = true,
     };
 
@@ -127,24 +129,21 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
 
 static bool app_sincronizar_control_desde_parametros(void)
 {
-    control_generico_t* control_activo = 0;
     control_on_off_configuracion_t nueva_configuracion = app_obtener_configuracion_control_desde_parametros();
-
-    control_activo = control_selector_obtener_activo(&app_selector_control_);
-    if (control_activo == 0) {
-        return false;
-    }
 
     if ((nueva_configuracion.setpoint_deci_celsius == app_control_on_off_configuracion_actual_.setpoint_deci_celsius)
         && (nueva_configuracion.histeresis_deci_celsius == app_control_on_off_configuracion_actual_.histeresis_deci_celsius)
         && (nueva_configuracion.sentido == app_control_on_off_configuracion_actual_.sentido)
+        && (nueva_configuracion.tiempo_minimo_encendido_ms
+            == app_control_on_off_configuracion_actual_.tiempo_minimo_encendido_ms)
+        && (nueva_configuracion.tiempo_minimo_apagado_ms
+            == app_control_on_off_configuracion_actual_.tiempo_minimo_apagado_ms)
         && (nueva_configuracion.habilitado == app_control_on_off_configuracion_actual_.habilitado)) {
         return true;
     }
 
     app_control_on_off_configuracion_actual_ = nueva_configuracion;
-    return control_on_off_configurar((control_on_off_t*) control_activo,
-                                     &app_control_on_off_configuracion_actual_);
+    return control_on_off_configurar(&app_control_on_off_, &app_control_on_off_configuracion_actual_);
 }
 
 static bool app_sincronizar_hmi_en_parametros(void)
@@ -160,7 +159,6 @@ static bool app_sincronizar_hmi_en_parametros(void)
 
 static void app_actualizar_control(void)
 {
-    control_generico_t* control_activo = control_selector_obtener_activo(&app_selector_control_);
     int16_t temperatura_deci_celsius = 0;
     bool salida_activa = false;
 
@@ -170,19 +168,19 @@ static void app_actualizar_control(void)
         return;
     }
 
-    if ((control_activo == 0) || !app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
+    if (!app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
         hmi_cargar_estado_control(false, false, 0U);
         led_turn_off(LED1);
         return;
     }
 
-    if (!control_procesar(control_activo, temperatura_deci_celsius)) {
+    if (!control_on_off_procesar(&app_control_on_off_, temperatura_deci_celsius, APP_LOOP_DELTA_MS)) {
         hmi_cargar_estado_control(false, true, 0U);
         led_turn_off(LED1);
         return;
     }
 
-    salida_activa = control_esta_salida_activa(control_activo);
+    salida_activa = control_on_off_esta_salida_activa(&app_control_on_off_);
     hmi_cargar_estado_control(salida_activa, true, 0U);
 
     if (salida_activa) {
@@ -217,9 +215,7 @@ void app_init(void)
     app_cargar_parametros_en_hmi();
 
     app_control_on_off_configuracion_actual_ = app_obtener_configuracion_control_desde_parametros();
-    (void) control_selector_inicializar(&app_selector_control_);
-    (void) control_selector_seleccionar_on_off(&app_selector_control_,
-                                               &app_control_on_off_configuracion_actual_);
+    (void) control_on_off_inicializar(&app_control_on_off_, &app_control_on_off_configuracion_actual_);
 }
 
 void app_process(void)
@@ -227,5 +223,5 @@ void app_process(void)
     app_actualizar_sensores();
     hmi_process();
     app_actualizar_control();
-    driver_delay_ms(20U);
+    driver_delay_ms(APP_LOOP_DELTA_MS);
 }

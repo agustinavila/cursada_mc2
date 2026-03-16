@@ -7,9 +7,7 @@ target_include_directories(cursada_mc2_test_support PUBLIC
 target_link_libraries(cursada_mc2_test_support PUBLIC cursada_mc2_host_common)
 
 add_library(cursada_mc2_control_host STATIC
-    "${CMAKE_SOURCE_DIR}/src/control/control.c"
     "${CMAKE_SOURCE_DIR}/src/control/control_on_off.c"
-    "${CMAKE_SOURCE_DIR}/src/control/control_selector.c"
 )
 target_include_directories(cursada_mc2_control_host PUBLIC
     "${CMAKE_SOURCE_DIR}/src"

@@ -33,15 +33,14 @@ A grandes rasgos, el flujo es este:
 - uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
 - la aplicacion descubre los sensores presentes, pero por ahora usa siempre el primero encontrado como variable de proceso
 - la HMI muestra el estado general del control en el LCD y permite editar sus parametros principales con cuatro pulsadores
-- sobre esa medicion corre un control `on/off` con histeresis
+- sobre esa medicion corre un control `on/off` con histeresis y tiempos minimos de encendido/apagado
 - la salida del control se refleja hoy en `LED1` como actuador de prueba
 
 En el estado actual:
 
 - el sensor de proceso esta fijado al indice `0`
 - la logica de sensores vive en `app`, no en la HMI
-- la estrategia implementada hoy es `on/off`
-- la estructura de `src/control/` ya esta preparada para sumar otras estrategias mas adelante
+- el control implementado hoy es un unico lazo `on/off`
 
 ## Uso de la HMI
 

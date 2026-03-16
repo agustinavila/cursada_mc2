@@ -1,13 +1,11 @@
 # control
 
-Contiene las estrategias de control y la capa comun que las abstrae.
+Contiene la implementacion del lazo de control actual.
 
 Responsabilidades actuales:
-- API comun de control
 - implementacion `on/off` con histeresis
-- seleccion de estrategia activa
+- tiempos minimos de encendido y apagado
+- estado interno del controlador
 
 Archivos relevantes:
-- `control.c`: interfaz comun
-- `control_on_off.c`: estrategia actual
-- `control_selector.c`: seleccion del controlador
+- `control_on_off.c`: controlador actual
