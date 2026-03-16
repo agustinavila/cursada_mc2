@@ -25,35 +25,6 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
-        },
-        {
-            "name": "host-base",
-            "hidden": true,
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "gcc",
-                "CURSADA_MC2_ENABLE_HOST_TESTS": "ON"
-            }
-        },
-        {
-            "name": "host-debug",
-            "displayName": "Host Debug",
-            "inherits": "host-base",
-            "binaryDir": "${sourceDir}/build/host-debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "host-coverage",
-            "displayName": "Host Coverage",
-            "inherits": "host-base",
-            "binaryDir": "${sourceDir}/build/host-coverage",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CURSADA_MC2_ENABLE_COVERAGE": "ON"
-            }
         }
     ],
     "buildPresets": [
@@ -64,30 +35,6 @@
         {
             "name": "release",
             "configurePreset": "release"
-        },
-        {
-            "name": "host-debug",
-            "configurePreset": "host-debug"
-        },
-        {
-            "name": "host-coverage",
-            "configurePreset": "host-coverage"
-        }
-    ],
-    "testPresets": [
-        {
-            "name": "host-debug",
-            "configurePreset": "host-debug",
-            "output": {
-                "outputOnFailure": true
-            }
-        },
-        {
-            "name": "host-coverage",
-            "configurePreset": "host-coverage",
-            "output": {
-                "outputOnFailure": true
-            }
         }
     ]
 }
