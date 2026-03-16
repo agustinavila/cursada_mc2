@@ -24,4 +24,7 @@
 // by the linker when "Enable Code Read Protect" selected.
 // See crp.h header for more information
 __CRP const unsigned int CRP_WORD = CRP_NO_CRP ;
+#else
+/* Mantiene la unidad de traduccion no vacia bajo GCC/newlib. */
+typedef int cursada_mc2_crp_placeholder_t;
 #endif

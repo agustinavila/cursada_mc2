@@ -81,7 +81,7 @@ if(CPPCHECK_EXECUTABLE)
             -Isrc/drivers
             -Ithird_party/lpcopen/chip_43xx/inc
             src/main.c
-            src/sysinit.c
+            platform/lpc4337/startup/sysinit.c
             src/hmi
             src/app
             src/control

@@ -83,7 +83,8 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 ## Estructura
 
 - `src/`: codigo propio del firmware.
-  Incluye startup local, system init, aplicacion, control, HMI y drivers propios en `src/drivers/`.
+  Incluye aplicacion, control, HMI y drivers propios en `src/drivers/`.
+- `platform/lpc4337/startup/`: arranque bare-metal del M4, `SystemInit` y CRP.
 - `third_party/lpcopen/chip_43xx/`: codigo vendor heredado de LPCOpen.
   En esta base se usa solo como chip support layer del LPC4337.
 - `platform/lpc43xx/ldscripts/default/`: fragmentos de linker script heredados de NXP/MCUXpresso para el LPC4337.
@@ -93,7 +94,15 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 
 En esta etapa LPCOpen se movio a `third_party/lpcopen/` para dejar mas claro que es codigo vendor. Los linker scripts y OpenOCD se mantienen en `platform/` porque forman parte de la integracion especifica con la placa.
 
-Por ahora la documentacion vive centralizada en este README. Si el proyecto sigue creciendo, una evolucion razonable seria agregar un `README.md` chico en carpetas como `src/`, `src/drivers/`, `src/control/` y `src/hmi/`.
+Ademas del README principal, las carpetas mas importantes ya incluyen notas cortas para orientar el recorrido del repo:
+
+- `src/`
+- `src/app/`
+- `src/control/`
+- `src/drivers/`
+- `src/hmi/`
+- `platform/lpc4337/startup/`
+- `third_party/lpcopen/`
 
 ## Prerrequisitos en Windows
 
@@ -317,7 +326,7 @@ cmake --build --preset debug --target cursada_mc2_app
 Si tambien cambiaste tooling o integracion local, conviene correr ademas:
 
 ```powershell
-cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/drivers
+cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c platform/lpc4337/startup/sysinit.c src/hmi src/app src/control src/drivers
 ```
 
 Como alternativa, el proyecto expone un target opcional de CMake:
@@ -450,8 +459,9 @@ En esta etapa:
 
 La base actual conserva estos archivos como parte del arranque bare-metal del M4:
 
-- `src/cr_startup_lpc43xx.c`
-- `src/sysinit.c`
+- `platform/lpc4337/startup/cr_startup_lpc43xx.c`
+- `platform/lpc4337/startup/sysinit.c`
+- `platform/lpc4337/startup/crp.c`
 - `platform/lpc43xx/ldscripts/default/mem/mem.ld`
 - `platform/lpc43xx/ldscripts/default/sections/sections.ld`
 
@@ -580,7 +590,7 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 
 - Confirmar que el target sea el core M4.
 - Confirmar que no se haya cambiado el linker script base bajo `platform/lpc43xx/ldscripts/default/`.
-- Confirmar que `src/cr_startup_lpc43xx.c` y `src/sysinit.c` esten siendo compilados.
+- Confirmar que `platform/lpc4337/startup/cr_startup_lpc43xx.c` y `platform/lpc4337/startup/sysinit.c` esten siendo compilados.
 
 ### Problemas por dependencias viejas de LPCOpen
 
