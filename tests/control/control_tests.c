@@ -59,6 +59,32 @@ static void test_control_on_off_inicializacion_y_configuracion(void)
     TEST_ASSERT_EQ_BOOL(configuracion.habilitado, leida.habilitado);
 }
 
+static void test_control_on_off_configurar_valida_errores_y_reinicia_estado(void)
+{
+    control_on_off_t control = control_on_off_crear_vacio();
+    control_on_off_configuracion_t configuracion =
+        control_crear_configuracion(CONTROL_ON_OFF_SENTIDO_CALENTAR, 270, 20U, 10U, 15U, true);
+    control_on_off_configuracion_t invalida = configuracion;
+    int16_t medicion = 0;
+
+    TEST_ASSERT_FALSE(control_on_off_configurar(0, &configuracion));
+    TEST_ASSERT_FALSE(control_on_off_configurar(&control, &configuracion));
+
+    TEST_ASSERT_TRUE(control_on_off_inicializar(&control, &configuracion));
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 250, 20U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+    TEST_ASSERT_TRUE(control_on_off_obtener_ultima_medicion(&control, &medicion));
+    TEST_ASSERT_EQ_INT(250, medicion);
+
+    invalida.sentido = (control_on_off_sentido_t) 99;
+    TEST_ASSERT_FALSE(control_on_off_configurar(&control, &invalida));
+
+    configuracion = control_crear_configuracion(CONTROL_ON_OFF_SENTIDO_ENFRIAR, 300, 30U, 0U, 0U, true);
+    TEST_ASSERT_TRUE(control_on_off_configurar(&control, &configuracion));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
+    TEST_ASSERT_FALSE(control_on_off_obtener_ultima_medicion(&control, &medicion));
+}
+
 static void test_control_on_off_calentar_respeta_histeresis_y_corte(void)
 {
     control_on_off_t control = control_on_off_crear_vacio();
@@ -74,6 +100,23 @@ static void test_control_on_off_calentar_respeta_histeresis_y_corte(void)
     TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
 
     TEST_ASSERT_TRUE(control_on_off_procesar(&control, 260, 20U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 270, 20U));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
+}
+
+static void test_control_on_off_mantiene_estado_dentro_de_la_banda(void)
+{
+    control_on_off_t control = control_on_off_crear_vacio();
+    const control_on_off_configuracion_t configuracion =
+        control_crear_configuracion(CONTROL_ON_OFF_SENTIDO_CALENTAR, 270, 20U, 0U, 0U, true);
+
+    TEST_ASSERT_TRUE(control_on_off_inicializar(&control, &configuracion));
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 250, 20U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 261, 20U));
     TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
 
     TEST_ASSERT_TRUE(control_on_off_procesar(&control, 270, 20U));
@@ -101,6 +144,23 @@ static void test_control_on_off_enfriar_respeta_histeresis_y_corte(void)
     TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
 }
 
+static void test_control_on_off_enfriar_mantiene_estado_dentro_de_la_banda(void)
+{
+    control_on_off_t control = control_on_off_crear_vacio();
+    const control_on_off_configuracion_t configuracion =
+        control_crear_configuracion(CONTROL_ON_OFF_SENTIDO_ENFRIAR, 270, 20U, 0U, 0U, true);
+
+    TEST_ASSERT_TRUE(control_on_off_inicializar(&control, &configuracion));
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 290, 20U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 279, 20U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 270, 20U));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
+}
+
 static void test_control_on_off_deshabilitado_y_reinicio(void)
 {
     control_on_off_t control = control_on_off_crear_vacio();
@@ -118,6 +178,27 @@ static void test_control_on_off_deshabilitado_y_reinicio(void)
     control_on_off_reiniciar(&control);
     TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
     TEST_ASSERT_FALSE(control_on_off_obtener_ultima_medicion(&control, &medicion));
+}
+
+static void test_control_on_off_api_rechaza_instancias_invalidas(void)
+{
+    control_on_off_t control = control_on_off_crear_vacio();
+    control_on_off_configuracion_t configuracion = { 0 };
+    int16_t medicion = 0;
+
+    TEST_ASSERT_FALSE(control_on_off_procesar(0, 250, 20U));
+    TEST_ASSERT_FALSE(control_on_off_procesar(&control, 250, 20U));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(0));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
+    TEST_ASSERT_FALSE(control_on_off_obtener_ultima_medicion(0, &medicion));
+    TEST_ASSERT_FALSE(control_on_off_obtener_ultima_medicion(&control, &medicion));
+    TEST_ASSERT_FALSE(control_on_off_obtener_ultima_medicion(&control, 0));
+    TEST_ASSERT_FALSE(control_on_off_obtener_configuracion(0, &configuracion));
+    TEST_ASSERT_FALSE(control_on_off_obtener_configuracion(&control, &configuracion));
+    TEST_ASSERT_FALSE(control_on_off_obtener_configuracion(&control, 0));
+
+    control_on_off_reiniciar(0);
+    control_on_off_reiniciar(&control);
 }
 
 static void test_control_on_off_respeta_tiempo_minimo_apagado(void)
@@ -150,6 +231,24 @@ static void test_control_on_off_respeta_tiempo_minimo_encendido(void)
     TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
 }
 
+static void test_control_on_off_satura_tiempo_en_estado(void)
+{
+    control_on_off_t control = control_on_off_crear_vacio();
+    const control_on_off_configuracion_t configuracion =
+        control_crear_configuracion(CONTROL_ON_OFF_SENTIDO_CALENTAR, 270, 20U, UINT32_MAX, 0U, true);
+
+    TEST_ASSERT_TRUE(control_on_off_inicializar(&control, &configuracion));
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 250, UINT32_MAX));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    control.tiempo_en_estado_ms = UINT32_MAX - 5U;
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 260, 10U));
+    TEST_ASSERT_TRUE(control_on_off_esta_salida_activa(&control));
+
+    TEST_ASSERT_TRUE(control_on_off_procesar(&control, 270, UINT32_MAX));
+    TEST_ASSERT_FALSE(control_on_off_esta_salida_activa(&control));
+}
+
 static void test_control_on_off_expone_ultima_medicion(void)
 {
     control_on_off_t control = control_on_off_crear_vacio();
@@ -170,11 +269,16 @@ int main(void)
     test_harness_reset();
 
     RUN_TEST(test_control_on_off_inicializacion_y_configuracion);
+    RUN_TEST(test_control_on_off_configurar_valida_errores_y_reinicia_estado);
     RUN_TEST(test_control_on_off_calentar_respeta_histeresis_y_corte);
+    RUN_TEST(test_control_on_off_mantiene_estado_dentro_de_la_banda);
     RUN_TEST(test_control_on_off_enfriar_respeta_histeresis_y_corte);
+    RUN_TEST(test_control_on_off_enfriar_mantiene_estado_dentro_de_la_banda);
     RUN_TEST(test_control_on_off_deshabilitado_y_reinicio);
+    RUN_TEST(test_control_on_off_api_rechaza_instancias_invalidas);
     RUN_TEST(test_control_on_off_respeta_tiempo_minimo_apagado);
     RUN_TEST(test_control_on_off_respeta_tiempo_minimo_encendido);
+    RUN_TEST(test_control_on_off_satura_tiempo_en_estado);
     RUN_TEST(test_control_on_off_expone_ultima_medicion);
 
     return test_harness_result();
