@@ -13,12 +13,14 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - [Build desde terminal](#build-desde-terminal)
 - [Flash desde terminal](#flash-desde-terminal)
 - [Debug en VS Code](#debug-en-vs-code)
+- [SVD y perifericos en debug](#svd-y-perifericos-en-debug)
 - [Validacion de OpenOCD y del probe FTDI](#validacion-de-openocd-y-del-probe-ftdi)
 - [Rol de LPCOpen en esta base](#rol-de-lpcopen-en-esta-base)
+- [Startup, linker y system init](#startup-linker-y-system-init)
 - [Sensores DS18B20 por 1-Wire](#sensores-ds18b20-por-1-wire)
 - [Troubleshooting](#troubleshooting)
 - [Validacion minima sugerida](#validacion-minima-sugerida)
-- [Nota sobre el arbol `Debug/`](#nota-sobre-el-arbol-debug)
+- [Artefactos legacy removidos](#artefactos-legacy-removidos)
 
 ## Funcionamiento general
 
@@ -80,13 +82,18 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 
 ## Estructura
 
-- `cmake/`: toolchain y helpers de CMake para bare-metal.
-- `platform/lpc43xx/`: codigo vendor heredado de NXP/LPCOpen que se conserva como capa de chip support.
+- `src/`: codigo propio del firmware.
+  Incluye startup local, system init, aplicacion, control, HMI y drivers propios en `src/drivers/`.
+- `third_party/lpcopen/chip_43xx/`: codigo vendor heredado de LPCOpen.
+  En esta base se usa solo como chip support layer del LPC4337.
+- `platform/lpc43xx/ldscripts/default/`: fragmentos de linker script heredados de NXP/MCUXpresso para el LPC4337.
 - `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
-- `src/`: startup, system init, aplicacion actual y target minimo de validacion.
+- `cmake/`: toolchain y helpers de CMake para bare-metal.
 - `.vscode/`: tasks, launch y settings para VS Code.
 
-Por ahora la documentacion vive centralizada en este README. Si el proyecto sigue creciendo, una evolucion razonable seria agregar un `README.md` chico en carpetas como `src/`, `src/Driver/`, `src/control/` y `src/hmi/`.
+En esta etapa LPCOpen se movio a `third_party/lpcopen/` para dejar mas claro que es codigo vendor. Los linker scripts y OpenOCD se mantienen en `platform/` porque forman parte de la integracion especifica con la placa.
+
+Por ahora la documentacion vive centralizada en este README. Si el proyecto sigue creciendo, una evolucion razonable seria agregar un `README.md` chico en carpetas como `src/`, `src/drivers/`, `src/control/` y `src/hmi/`.
 
 ## Prerrequisitos en Windows
 
@@ -211,6 +218,12 @@ Cada target genera:
 
 Los artefactos quedan en `build/debug/` o `build/release/`.
 
+Uso previsto de cada formato:
+
+- `*.elf`: debug con simbolos, GDB y VS Code
+- `*.bin`: programacion de flash con OpenOCD
+- `*.hex`: artefacto alternativo para programacion o distribucion
+
 ## Documentacion API
 
 El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir
@@ -250,7 +263,7 @@ La idea de esta base es que los archivos de CMake se puedan seguir sin conocer d
   - define el startup del micro
   - arma el ejecutable `cursada_mc2_app`
   - lista los modulos de aplicacion, control y HMI que se compilan
-- `src/Driver/CMakeLists.txt`
+- `src/drivers/CMakeLists.txt`
   - lista los drivers propios que forman la biblioteca `cursada_mc2_drivers`
 - `cmake/lpc4337.cmake`
   - concentra la configuracion especifica del LPC4337
@@ -259,6 +272,9 @@ La idea de esta base es que los archivos de CMake se puedan seguir sin conocer d
 - `cmake/toolchain-arm-none-eabi.cmake`
   - busca el toolchain `arm-none-eabi-*`
   - define como CMake encuentra compilador y herramientas auxiliares
+- `arm-none-eabi-gcc.cmake`
+  - shim legacy mantenido por compatibilidad
+  - el entrypoint oficial del toolchain es `cmake/toolchain-arm-none-eabi.cmake`
 - `CMakePresets.json`
   - define los presets `debug` y `release`
   - indica en que carpeta se construye cada configuracion
@@ -270,16 +286,18 @@ Si agregas o eliminas codigo propio, normalmente alcanza con editar uno de estos
 - nuevo modulo de aplicacion, HMI o control:
   - agregar o quitar el `.c` en `src/CMakeLists.txt`
 - nuevo driver propio:
-  - agregar o quitar el `.c` en `src/Driver/CMakeLists.txt`
+  - agregar o quitar el `.c` en `src/drivers/CMakeLists.txt`
 
 Ejemplo: si agregas `src/control/control_pi.c`, tenes que sumarlo a la lista `CURSADA_MC2_APP_SOURCES` en `src/CMakeLists.txt`.
 
-Ejemplo: si agregas `src/Driver/eeprom_driver.c`, tenes que sumarlo a la lista `CURSADA_MC2_DRIVER_SOURCES` en `src/Driver/CMakeLists.txt`.
+Ejemplo: si agregas `src/drivers/eeprom_driver.c`, tenes que sumarlo a la lista `CURSADA_MC2_DRIVER_SOURCES` en `src/drivers/CMakeLists.txt`.
 
 ### Cuando hace falta tocar otros archivos
 
 - cambiar flags generales, includes o defines comunes:
   - revisar `CMakeLists.txt`
+- cambiar que parte de LPCOpen se compila:
+  - revisar `third_party/lpcopen/chip_43xx/CMakeLists.txt`
 - cambiar formato de salida, linker o comando de flash:
   - revisar `cmake/lpc4337.cmake`
 - cambiar como se encuentra el toolchain:
@@ -299,7 +317,7 @@ cmake --build --preset debug --target cursada_mc2_app
 Si tambien cambiaste tooling o integracion local, conviene correr ademas:
 
 ```powershell
-cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver
+cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/drivers
 ```
 
 Como alternativa, el proyecto expone un target opcional de CMake:
@@ -334,6 +352,14 @@ Aplicacion actual:
 cmake --build --preset debug --target flash_cursada_mc2_app
 ```
 
+Ese target:
+
+- genera antes el `*.bin` desde el `*.elf`
+- programa la flash principal en `0x1A000000`
+- verifica sobre el `*.bin`
+
+Se usa `*.bin` en vez de programar el `*.elf` directamente porque el flujo es mas robusto con OpenOCD en LPC43xx, especialmente cuando el ELF tiene secciones con direccion de ejecucion en RAM.
+
 OpenOCD usa siempre:
 
 ```powershell
@@ -351,9 +377,34 @@ Extensiones recomendadas:
 Flujo:
 
 1. Ejecutar `Configure [debug]` o usar el preset `debug` de CMake Tools.
-2. Ejecutar `Build App [debug]`.
-3. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
-4. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
+2. Ejecutar `Build App [debug]` o `Build + Flash App [debug]`.
+3. Si queres programar la placa sin abrir una sesion de debug, ejecutar `Flash App [debug]`.
+4. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
+5. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
+
+La configuracion de debug sigue usando el `*.elf`, mientras que el target de flash de CMake usa el `*.bin`.
+
+Tambien hay un perfil complementario:
+
+- `Attach App (OpenOCD)`
+
+Ese perfil sirve para adjuntarse a una placa ya programada sin relanzar la carga desde VS Code. Es util cuando primero queres flashear desde terminal o task de CMake y despues abrir una sesion GDB sobre ese firmware.
+
+## SVD y perifericos en debug
+
+La configuracion de VS Code referencia:
+
+- `LPC43xx_43Sxx.svd`
+
+Ese archivo habilita la vista de perifericos y registros en `cortex-debug`.
+
+Estado actual:
+
+- es util para inspeccion de registros de la familia LPC43xx
+- se mantiene integrado en `launch.json`
+- no debe asumirse como una descripcion exacta y perfecta del `LPC4337` concreto
+
+Si mas adelante se consigue un `SVD` mas preciso para el LPC4337/M4F, conviene reemplazarlo sin cambiar el flujo de debug.
 
 ## Validacion de OpenOCD y del probe FTDI
 
@@ -385,9 +436,38 @@ LPCOpen queda reducido a vendor code de soporte:
 
 - CMSIS headers
 - chip support
-- startup/system integration alineada con LPC4337
+- drivers de chip realmente usados por el firmware actual
 
 No se usa board library. El codigo propio vive en `src/` y se apoya en `lpc_chip_43xx` como capa de bajo nivel.
+
+En esta etapa:
+
+- no se tocaron archivos internos de LPCOpen
+- se redujo desde CMake la lista de fuentes vendor compiladas a las efectivamente necesarias
+- se reubico LPCOpen en `third_party/lpcopen/chip_43xx/` para dejar mas claro su rol de vendor
+
+## Startup, linker y system init
+
+La base actual conserva estos archivos como parte del arranque bare-metal del M4:
+
+- `src/cr_startup_lpc43xx.c`
+- `src/sysinit.c`
+- `platform/lpc43xx/ldscripts/default/mem/mem.ld`
+- `platform/lpc43xx/ldscripts/default/sections/sections.ld`
+
+Origen y criterio:
+
+- provienen de la base NXP/MCUXpresso/LPCOpen
+- estan integrados a CMake y validados con esta placa
+- se conservan por compatibilidad y estabilidad
+
+No se reemplazaron en esta etapa porque hoy no son el problema principal del repo y ya resuelven correctamente:
+
+- vector table
+- inicializacion temprana
+- `SystemInit`
+- layout de memoria
+- enlace del firmware bare-metal
 
 ## Sensores DS18B20 por 1-Wire
 
@@ -434,8 +514,8 @@ La aplicacion usa el bus `1-Wire` al iniciar:
 
 ### Archivos relevantes
 
-- [src/Driver/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/onewire_driver.h)
-- [src/Driver/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/ds18b20_driver.h)
+- [src/drivers/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/drivers/onewire_driver.h)
+- [src/drivers/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/drivers/ds18b20_driver.h)
 - [src/app/app.c](e:/Users/agust/Documents/cursada_mc2/src/app/app.c)
 - [src/hmi/hmi.c](e:/Users/agust/Documents/cursada_mc2/src/hmi/hmi.c)
 
@@ -481,6 +561,7 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 - Confirmar que `arm-none-eabi-gdb` este en `PATH`.
 - Confirmar que `openocd` arranca sin errores con el mismo `cfg`.
 - Revisar que el `launch.json` apunte al `.elf` del preset `debug` y que `arm-none-eabi-gdb`, `arm-none-eabi-objdump` y `openocd` esten en `PATH`.
+- Si queres conectarte sin relanzar la carga desde VS Code, usar `Attach App (OpenOCD)` en vez de `Debug App (OpenOCD)`.
 - Si una sesion previa dejo `openocd` abierto, cerrar la sesion de debug o terminar el proceso antes de reintentar.
 
 ### VS Code no encuentra el toolchain
@@ -515,7 +596,20 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 4. Abrir `Debug App (OpenOCD)` en VS Code.
 5. Confirmar que el debugger se detiene en `main`.
 
-## Nota sobre el arbol `Debug/`
+## Artefactos legacy removidos
 
-El directorio `Debug/` heredado de MCUXpresso quedo como referencia historica. El flujo reproducible actual usa exclusivamente `build/debug` y `build/release`.
+Esta base ya no trackea artefactos del flujo Eclipse/MCUXpresso que no participan del entorno reproducible actual, por ejemplo:
 
+- `.project`
+- `.cproject`
+
+El flujo soportado del repo usa exclusivamente:
+
+- `build/debug`
+- `build/release`
+- VS Code
+- CMake presets
+- OpenOCD
+- arm-none-eabi-gdb
+
+El ejemplo legacy `platform/lpc43xx/periph_uart/` no forma parte del flujo reproducible actual y debe tratarse como material viejo fuera del firmware principal.
