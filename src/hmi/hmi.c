@@ -50,6 +50,8 @@ typedef struct {
 typedef struct {
     int16_t setpoint_deci_celsius;
     int16_t histeresis_deci_celsius;
+    int16_t tiempo_minimo_encendido_decisegundos;
+    int16_t tiempo_minimo_apagado_decisegundos;
     int16_t modo_calentar;
 } hmi_configuracion_t;
 
@@ -83,6 +85,8 @@ enum {
     HMI_NODE_PARAMS,
     HMI_NODE_SETPOINT,
     HMI_NODE_HYSTERESIS,
+    HMI_NODE_TMIN_ON,
+    HMI_NODE_TMIN_OFF,
     HMI_NODE_MODE,
 };
 
@@ -90,6 +94,8 @@ static hmi_contexto_t hmi_ = {
     .configuracion = {
         .setpoint_deci_celsius = 270,
         .histeresis_deci_celsius = 20,
+        .tiempo_minimo_encendido_decisegundos = 0,
+        .tiempo_minimo_apagado_decisegundos = 0,
         .modo_calentar = 1,
     },
 };
@@ -120,17 +126,39 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .titulo = "Histeresis",
         .padre = HMI_NODE_PARAMS,
         .hermano_anterior = HMI_NODE_SETPOINT,
-        .hermano_siguiente = HMI_NODE_MODE,
+        .hermano_siguiente = HMI_NODE_TMIN_ON,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_.configuracion.histeresis_deci_celsius,
         .valor_minimo = 1,
         .valor_maximo = 200,
         .paso = 1,
     },
+    [HMI_NODE_TMIN_ON] = {
+        .titulo = "Tmin ON",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .hermano_siguiente = HMI_NODE_TMIN_OFF,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_.configuracion.tiempo_minimo_encendido_decisegundos,
+        .valor_minimo = 0,
+        .valor_maximo = 6000,
+        .paso = 1,
+    },
+    [HMI_NODE_TMIN_OFF] = {
+        .titulo = "Tmin OFF",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_TMIN_ON,
+        .hermano_siguiente = HMI_NODE_MODE,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_.configuracion.tiempo_minimo_apagado_decisegundos,
+        .valor_minimo = 0,
+        .valor_maximo = 6000,
+        .paso = 1,
+    },
     [HMI_NODE_MODE] = {
         .titulo = "Modo",
         .padre = HMI_NODE_PARAMS,
-        .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .hermano_anterior = HMI_NODE_TMIN_OFF,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_.configuracion.modo_calentar,
         .valor_minimo = 0,
@@ -266,11 +294,19 @@ static void hmi_dibujar_edicion(void)
         return;
     }
 
-    if ((hmi_.interfaz.nodo_actual == HMI_NODE_SETPOINT) || (hmi_.interfaz.nodo_actual == HMI_NODE_HYSTERESIS)) {
+    if ((hmi_.interfaz.nodo_actual == HMI_NODE_SETPOINT)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_HYSTERESIS)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_ON)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_OFF)) {
         char texto_valor[8];
 
         hmi_formatear_valor_deci(texto_valor, sizeof(texto_valor), hmi_.interfaz.valor_edicion);
-        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s", item_actual->titulo, texto_valor);
+        if ((hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_ON)
+            || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_OFF)) {
+            (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%ss", item_actual->titulo, texto_valor);
+        } else {
+            (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s", item_actual->titulo, texto_valor);
+        }
     } else {
         (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%d", item_actual->titulo, hmi_.interfaz.valor_edicion);
     }
@@ -485,6 +521,16 @@ uint16_t hmi_obtener_histeresis_deci_celsius(void)
     return (uint16_t) hmi_.configuracion.histeresis_deci_celsius;
 }
 
+uint32_t hmi_obtener_tiempo_minimo_encendido_ms(void)
+{
+    return (uint32_t) hmi_.configuracion.tiempo_minimo_encendido_decisegundos * 100U;
+}
+
+uint32_t hmi_obtener_tiempo_minimo_apagado_ms(void)
+{
+    return (uint32_t) hmi_.configuracion.tiempo_minimo_apagado_decisegundos * 100U;
+}
+
 bool hmi_modo_control_es_calentar(void)
 {
     return (hmi_.configuracion.modo_calentar != 0);
@@ -492,10 +538,14 @@ bool hmi_modo_control_es_calentar(void)
 
 void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
+                                   uint32_t tiempo_minimo_encendido_ms,
+                                   uint32_t tiempo_minimo_apagado_ms,
                                    bool modo_calentar)
 {
     hmi_.configuracion.setpoint_deci_celsius = setpoint_deci_celsius;
     hmi_.configuracion.histeresis_deci_celsius = (int16_t) histeresis_deci_celsius;
+    hmi_.configuracion.tiempo_minimo_encendido_decisegundos = (int16_t) (tiempo_minimo_encendido_ms / 100U);
+    hmi_.configuracion.tiempo_minimo_apagado_decisegundos = (int16_t) (tiempo_minimo_apagado_ms / 100U);
     hmi_.configuracion.modo_calentar = modo_calentar ? 1 : 0;
     hmi_.interfaz.valor_edicion = 0;
     hmi_.interfaz.necesita_redibujado = true;

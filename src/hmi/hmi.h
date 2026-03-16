@@ -45,10 +45,14 @@ void hmi_cargar_estado_sensor(bool temperatura_valida, int16_t temperatura_deci_
  *
  * @param setpoint_deci_celsius Setpoint en decimas de grado Celsius.
  * @param histeresis_deci_celsius Histeresis en decimas de grado Celsius.
+ * @param tiempo_minimo_encendido_ms Tiempo minimo de encendido en milisegundos.
+ * @param tiempo_minimo_apagado_ms Tiempo minimo de apagado en milisegundos.
  * @param modo_calentar `true` si el modo es calentar.
  */
 void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
+                                   uint32_t tiempo_minimo_encendido_ms,
+                                   uint32_t tiempo_minimo_apagado_ms,
                                    bool modo_calentar);
 
 /**
@@ -79,6 +83,26 @@ int16_t hmi_obtener_setpoint_deci_celsius(void);
  * @return Histeresis actual en decimas de grado Celsius.
  */
 uint16_t hmi_obtener_histeresis_deci_celsius(void);
+
+/**
+ * @brief Obtiene el tiempo minimo de encendido configurado desde la HMI.
+ *
+ * El valor se devuelve en milisegundos para que la aplicacion pueda usarlo
+ * directamente en la capa de control.
+ *
+ * @return Tiempo minimo de encendido actual en milisegundos.
+ */
+uint32_t hmi_obtener_tiempo_minimo_encendido_ms(void);
+
+/**
+ * @brief Obtiene el tiempo minimo de apagado configurado desde la HMI.
+ *
+ * El valor se devuelve en milisegundos para que la aplicacion pueda usarlo
+ * directamente en la capa de control.
+ *
+ * @return Tiempo minimo de apagado actual en milisegundos.
+ */
+uint32_t hmi_obtener_tiempo_minimo_apagado_ms(void);
 
 /**
  * @brief Indica si el modo configurado en la HMI corresponde a calentar.

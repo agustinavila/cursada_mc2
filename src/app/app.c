@@ -107,6 +107,8 @@ static void app_cargar_parametros_en_hmi(void)
 
     hmi_cargar_parametros_control(parametros->control.setpoint_deci_celsius,
                                   parametros->control.histeresis_deci_celsius,
+                                  parametros->control.tiempo_minimo_encendido_ms,
+                                  parametros->control.tiempo_minimo_apagado_ms,
                                   parametros->control.modo_calentar);
 }
 
@@ -150,8 +152,8 @@ static bool app_sincronizar_hmi_en_parametros(void)
 {
     if (!parametros_actualizar_control(hmi_obtener_setpoint_deci_celsius(),
                                        hmi_obtener_histeresis_deci_celsius(),
-                                       parametros_obtener()->control.tiempo_minimo_encendido_ms,
-                                       parametros_obtener()->control.tiempo_minimo_apagado_ms,
+                                       hmi_obtener_tiempo_minimo_encendido_ms(),
+                                       hmi_obtener_tiempo_minimo_apagado_ms(),
                                        hmi_modo_control_es_calentar())) {
         return true;
     }
