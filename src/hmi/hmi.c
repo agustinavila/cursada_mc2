@@ -501,14 +501,13 @@ void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
     hmi_.interfaz.necesita_redibujado = true;
 }
 
-void hmi_cargar_estado_control(bool salida_activa, bool sensor_resuelto, uint8_t indice_sensor_proceso)
+void hmi_cargar_estado_control(bool salida_activa, bool sensor_disponible)
 {
     const bool hubo_cambios = (hmi_.control.salida_activa != salida_activa)
-        || (hmi_.control.sensor_resuelto != sensor_resuelto);
+        || (hmi_.control.sensor_resuelto != sensor_disponible);
 
-    (void) indice_sensor_proceso;
     hmi_.control.salida_activa = salida_activa;
-    hmi_.control.sensor_resuelto = sensor_resuelto;
+    hmi_.control.sensor_resuelto = sensor_disponible;
 
     if (hubo_cambios && (hmi_.interfaz.pantalla_actual == HMI_PANTALLA_INICIO)) {
         hmi_.interfaz.necesita_redibujado = true;

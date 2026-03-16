@@ -55,12 +55,10 @@ void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
  * @brief Carga en la HMI el estado actual del lazo de control.
  *
  * @param salida_activa `true` si la salida del control esta activa.
- * @param sensor_resuelto `true` si hay un sensor de proceso valido asignado.
- * @param indice_sensor_proceso Indice del sensor de proceso actualmente usado.
+ * @param sensor_disponible `true` si hay una medicion valida disponible.
  */
 void hmi_cargar_estado_control(bool salida_activa,
-                               bool sensor_resuelto,
-                               uint8_t indice_sensor_proceso);
+                               bool sensor_disponible);
 
 /**
  * @brief Obtiene el setpoint configurado desde la HMI.

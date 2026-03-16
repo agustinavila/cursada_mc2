@@ -12,12 +12,9 @@ static const parametros_t parametros_default_ = {
     .control = {
         .setpoint_deci_celsius = 270,
         .histeresis_deci_celsius = 20U,
+        .tiempo_minimo_encendido_ms = 0U,
+        .tiempo_minimo_apagado_ms = 0U,
         .modo_calentar = true,
-    },
-    .sensor_proceso = {
-        .modo = PARAMETROS_SENSOR_MODO_AUTO,
-        .rom_valida = false,
-        .rom = { 0U },
     },
 };
 

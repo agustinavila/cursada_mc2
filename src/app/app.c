@@ -119,8 +119,8 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
             : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
         .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
         .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = 0U,
-        .tiempo_minimo_apagado_ms = 0U,
+        .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
+        .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
         .habilitado = true,
     };
 
@@ -150,6 +150,8 @@ static bool app_sincronizar_hmi_en_parametros(void)
 {
     if (!parametros_actualizar_control(hmi_obtener_setpoint_deci_celsius(),
                                        hmi_obtener_histeresis_deci_celsius(),
+                                       parametros_obtener()->control.tiempo_minimo_encendido_ms,
+                                       parametros_obtener()->control.tiempo_minimo_apagado_ms,
                                        hmi_modo_control_es_calentar())) {
         return true;
     }
@@ -163,25 +165,25 @@ static void app_actualizar_control(void)
     bool salida_activa = false;
 
     if (!app_sincronizar_hmi_en_parametros() || !app_sincronizar_control_desde_parametros()) {
-        hmi_cargar_estado_control(false, false, 0U);
+        hmi_cargar_estado_control(false, false);
         led_turn_off(LED1);
         return;
     }
 
     if (!app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
-        hmi_cargar_estado_control(false, false, 0U);
+        hmi_cargar_estado_control(false, false);
         led_turn_off(LED1);
         return;
     }
 
     if (!control_on_off_procesar(&app_control_on_off_, temperatura_deci_celsius, APP_LOOP_DELTA_MS)) {
-        hmi_cargar_estado_control(false, true, 0U);
+        hmi_cargar_estado_control(false, true);
         led_turn_off(LED1);
         return;
     }
 
     salida_activa = control_on_off_esta_salida_activa(&app_control_on_off_);
-    hmi_cargar_estado_control(salida_activa, true, 0U);
+    hmi_cargar_estado_control(salida_activa, true);
 
     if (salida_activa) {
         led_turn_on(LED1);

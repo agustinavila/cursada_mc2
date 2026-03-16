@@ -8,10 +8,8 @@
 #include "drivers/eeprom_driver.h"
 #include "app/parametros_default.h"
 
-#include <string.h>
-
 #define PARAMETROS_PERSISTENTES_MAGIC   0x5041524DU
-#define PARAMETROS_PERSISTENTES_VERSION 2U
+#define PARAMETROS_PERSISTENTES_VERSION 3U
 
 /**
  * @brief Formato persistido en EEPROM para los parametros de la aplicacion.
@@ -136,6 +134,8 @@ void parametros_restablecer_defaults(void)
 
 bool parametros_actualizar_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
+                                   uint32_t tiempo_minimo_encendido_ms,
+                                   uint32_t tiempo_minimo_apagado_ms,
                                    bool modo_calentar)
 {
     bool hubo_cambios = false;
@@ -150,56 +150,18 @@ bool parametros_actualizar_control(int16_t setpoint_deci_celsius,
         hubo_cambios = true;
     }
 
+    if (parametros_actuales_.control.tiempo_minimo_encendido_ms != tiempo_minimo_encendido_ms) {
+        parametros_actuales_.control.tiempo_minimo_encendido_ms = tiempo_minimo_encendido_ms;
+        hubo_cambios = true;
+    }
+
+    if (parametros_actuales_.control.tiempo_minimo_apagado_ms != tiempo_minimo_apagado_ms) {
+        parametros_actuales_.control.tiempo_minimo_apagado_ms = tiempo_minimo_apagado_ms;
+        hubo_cambios = true;
+    }
+
     if (parametros_actuales_.control.modo_calentar != modo_calentar) {
         parametros_actuales_.control.modo_calentar = modo_calentar;
-        hubo_cambios = true;
-    }
-
-    return hubo_cambios;
-}
-
-bool parametros_configurar_sensor_proceso_auto(void)
-{
-    bool hubo_cambios = false;
-    uint32_t indice = 0U;
-
-    if (parametros_actuales_.sensor_proceso.modo != PARAMETROS_SENSOR_MODO_AUTO) {
-        parametros_actuales_.sensor_proceso.modo = PARAMETROS_SENSOR_MODO_AUTO;
-        hubo_cambios = true;
-    }
-
-    if (parametros_actuales_.sensor_proceso.rom_valida) {
-        parametros_actuales_.sensor_proceso.rom_valida = false;
-        hubo_cambios = true;
-    }
-
-    for (indice = 0U; indice < PARAMETROS_SENSOR_ROM_SIZE; ++indice) {
-        if (parametros_actuales_.sensor_proceso.rom[indice] != 0U) {
-            parametros_actuales_.sensor_proceso.rom[indice] = 0U;
-            hubo_cambios = true;
-        }
-    }
-
-    return hubo_cambios;
-}
-
-bool parametros_configurar_sensor_proceso_por_rom(const uint8_t rom[PARAMETROS_SENSOR_ROM_SIZE])
-{
-    bool hubo_cambios = false;
-
-    if (rom == 0) {
-        return false;
-    }
-
-    if (parametros_actuales_.sensor_proceso.modo != PARAMETROS_SENSOR_MODO_ROM) {
-        parametros_actuales_.sensor_proceso.modo = PARAMETROS_SENSOR_MODO_ROM;
-        hubo_cambios = true;
-    }
-
-    if (!parametros_actuales_.sensor_proceso.rom_valida
-        || (memcmp(parametros_actuales_.sensor_proceso.rom, rom, PARAMETROS_SENSOR_ROM_SIZE) != 0)) {
-        (void) memcpy(parametros_actuales_.sensor_proceso.rom, rom, PARAMETROS_SENSOR_ROM_SIZE);
-        parametros_actuales_.sensor_proceso.rom_valida = true;
         hubo_cambios = true;
     }
 
