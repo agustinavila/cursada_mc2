@@ -11,6 +11,8 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - [Targets disponibles](#targets-disponibles)
 - [Como mantener la configuracion de CMake](#como-mantener-la-configuracion-de-cmake)
 - [Build desde terminal](#build-desde-terminal)
+- [Tests host con CTest](#tests-host-con-ctest)
+- [Cobertura host con gcov](#cobertura-host-con-gcov)
 - [Flash desde terminal](#flash-desde-terminal)
 - [Debug en VS Code](#debug-en-vs-code)
 - [SVD y perifericos en debug](#svd-y-perifericos-en-debug)
@@ -352,6 +354,64 @@ Release:
 cmake --preset release
 cmake --build --preset release --target cursada_mc2_app
 ```
+
+## Tests host con CTest
+
+El repo incluye una primera etapa de tests nativos de host para la logica
+propia desacoplada de hardware. Estos tests no usan el toolchain ARM ni
+dependen de OpenOCD, linker scripts o startup del micro.
+
+Cobertura actual:
+
+- `src/control/`
+- `src/app/parametros.c`
+- `src/app/parametros_default.c`
+
+Los archivos de prueba viven en:
+
+- `tests/control/`
+- `tests/app/`
+- `tests/support/`
+
+### Requisito para Windows
+
+Los presets host usan `gcc` y `gcov` nativos. Esas herramientas deben estar
+disponibles en `PATH` para configurar, compilar y correr `ctest`.
+
+Si usas una instalacion portable o una distribucion como Cygwin/MSYS2/MinGW,
+abrí VS Code o la terminal con esa carpeta `bin` ya presente en `PATH`.
+
+### Configurar, compilar y correr tests host
+
+```powershell
+cmake --preset host-debug
+cmake --build --preset host-debug
+ctest --preset host-debug
+```
+
+## Cobertura host con gcov
+
+La cobertura en esta etapa se genera solo sobre los binarios host, usando
+instrumentacion `--coverage` y `gcov`.
+
+Configurar y ejecutar:
+
+```powershell
+cmake --preset host-coverage
+cmake --build --preset host-coverage --target coverage
+```
+
+Ese target:
+
+- compila los tests host con `--coverage`
+- ejecuta `ctest`
+- corre `gcov` sobre los `.gcno` generados
+
+La salida `.gcov` queda en el arbol de build host, por ejemplo:
+
+- `build/host-coverage/`
+
+En esta etapa no se implementa cobertura on-target.
 
 ## Flash desde terminal
 
