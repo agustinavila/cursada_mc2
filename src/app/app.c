@@ -12,6 +12,7 @@
 #include "drivers/eeprom_driver.h"
 #include "drivers/lcd_driver.h"
 #include "drivers/led_driver.h"
+#include "drivers/timer_driver.h"
 #include "app/parametros.h"
 #include "control/control_on_off.h"
 #include "hmi/hmi.h"
@@ -37,6 +38,9 @@ static const onewire_pin_config_t app_pin_ds18b20_ = {
 };
 
 #define APP_LOOP_DELTA_MS 20U
+#define APP_TIMER_TICK_MS 1U
+
+static uint32_t app_ultimo_tick_procesado_ms_ = 0U;
 
 static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 {
@@ -195,6 +199,7 @@ static void app_actualizar_control(void)
 void app_init(void)
 {
     driver_delay_init();
+    board_timer_init(APP_TIMER_TICK_MS);
     led_init();
     buzzer_init();
     buzzer_turn_off();
@@ -216,13 +221,19 @@ void app_init(void)
 
     app_control_on_off_configuracion_actual_ = app_obtener_configuracion_control_desde_parametros();
     (void) control_on_off_inicializar(&app_control_on_off_, &app_control_on_off_configuracion_actual_);
+    app_ultimo_tick_procesado_ms_ = board_timer_get_ticks();
 }
 
 void app_process(void)
 {
-    app_actualizar_sensores();
-    buttons_process(APP_LOOP_DELTA_MS);
-    hmi_process();
-    app_actualizar_control();
-    driver_delay_ms(APP_LOOP_DELTA_MS);
+    const uint32_t tick_actual_ms = board_timer_get_ticks();
+
+    while ((uint32_t) (tick_actual_ms - app_ultimo_tick_procesado_ms_) >= APP_LOOP_DELTA_MS) {
+        app_ultimo_tick_procesado_ms_ += APP_LOOP_DELTA_MS;
+
+        app_actualizar_sensores();
+        buttons_process(APP_LOOP_DELTA_MS);
+        hmi_process();
+        app_actualizar_control();
+    }
 }

@@ -19,6 +19,7 @@
 
 #include "app/app.h"
 #include "drivers/buttons_driver.h"
+#include "drivers/timer_driver.h"
 
 int main(void)
 {
@@ -73,7 +74,6 @@ void PININT3_IRQ_HANDLER(void)
 
 void RIT_Handler(void)
 {
+    board_timer_irq_handler();
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
-    NVIC_EnableIRQ(RITIMER_IRQn);
-    Chip_RIT_ClearInt(LPC_RITIMER);
 }

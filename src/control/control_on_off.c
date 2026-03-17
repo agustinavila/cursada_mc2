@@ -101,10 +101,6 @@ bool control_on_off_configurar(control_on_off_t* control,
     }
 
     control->configuracion = *configuracion;
-    control->tiempo_en_estado_ms = 0U;
-    control->salida_activa = false;
-    control->tiene_medicion = false;
-    control->ultima_medicion_deci_celsius = 0;
     return true;
 }
 
