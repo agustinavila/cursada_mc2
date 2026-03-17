@@ -27,26 +27,11 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 
 La aplicacion actual implementa una base para control de temperatura sobre la EDU-CIAA-NXP.
 
-Un caso de uso concreto para esta base es el control de temperatura durante la
-fermentacion de cerveza. En ese proceso, mantener la temperatura dentro de un
-rango estable es importante porque afecta directamente la actividad de la
-levadura, la velocidad de fermentacion y el perfil final de aromas y sabores.
-Una temperatura demasiado alta puede generar subproductos no deseados y una
-temperatura demasiado baja puede frenar o volver ineficiente la fermentacion.
+Un caso de uso concreto para esta base es el control de temperatura durante la fermentacion de cerveza. En ese proceso, mantener la temperatura dentro de un rango estable es importante porque afecta directamente la actividad de la levadura, la velocidad de fermentacion y el perfil final de aromas y sabores. Una temperatura demasiado alta puede generar subproductos no deseados y una temperatura demasiado baja puede frenar o volver ineficiente la fermentacion.
 
-La base soporta ambos modos de trabajo, calentar y enfriar, pero en este caso
-el uso mas comun suele ser enfriar, porque la fermentacion es un proceso
-exotermico. Eso permite, por ejemplo, habilitar la circulacion de un chiller a
-traves de una serpentina cuando la temperatura supera el valor objetivo. En una
-implementacion concreta, la accion de control podria activar una bomba para
-forzar esa circulacion o una electroválvula que habilite el paso del fluido de
-enfriamiento.
+La base soporta ambos modos de trabajo, calentar y enfriar, pero en este caso el uso mas comun suele ser enfriar, porque la fermentacion es un proceso exotermico. Eso permite, por ejemplo, habilitar la circulacion de un chiller a traves de una serpentina cuando la temperatura supera el valor objetivo. En una implementacion concreta, la accion de control podria activar una bomba para forzar esa circulacion o una electroválvula que habilite el paso del fluido de enfriamiento.
 
-Tambien hay un caso complementario en temporadas de invierno o en ambientes muy
-frios, donde la temperatura exterior puede hacer caer demasiado la temperatura
-del fermentador. En esa situacion, el mismo esquema de control permite trabajar
-en modo calentar para sostener la temperatura de fermentacion dentro del rango
-deseado.
+Tambien hay un caso complementario en temporadas de invierno o en ambientes muy frios, donde la temperatura exterior puede hacer caer demasiado la temperatura del fermentador. En esa situacion, el mismo esquema de control permite trabajar en modo calentar para sostener la temperatura de fermentacion dentro del rango deseado.
 
 A grandes rasgos, el flujo es este:
 
@@ -58,31 +43,14 @@ A grandes rasgos, el flujo es este:
 
 ### Proceso de control
 
-El lazo implementado hoy es un control `on/off`. Eso significa que la salida no
-trabaja de manera proporcional, sino que solo tiene dos estados posibles:
-encendida o apagada. El controlador compara la temperatura medida contra el
-`setpoint` y decide si debe activar o desactivar la salida segun el modo de
-trabajo:
+El lazo implementado hoy es un control `on/off`. Eso significa que la salida no trabaja de manera proporcional, sino que solo tiene dos estados posibles: encendida o apagada. El controlador compara la temperatura medida contra el `setpoint` y decide si debe activar o desactivar la salida segun el modo de trabajo:
 
-- en `calentar`, la salida se activa cuando la temperatura cae por debajo del
-  rango permitido y se desactiva al recuperar la temperatura objetivo
-- en `enfriar`, la salida se activa cuando la temperatura supera el rango
-  permitido y se desactiva al volver al objetivo
+- en `calentar`, la salida se activa cuando la temperatura cae por debajo del rango permitido y se desactiva al recuperar la temperatura objetivo
+- en `enfriar`, la salida se activa cuando la temperatura supera el rango permitido y se desactiva al volver al objetivo
 
-Para evitar que la salida conmute continuamente alrededor del `setpoint`, el
-control usa `histeresis`. La histeresis define una banda de tolerancia alrededor
-del valor objetivo y evita que pequeñas variaciones o ruido en la medicion
-produzcan encendidos y apagados repetidos. Sin histeresis, si la temperatura se
-mantuviera oscilando muy cerca del setpoint, la salida podria cambiar de estado
-demasiado seguido.
+Para evitar que la salida conmute continuamente alrededor del `setpoint`, el control usa `histeresis`. La histeresis define una banda de tolerancia alrededor del valor objetivo y evita que pequeñas variaciones o ruido en la medicion produzcan encendidos y apagados repetidos. Sin histeresis, si la temperatura se mantuviera oscilando muy cerca del setpoint, la salida podria cambiar de estado demasiado seguido.
 
-Ademas, el control incorpora tiempos minimos de encendido y apagado. Estos
-delays no bloquean el lazo principal, sino que obligan a que la salida permanezca
-un tiempo minimo en cada estado antes de permitir una nueva conmutacion. Esto
-ayuda a filtrar cambios rapidos debidos a ruido, mediciones inestables o
-fluctuaciones transitorias del proceso. En una aplicacion real tambien sirve
-para proteger actuadores que no conviene conmutar demasiado seguido, como un
-compresor, una electroválvula o un relé.
+Ademas, el control incorpora tiempos minimos de encendido y apagado. Estos delays no bloquean el lazo principal, sino que obligan a que la salida permanezca un tiempo minimo en cada estado antes de permitir una nueva conmutacion. Esto ayuda a filtrar cambios rapidos debidos a ruido, mediciones inestables o fluctuaciones transitorias del proceso. En una aplicacion real tambien sirve para proteger actuadores que no conviene conmutar demasiado seguido, como un compresor, una electroválvula o un relé.
 
 En el estado actual:
 
@@ -92,42 +60,33 @@ En el estado actual:
 
 ## Futuras funciones posibles
 
-Esta base hoy esta enfocada en un solo lazo de control simple, pero hay varias
-extensiones razonables para etapas futuras del proyecto:
+Esta base hoy esta enfocada en un solo lazo de control simple, pero hay varias extensiones razonables para etapas futuras del proyecto:
 
 - control de multiples lazos en simultaneo
   - soporte para varios sensores y varios actuadores trabajando en paralelo
-  - util si se quiere controlar mas de un fermentador, o distintas zonas
-    termicas dentro de un mismo sistema
+  - util si se quiere controlar mas de un fermentador, o distintas zonas termicas dentro de un mismo sistema
 
 - seleccion explicita del sensor de proceso
   - hoy la app usa siempre el primer sensor detectado
-  - una mejora posible es permitir elegir desde la HMI que sensor usar como
-    variable de control
+  - una mejora posible es permitir elegir desde la HMI que sensor usar como variable de control
 
 - alarmas de proceso
   - alarmas por temperatura alta (`HI`)
   - alarmas por temperatura baja (`LO`)
   - alarma de error o perdida de sensor
-  - estas alarmas podrian reflejarse en el LCD, en un buzzer o en una salida
-    dedicada
+  - estas alarmas podrian reflejarse en el LCD, en un buzzer o en una salida dedicada
 
 - salidas separadas para calentar y enfriar
-  - en vez de una unica salida logica, el sistema podria manejar una salida
-    dedicada para calefaccion y otra para enfriamiento
+  - en vez de una unica salida logica, el sistema podria manejar una salida dedicada para calefaccion y otra para enfriamiento
   - esto es util cuando ambos actuadores existen en el mismo equipo
 
 - nuevos modos de control
   - ademas del `on/off`, se podria agregar un control proporcional o `PI`
-  - eso permitiria una regulacion mas fina en procesos con mayor inercia o con
-    requerimientos mas exigentes de estabilidad
+  - eso permitiria una regulacion mas fina en procesos con mayor inercia o con requerimientos mas exigentes de estabilidad
 
 - salidas moduladas por `PWM`
-  - una salida `PWM` puede ser util cuando el actuador admite modulacion en vez
-    de simple conmutacion
-  - por ejemplo, para regular la potencia de una resistencia calefactora a
-    traves de una etapa de potencia adecuada, o para modular la velocidad de una
-    bomba o ventilador si el hardware asociado lo permite
+  - una salida `PWM` puede ser util cuando el actuador admite modulacion en vez de simple conmutacion
+  - por ejemplo, para regular la potencia de una resistencia calefactora a traves de una etapa de potencia adecuada, o para modular la velocidad de una bomba o ventilador si el hardware asociado lo permite
 
 - mejoras generales de supervision
   - registro de eventos o historico basico de temperaturas
@@ -176,11 +135,7 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 
 ## Desarrollo
 
-Esta base se fue armando con la idea de tener un proyecto embebido que pudiera
-entenderse, compilarse y depurarse sin depender del IDE original. En otras
-palabras, la meta fue dejar un entorno de desarrollo claro y reproducible para
-la EDU-CIAA-NXP, usando herramientas abiertas y configuraciones visibles en el
-repo.
+Esta base se fue armando con la idea de tener un proyecto embebido que pudiera entenderse, compilarse y depurarse sin depender del IDE original. En otras palabras, la meta fue dejar un entorno de desarrollo claro y reproducible para la EDU-CIAA-NXP, usando herramientas abiertas y configuraciones visibles en el repo.
 
 Hoy el trabajo se apoya en:
 
@@ -190,13 +145,11 @@ Hoy el trabajo se apoya en:
 - `OpenOCD` para programacion y servidor GDB
 - `arm-none-eabi-gdb` para debug del core M4
 
-La idea general es que el build, el arranque del micro, el linker, los drivers
-y la aplicacion queden visibles y trazables, sin pasos ocultos del IDE.
+La idea general es que el build, el arranque del micro, el linker, los drivers y la aplicacion queden visibles y trazables, sin pasos ocultos del IDE.
 
 ### Entorno y objetivo del proyecto
 
-El objetivo principal fue independizar el desarrollo del firmware respecto de
-Eclipse o MCUXpresso. Para eso hubo que resolver de forma explicita:
+El objetivo principal fue independizar el desarrollo del firmware respecto de Eclipse o MCUXpresso. Para eso hubo que resolver de forma explicita:
 
 - configuracion del toolchain cruzado para ARM
 - integracion de startup, linker script y `SystemInit`
@@ -204,52 +157,33 @@ Eclipse o MCUXpresso. Para eso hubo que resolver de forma explicita:
 - flashing con `OpenOCD`
 - debug con `GDB` desde `VS Code`
 
-La idea es mejorar la reproducibilidad y control del entorno de desarrollo (en MCUExpresso es mas dificil). El
-flujo oficial del repo no depende de archivos generados por un IDE ni de
-configuraciones ocultas: lo que define el build esta en `CMake`, lo que define
-el debug esta en `.vscode/` y lo que define la plataforma esta en `platform/`.
+La idea es mejorar la reproducibilidad y control del entorno de desarrollo (en MCUExpresso es mas dificil). El flujo oficial del repo no depende de archivos generados por un IDE ni de configuraciones ocultas: lo que define el build esta en `CMake`, lo que define el debug esta en `.vscode/` y lo que define la plataforma esta en `platform/`.
 
 ### Roadmap de desarrollo realizado
 
 El desarrollo del proyecto fue avanzando por etapas relativamente claras:
 
 1. `Entorno moderno sin Eclipse`
-   - primero se armo un flujo de build y debug con `CMake`, `VS Code`,
-     `arm-none-eabi-gcc`, `OpenOCD` y `GDB`
-   - esto permitio dejar de depender del proyecto heredado del IDE y volver el
-     repo mas portable y mas facil de revisar en CI
+   - primero se armo un flujo de build y debug con `CMake`, `VS Code`, `arm-none-eabi-gcc`, `OpenOCD` y `GDB`
+   - esto permitio dejar de depender del proyecto heredado del IDE y volver el repo mas portable y mas facil de revisar en CI
 
 2. `Startup basico del micro`
-   - una vez resuelto el entorno, se dejo un arranque minimo para el LPC4337
-     con vector table, `ResetISR`, `SystemInit` y linker script integrados al
-     build
-   - separar esa base del resto del firmware ayuda a que la aplicacion no quede
-     mezclada con detalles de bootstrap del microcontrolador
+   - una vez resuelto el entorno, se dejo un arranque minimo para el LPC4337 con vector table, `ResetISR`, `SystemInit` y linker script integrados al build
+   - separar esa base del resto del firmware ayuda a que la aplicacion no quede mezclada con detalles de bootstrap del microcontrolador
 
 3. `Desarrollo y prueba de drivers`
-   - con el entorno ya funcionando, se implementaron y adaptaron drivers para
-     GPIO, LCD, pulsadores, buzzer, EEPROM, ADC, 1-Wire, DS18B20 y UART
-   - en varios casos el codigo esta escrito como capa fina sobre LPCOpen,
-     dejando explicito que la logica de placa vive en drivers propios y no
-     repartida por toda la aplicacion
-   - tambien quedaron drivers o experimentos previos que hoy no forman parte
-     del lazo principal, pero siguen siendo utiles como base de reutilizacion o
-     como referencia didactica
+   - con el entorno ya funcionando, se implementaron y adaptaron drivers para GPIO, LCD, pulsadores, buzzer, EEPROM, ADC, 1-Wire, DS18B20 y UART
+   - en varios casos el codigo esta escrito como capa fina sobre LPCOpen, dejando explicito que la logica de placa vive en drivers propios y no repartida por toda la aplicacion
+   - tambien quedaron drivers o experimentos previos que hoy no forman parte del lazo principal, pero siguen siendo utiles como base de reutilizacion o como referencia didactica
 
 4. `Desarrollo de app separada de main`
-   - `main` se dejo deliberadamente chico y la orquestacion real se movio a
-     `app`
-   - eso evita que la logica del producto quede escondida en el entrypoint y
-     hace mas clara la separacion entre inicializacion de bajo nivel y
-     comportamiento funcional
+   - `main` se dejo deliberadamente chico y la orquestacion real se movio a `app`
+   - eso evita que la logica del producto quede escondida en el entrypoint y hace mas clara la separacion entre inicializacion de bajo nivel y comportamiento funcional
 
 5. `Desarrollo de la HMI`
-   - sobre esa base se construyo una HMI simple para LCD de 16x2 y cuatro
-     pulsadores
-   - la HMI permite exponer el estado del control y editar parametros sin
-     contaminar `main` ni `app` con detalles de presentacion
-   - en la version actual, los botones se toman por interrupcion y luego se
-     validan con debounce por software antes de entregar el evento a la interfaz
+   - sobre esa base se construyo una HMI simple para LCD de 16x2 y cuatro pulsadores
+   - la HMI permite exponer el estado del control y editar parametros sin contaminar `main` ni `app` con detalles de presentacion
+   - en la version actual, los botones se toman por interrupcion y luego se validan con debounce por software antes de entregar el evento a la interfaz
 
 ### Arquitectura general del firmware
 
@@ -257,19 +191,16 @@ La arquitectura actual del firmware se reparte asi:
 
 - `main`
   - contiene el punto de entrada y algunos handlers de interrupcion simples
-  - evita cargar logica funcional pesada; su rol es ceder rapido al resto del
-    firmware
+  - evita cargar logica funcional pesada; su rol es ceder rapido al resto del firmware
 
 - `app`
   - es la capa que coordina el sistema
-  - inicializa drivers, descubre sensores, sincroniza la HMI con los
-    parametros persistentes, ejecuta el control y actualiza la salida
+  - inicializa drivers, descubre sensores, sincroniza la HMI con los parametros persistentes, ejecuta el control y actualiza la salida
   - hoy es el lugar donde vive toda la logica del sistema.
 
 - `control`
   - encapsula el lazo `on/off`
-  - recibe medicion, setpoint, histeresis y tiempos minimos de encendido y
-    apagado
+  - recibe medicion, setpoint, histeresis y tiempos minimos de encendido y apagado
   - decide si la salida debe permanecer activa o no sin depender del hardware
 
 - `hmi`
@@ -278,38 +209,28 @@ La arquitectura actual del firmware se reparte asi:
 
 - `drivers`
   - concentran el acceso a perifericos y funciones de bajo nivel de la placa
-  - son la capa que traduce entre la aplicacion y LPCOpen o los registros del
-    micro
+  - son la capa que traduce entre la aplicacion y LPCOpen o los registros del micro
 
 - `startup`
-  - contiene el codigo de arranque, `SystemInit` y los simbolos necesarios para
-    boot y enlazado del firmware
+  - contiene el codigo de arranque, `SystemInit` y los simbolos necesarios para boot y enlazado del firmware
 
-En la practica, `main` queda minimo y `app` pasa a ser el coordinador central
-del firmware.
+En la practica, `main` queda minimo y `app` pasa a ser el coordinador central del firmware.
 
 ### Drivers implementados
 
-Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de
-uso en el firmware actual: algunos participan directamente del lazo principal,
-otros estan inicializados pero hoy no afectan el control, y otros quedaron como
-desarrollo previo o soporte potencial para futuras etapas.
+Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de uso en el firmware actual: algunos participan directamente del lazo principal, otros estan inicializados pero hoy no afectan el control, y otros quedaron como desarrollo previo o soporte potencial para futuras etapas.
 
 #### Drivers activos en el firmware actual
 
 - `buttons_driver`
   - abstrae los cuatro pulsadores del poncho
-  - hoy la HMI no lee los GPIO crudos directamente: el driver captura la
-    pulsacion por `PIN_INT0..3`, aplica un debounce simple por software y deja
-    un evento pendiente para que la interfaz lo consuma
-  - ademas conserva funciones de lectura directa, que siguen siendo utiles para
-    diagnostico o para una integracion futura distinta
+  - hoy la HMI no lee los GPIO crudos directamente: el driver captura la pulsacion por `PIN_INT0..3`, aplica un debounce simple por software y deja un evento pendiente para que la interfaz lo consuma
+  - ademas conserva funciones de lectura directa, que siguen siendo utiles para diagnostico o para una integracion futura distinta
 
 - `delay_driver`
   - abstrae retardos en microsegundos y milisegundos
   - se apoya en las rutinas `StopWatch` de LPCOpen y se inicializa una sola vez
-  - se usa en drivers que requieren temporizaciones precisas,
-    por ejemplo el LCD y el bus `1-Wire`
+  - se usa en drivers que requieren temporizaciones precisas, por ejemplo el LCD y el bus `1-Wire`
 
 - `timer_driver`
   - abstrae el temporizador `RIT`
@@ -317,117 +238,85 @@ desarrollo previo o soporte potencial para futuras etapas.
 
 - `onewire_driver`
   - implementa el bus 1-Wire por bit-banging sobre GPIO
-  - resuelve reset, escritura y lectura de bits y bytes, lectura/escritura de
-    ROM y bus search
+  - resuelve reset, escritura y lectura de bits y bytes, lectura/escritura de ROM y bus search
   - esta escrito con delays explicitos porque el protocolo 1-Wire depende de ventanas de tiempo cortas y bien definidas
-  - hoy no se usa directamente desde `app`; entra como base del
-    `ds18b20_driver`
+  - hoy no se usa directamente desde `app`; entra como base del `ds18b20_driver`
 
 - `ds18b20_driver`
-  - implementa el protocolo de mas alto nivel para sensores DS18B20 sobre
-    1-Wire
-  - soporta un modo de dispositivo unico y un modo de bus con multiples
-    sensores, con descubrimiento, CRC y conversion no bloqueante
-  - la app actual usa el modo de bus, pero toma siempre el primer sensor
-    detectado como variable de proceso
-  - las funciones mas relevantes son `ds18b20_bus_init()`,
-    `ds18b20_bus_discover()`, `ds18b20_bus_start_conversion()`,
-    `ds18b20_bus_process()` y `ds18b20_bus_get_latest_raw()`
+  - implementa el protocolo de mas alto nivel para sensores DS18B20 sobre 1-Wire
+  - soporta un modo de dispositivo unico y un modo de bus con multiples sensores, con descubrimiento, CRC y conversion no bloqueante
+  - la app actual usa el modo de bus, pero toma siempre el primer sensor detectado como variable de proceso
+  - las funciones mas relevantes son `ds18b20_bus_init()`, `ds18b20_bus_discover()`, `ds18b20_bus_start_conversion()`, `ds18b20_bus_process()` y `ds18b20_bus_get_latest_raw()`
 
 - `eeprom_driver`
   - habilita el uso de la EEPROM interna del LPC4337
-  - internamente trabaja por paginas y usa una estrategia de lectura,
-    modificacion y escritura del bloque afectado
+  - internamente trabaja por paginas y usa una estrategia de lectura, modificacion y escritura del bloque afectado
   - hoy lo usa el modulo `parametros` para guardar y restaurar la configuracion del control
 
 - `lcd_driver`
   - abstrae el LCD alfanumerico del poncho en modo de 4 bits
-  - maneja inicializacion, posicionamiento del cursor, envio de comandos y
-    escritura de caracteres o cadenas
-  - depende de delays explicitos porque la temporizacion del controlador LCD es
-    parte del protocolo de bajo nivel
+  - maneja inicializacion, posicionamiento del cursor, envio de comandos y escritura de caracteres o cadenas
+  - depende de delays explicitos porque la temporizacion del controlador LCD es parte del protocolo de bajo nivel
   - hoy lo usa la HMI para dibujar la pantalla principal y el menu
 
 - `led_driver`
   - abstrae los LEDs de la placa como salidas discretas simples
-  - hoy la app usa `LED1` como actuador de prueba para reflejar el estado de la
-    salida del control
+  - hoy la app usa `LED1` como actuador de prueba para reflejar el estado de la salida del control
   - sus funciones principales son `led_init()`, `led_turn_on()` y `led_turn_off()`
 
 - `buzzer_driver`
   - abstrae el buzzer como salida digital simple
-  - hoy se inicializa en `app` y se apaga explicitamente al arranque, pero no
-    forma parte de la accion de control ni de una logica de alarmas activa
+  - hoy se inicializa en `app` y se apaga explicitamente al arranque, pero no forma parte de la accion de control ni de una logica de alarmas activa
   - queda disponible para futuras alarmas o avisos de interfaz
 
 #### Drivers implementados pero no usados en el flujo actual
 
 - `adc_driver`
-  - abstrae el ADC del micro y soporta tanto inicializacion por canal como
-    soporte para interrupcion
-  - hoy no esta integrado en la app y no participa del lazo principal, que se
-    basa en DS18B20
+  - abstrae el ADC del micro y soporta tanto inicializacion por canal como soporte para interrupcion
+  - hoy no esta integrado en la app y no participa del lazo principal, que se basa en DS18B20
 
 - `keyboard_driver`
-  - implementa un teclado matricial sobre filas y columnas, con posibilidad de
-    usar interrupciones sobre las filas
-  - en este proyecto ya existia de una etapa anterior y se conserva como codigo
-    propio reutilizable y como referencia didactica
+  - implementa un teclado matricial sobre filas y columnas, con posibilidad de usar interrupciones sobre las filas
+  - en este proyecto ya existia de una etapa anterior y se conserva como codigo propio reutilizable y como referencia didactica
   - hoy no esta integrado en la app ni en la HMI actual
 
 - `uart_driver`
   - implementa una UART basica por polling, sin buffers ni ISR
-  - es util como canal de diagnostico o comunicacion simple, pero hoy no forma
-    parte del flujo principal del firmware
+  - es util como canal de diagnostico o comunicacion simple, pero hoy no forma parte del flujo principal del firmware
 
 - `uart_driver_irq`
-  - agrega una capa de UART con interrupciones y ring buffers sobre la base de
-    LPCOpen
+  - agrega una capa de UART con interrupciones y ring buffers sobre la base de LPCOpen
   - soporta wrappers de ISR para `USART0`, `USART2` y `USART3`
-  - hoy no esta integrado en la app, pero deja preparada una base mas robusta
-    para telemetria o consola futura
+  - hoy no esta integrado en la app, pero deja preparada una base mas robusta para telemetria o consola futura
 
 ### Manejo de interrupciones
 
-El startup define una vector table completa con handlers por defecto, pero eso
-no significa que todo ese conjunto de interrupciones este realmente en uso. En
-el codigo propio solo aparecen algunas ISR especificas y, aun asi, no todas
-forman parte activa del comportamiento actual del producto.
+El startup define una vector table completa con handlers por defecto, pero eso no significa que todo ese conjunto de interrupciones este realmente en uso. En el codigo propio solo aparecen algunas ISR especificas y, aun asi, no todas forman parte activa del comportamiento actual del producto.
 
 #### Handlers presentes en el firmware actual
 
 - `RIT_Handler`
-  - delega la actualizacion del tick del
-    sistema en `timer_driver`
-  - este handler forma parte del funcionamiento real del firmware actual,
-    porque a partir de ese tick la app ejecuta periodicamente su lazo principal
+  - delega la actualizacion del tick del sistema en `timer_driver`
+  - este handler forma parte del funcionamiento real del firmware actual, porque a partir de ese tick la app ejecuta periodicamente su lazo principal
 
 - `PIN_INT0..3`
   - en `main` existen handlers chicos para las cuatro teclas
-  - cuando una tecla genera un flanco, la ISR se limita a notificar al
-    `buttons_driver` y limpiar el flag de hardware
-  - el driver se encarga despues de validar la pulsacion con una ventana de
-    debounce por software y de entregar un unico evento a la HMI
+  - cuando una tecla genera un flanco, la ISR se limita a notificar al `buttons_driver` y limpiar el flag de hardware
+  - el driver se encarga despues de validar la pulsacion con una ventana de debounce por software y de entregar un unico evento a la HMI
 
 #### Interrupciones soportadas por drivers, pero no activas en el flujo principal actual
 
 - `PIN_INT4..7` del `keyboard_driver`
-  - el driver puede habilitar interrupciones sobre las filas del teclado
-    matricial
-  - si se integrara, las ISR servirian para detectar actividad del teclado y
-    reconstruir la tecla presionada sin depender exclusivamente de polling
+  - el driver puede habilitar interrupciones sobre las filas del teclado matricial
+  - si se integrara, las ISR servirian para detectar actividad del teclado y reconstruir la tecla presionada sin depender exclusivamente de polling
 
 - `ADC0_IRQn` del `adc_driver`
   - el driver puede trabajar con interrupcion de conversion
-  - en una aplicacion futura eso permitiria capturar muestras analogicas y
-    disparar procesamiento cuando el ADC termina, sin consultar el estado de
-    manera activa
+  - en una aplicacion futura eso permitiria capturar muestras analogicas y disparar procesamiento cuando el ADC termina, sin consultar el estado de manera activa
 
 - `USART0/2/3_IRQn` del `uart_driver_irq`
-  - el driver con IRQ instala wrappers para esas UART y usa ring buffers para
-    recepcion y transmision
-  - si se integrara en la app, permitiria una comunicacion serial no bloqueante
-    con menos carga sobre el lazo principal
+  - el driver con IRQ instala wrappers para esas UART y usa ring buffers para recepcion y transmision
+  - si se integrara en la app, permitiria una comunicacion serial no bloqueante con menos carga sobre el lazo principal
 
 ## Estructura
 
@@ -580,8 +469,7 @@ Uso previsto de cada formato:
 
 ## Documentacion API
 
-El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir
-de `README.md`, `src/` y los comentarios Doxygen del codigo.
+El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir de `README.md`, `src/` y los comentarios Doxygen del codigo.
 
 Uso local:
 
