@@ -6,6 +6,7 @@
 #include "hmi/hmi.h"
 
 #include "drivers/buttons_driver.h"
+#include "drivers/buzzer_driver.h"
 #include "drivers/lcd_driver.h"
 
 #include <stdbool.h>
@@ -14,6 +15,9 @@
 #include <stdlib.h>
 
 #define HMI_CANTIDAD_COLUMNAS_LCD 16U
+#define HMI_PERIODO_PROCESO_MS 20U
+#define HMI_BEEP_PULSACION_MS 20U
+#define HMI_BEEP_PULSACION_TICKS (HMI_BEEP_PULSACION_MS / HMI_PERIODO_PROCESO_MS)
 
 typedef enum {
     HMI_EVENTO_NINGUNO = 0,
@@ -70,6 +74,7 @@ typedef struct {
     uint8_t nodo_actual;
     int16_t valor_edicion;
     bool necesita_redibujado;
+    uint8_t ticks_buzzer_restantes;
 } hmi_interfaz_t;
 
 typedef struct {
@@ -357,6 +362,22 @@ static hmi_evento_t hmi_leer_evento(void)
     return HMI_EVENTO_NINGUNO;
 }
 
+static void hmi_actualizar_buzzer(void)
+{
+    if (hmi_.interfaz.ticks_buzzer_restantes > 0U) {
+        hmi_.interfaz.ticks_buzzer_restantes--;
+        if (hmi_.interfaz.ticks_buzzer_restantes == 0U) {
+            buzzer_turn_off();
+        }
+    }
+}
+
+static void hmi_emitir_beep_pulsacion(void)
+{
+    hmi_.interfaz.ticks_buzzer_restantes = HMI_BEEP_PULSACION_TICKS;
+    buzzer_turn_on();
+}
+
 static void hmi_entrar_menu_raiz(void)
 {
     hmi_.interfaz.nodo_actual = hmi_menu_tree_[HMI_NODE_ROOT].primer_hijo;
@@ -461,6 +482,7 @@ void hmi_init(void)
     hmi_.interfaz.nodo_actual = HMI_NODE_PARAMS;
     hmi_.interfaz.valor_edicion = 0;
     hmi_.interfaz.necesita_redibujado = true;
+    hmi_.interfaz.ticks_buzzer_restantes = 0U;
 
     driver_lcd_write_char('\b');
     hmi_dibujar();
@@ -469,6 +491,12 @@ void hmi_init(void)
 void hmi_process(void)
 {
     const hmi_evento_t evento = hmi_leer_evento();
+
+    hmi_actualizar_buzzer();
+
+    if (evento != HMI_EVENTO_NINGUNO) {
+        hmi_emitir_beep_pulsacion();
+    }
 
     switch (hmi_.interfaz.pantalla_actual) {
     case HMI_PANTALLA_INICIO:
