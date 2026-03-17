@@ -61,4 +61,31 @@ uint8_t button_read_all_pins(void);
  */
 void button_int_enable(uint8_t button_id);
 
+/**
+ * @brief Notifica al driver que una tecla genero una interrupcion externa.
+ *
+ * Esta funcion debe llamarse desde el handler asociado a la tecla
+ * correspondiente.
+ *
+ * @param button_id Identificador de la tecla que disparo la IRQ.
+ */
+void button_notify_irq(uint8_t button_id);
+
+/**
+ * @brief Procesa el debounce y actualiza los eventos latcheados de teclas.
+ *
+ * Debe llamarse de manera periodica desde el lazo principal.
+ *
+ * @param delta_ms Tiempo transcurrido desde la ultima llamada, en milisegundos.
+ */
+void buttons_process(uint32_t delta_ms);
+
+/**
+ * @brief Devuelve y consume el siguiente evento de tecla confirmado.
+ *
+ * @return `TECLA1`..`TECLA4` si hay un evento pendiente, o `0` si no hay
+ * eventos para consumir.
+ */
+uint8_t button_get_event(void);
+
 #endif // TECLAS_DRIVER_H_

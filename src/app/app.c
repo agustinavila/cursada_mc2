@@ -5,13 +5,11 @@
 
 #include "app/app.h"
 
-#include "drivers/adc_driver.h"
 #include "drivers/buttons_driver.h"
 #include "drivers/buzzer_driver.h"
 #include "drivers/delay_driver.h"
 #include "drivers/ds18b20_driver.h"
 #include "drivers/eeprom_driver.h"
-#include "drivers/keyboard_driver.h"
 #include "drivers/lcd_driver.h"
 #include "drivers/led_driver.h"
 #include "app/parametros.h"
@@ -201,8 +199,6 @@ void app_init(void)
     buzzer_init();
     buzzer_turn_off();
     buttons_init();
-    board_keyboard_init();
-    board_adc_init(ADC_CH2);
     driver_lcd_init();
     (void) driver_eeprom_init();
     (void) parametros_init();
@@ -225,6 +221,7 @@ void app_init(void)
 void app_process(void)
 {
     app_actualizar_sensores();
+    buttons_process(APP_LOOP_DELTA_MS);
     hmi_process();
     app_actualizar_control();
     driver_delay_ms(APP_LOOP_DELTA_MS);

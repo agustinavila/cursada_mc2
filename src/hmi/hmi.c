@@ -68,7 +68,6 @@ typedef struct {
 typedef struct {
     hmi_pantalla_t pantalla_actual;
     uint8_t nodo_actual;
-    uint8_t mascara_botones_anterior;
     int16_t valor_edicion;
     bool necesita_redibujado;
 } hmi_interfaz_t;
@@ -340,22 +339,18 @@ static void hmi_dibujar(void)
 
 static hmi_evento_t hmi_leer_evento(void)
 {
-    const uint8_t mascara_actual = button_read_all_pins();
-    const uint8_t flancos_presionados =
-        (uint8_t) (mascara_actual & (uint8_t) ~hmi_.interfaz.mascara_botones_anterior);
+    const uint8_t tecla = button_get_event();
 
-    hmi_.interfaz.mascara_botones_anterior = mascara_actual;
-
-    if ((flancos_presionados & 0x01U) != 0U) {
+    if (tecla == TECLA1) {
         return HMI_EVENTO_MENU;
     }
-    if ((flancos_presionados & 0x02U) != 0U) {
+    if (tecla == TECLA2) {
         return HMI_EVENTO_SUBIR;
     }
-    if ((flancos_presionados & 0x04U) != 0U) {
+    if (tecla == TECLA3) {
         return HMI_EVENTO_BAJAR;
     }
-    if ((flancos_presionados & 0x08U) != 0U) {
+    if (tecla == TECLA4) {
         return HMI_EVENTO_ACEPTAR;
     }
 
@@ -464,7 +459,6 @@ void hmi_init(void)
 {
     hmi_.interfaz.pantalla_actual = HMI_PANTALLA_INICIO;
     hmi_.interfaz.nodo_actual = HMI_NODE_PARAMS;
-    hmi_.interfaz.mascara_botones_anterior = 0U;
     hmi_.interfaz.valor_edicion = 0;
     hmi_.interfaz.necesita_redibujado = true;
 
