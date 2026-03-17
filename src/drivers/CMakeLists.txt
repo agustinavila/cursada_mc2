@@ -7,7 +7,7 @@ set(CURSADA_MC2_DRIVER_SOURCES
     ds18b20_driver.c
     keyboard_driver.c
     lcd_driver.c
-    led_Driver.c
+    led_driver.c
     onewire_driver.c
     timer_driver.c
     uart_driver.c
@@ -19,7 +19,7 @@ add_library(cursada_mc2_drivers STATIC
     ${CURSADA_MC2_DRIVER_SOURCES}
 )
 
-# Los headers de Driver quedan expuestos a los consumidores de esta biblioteca.
+# Los headers de drivers quedan expuestos a los consumidores de esta biblioteca.
 target_include_directories(cursada_mc2_drivers PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Reutiliza la configuracion comun de flags, defines e includes del LPC4337.

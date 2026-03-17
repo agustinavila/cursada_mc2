@@ -3,7 +3,7 @@
  * @brief Driver de acceso a la EEPROM interna del LPC4337.
  */
 
-#include "Driver/eeprom_driver.h"
+#include "eeprom_driver.h"
 
 #include "chip.h"
 

@@ -1,5 +1,5 @@
 /**
- * @file led_Driver.h
+ * @file led_driver.h
  * @brief Interfaz del driver de LEDs discretos
  */
 

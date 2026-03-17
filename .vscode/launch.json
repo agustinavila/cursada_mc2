@@ -15,10 +15,28 @@
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
             ],
             "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
-            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
+            "svdFile": "${workspaceFolder}/platform/svd/LPC43xx_43Sxx.svd",
             "runToEntryPoint": "main",
             "showDevDebugOutput": "raw",
-            "preLaunchTask": "Build App [debug]"
+            "preLaunchTask": "Prepare Debug [debug]"
+        },
+        {
+            "name": "Attach App (OpenOCD)",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}",
+            "servertype": "openocd",
+            "serverpath": "openocd",
+            "gdbPath": "arm-none-eabi-gdb",
+            "objdumpPath": "arm-none-eabi-objdump",
+            "device": "LPC4337",
+            "configFiles": [
+                "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
+            ],
+            "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
+            "svdFile": "${workspaceFolder}/platform/svd/LPC43xx_43Sxx.svd",
+            "showDevDebugOutput": "raw",
+            "preLaunchTask": "Stop Debug Servers"
         }
     ]
 }

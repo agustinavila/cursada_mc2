@@ -2,6 +2,15 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Stop Debug Servers",
+            "type": "shell",
+            "command": "Get-Process | Where-Object { $_.ProcessName -in @('openocd', 'arm-none-eabi-gdb') } | Stop-Process -Force -ErrorAction SilentlyContinue",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Configure [debug]",
             "type": "shell",
             "command": "cmake --preset debug",
@@ -28,9 +37,31 @@
             "problemMatcher": "$gcc"
         },
         {
+            "label": "Configure [release]",
+            "type": "shell",
+            "command": "cmake --preset release",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build App [release]",
+            "type": "shell",
+            "command": "cmake --build --preset release --target cursada_mc2_app",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Configure [release]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": "$gcc"
+        },
+        {
             "label": "Cppcheck",
             "type": "shell",
-            "command": "cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr \"--suppress=missingIncludeSystem\" \"--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*\" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver",
+            "command": "cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr \"--suppress=missingIncludeSystem\" \"--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*\" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/startup/sysinit.c src/hmi src/app src/control src/drivers",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -58,6 +89,61 @@
                 "cwd": "${workspaceFolder}"
             },
             "dependsOn": [
+                "Stop Debug Servers",
+                "Build App [debug]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash App [release]",
+            "type": "shell",
+            "command": "cmake --build --preset release --target flash_cursada_mc2_app",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Stop Debug Servers",
+                "Build App [release]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build + Flash App [debug]",
+            "type": "shell",
+            "command": "Write-Output \"Build y flash completados\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Flash App [debug]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build + Flash App [release]",
+            "type": "shell",
+            "command": "Write-Output \"Build y flash completados\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Flash App [release]"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Prepare Debug [debug]",
+            "type": "shell",
+            "command": "Write-Output \"Debug listo\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Stop Debug Servers",
                 "Build App [debug]"
             ],
             "dependsOrder": "sequence",

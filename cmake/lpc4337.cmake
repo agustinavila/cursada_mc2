@@ -8,6 +8,9 @@ set(LPC4337_CPU_FLAGS
     -mfloat-abi=softfp
 )
 
+# El flujo de programacion usa la primera banca de flash interna del M4.
+set(LPC4337_FLASH_BASE_ADDRESS 0x1A000000)
+
 function(lpc4337_generate_linker_script out_var linker_dir)
     # Combina los fragmentos de memoria y secciones en un linker script
     # concreto dentro del directorio de build.
@@ -60,7 +63,11 @@ function(lpc4337_configure_firmware_target target_name)
             COMMAND ${OPENOCD_EXECUTABLE}
                 -f "${OPENOCD_CONFIG}"
                 -c "init"
-                -c "program \"$<TARGET_FILE:${target_name}>\" verify reset exit"
+                -c "reset halt"
+                -c "flash write_image erase \"${bin_file}\" ${LPC4337_FLASH_BASE_ADDRESS} bin"
+                -c "verify_image \"${bin_file}\" ${LPC4337_FLASH_BASE_ADDRESS} bin"
+                -c "reset run"
+                -c "exit"
             DEPENDS ${target_name}
             USES_TERMINAL
             VERBATIM

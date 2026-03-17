@@ -6,6 +6,7 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 
 - [Funcionamiento general](#funcionamiento-general)
 - [Uso de la HMI](#uso-de-la-hmi)
+- [Desarrollo](#desarrollo)
 - [Estructura](#estructura)
 - [Prerrequisitos en Windows](#prerrequisitos-en-windows)
 - [Targets disponibles](#targets-disponibles)
@@ -13,31 +14,85 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - [Build desde terminal](#build-desde-terminal)
 - [Flash desde terminal](#flash-desde-terminal)
 - [Debug en VS Code](#debug-en-vs-code)
+- [SVD y perifericos en debug](#svd-y-perifericos-en-debug)
 - [Validacion de OpenOCD y del probe FTDI](#validacion-de-openocd-y-del-probe-ftdi)
 - [Rol de LPCOpen en esta base](#rol-de-lpcopen-en-esta-base)
+- [Startup, linker y system init](#startup-linker-y-system-init)
 - [Sensores DS18B20 por 1-Wire](#sensores-ds18b20-por-1-wire)
 - [Troubleshooting](#troubleshooting)
 - [Validacion minima sugerida](#validacion-minima-sugerida)
-- [Nota sobre el arbol `Debug/`](#nota-sobre-el-arbol-debug)
+- [Artefactos legacy removidos](#artefactos-legacy-removidos)
 
 ## Funcionamiento general
 
 La aplicacion actual implementa una base para control de temperatura sobre la EDU-CIAA-NXP.
+
+Un caso de uso concreto para esta base es el control de temperatura durante la fermentacion de cerveza. En ese proceso, mantener la temperatura dentro de un rango estable es importante porque afecta directamente la actividad de la levadura, la velocidad de fermentacion y el perfil final de aromas y sabores. Una temperatura demasiado alta puede generar subproductos no deseados y una temperatura demasiado baja puede frenar o volver ineficiente la fermentacion.
+
+La base soporta ambos modos de trabajo, calentar y enfriar, pero en este caso el uso mas comun suele ser enfriar, porque la fermentacion es un proceso exotermico. Eso permite, por ejemplo, habilitar la circulacion de un chiller a traves de una serpentina cuando la temperatura supera el valor objetivo. En una implementacion concreta, la accion de control podria activar una bomba para forzar esa circulacion o una electroválvula que habilite el paso del fluido de enfriamiento.
+
+Tambien hay un caso complementario en temporadas de invierno o en ambientes muy frios, donde la temperatura exterior puede hacer caer demasiado la temperatura del fermentador. En esa situacion, el mismo esquema de control permite trabajar en modo calentar para sostener la temperatura de fermentacion dentro del rango deseado.
 
 A grandes rasgos, el flujo es este:
 
 - uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
 - la aplicacion descubre los sensores presentes, pero por ahora usa siempre el primero encontrado como variable de proceso
 - la HMI muestra el estado general del control en el LCD y permite editar sus parametros principales con cuatro pulsadores
-- sobre esa medicion corre un control `on/off` con histeresis
+- sobre esa medicion corre un control `on/off` con histeresis y tiempos minimos de encendido/apagado
 - la salida del control se refleja hoy en `LED1` como actuador de prueba
+
+### Proceso de control
+
+El lazo implementado hoy es un control `on/off`. Eso significa que la salida no trabaja de manera proporcional, sino que solo tiene dos estados posibles: encendida o apagada. El controlador compara la temperatura medida contra el `setpoint` y decide si debe activar o desactivar la salida segun el modo de trabajo:
+
+- en `calentar`, la salida se activa cuando la temperatura cae por debajo del rango permitido y se desactiva al recuperar la temperatura objetivo
+- en `enfriar`, la salida se activa cuando la temperatura supera el rango permitido y se desactiva al volver al objetivo
+
+Para evitar que la salida conmute continuamente alrededor del `setpoint`, el control usa `histeresis`. La histeresis define una banda de tolerancia alrededor del valor objetivo y evita que pequeñas variaciones o ruido en la medicion produzcan encendidos y apagados repetidos. Sin histeresis, si la temperatura se mantuviera oscilando muy cerca del setpoint, la salida podria cambiar de estado demasiado seguido.
+
+Ademas, el control incorpora tiempos minimos de encendido y apagado. Estos delays no bloquean el lazo principal, sino que obligan a que la salida permanezca un tiempo minimo en cada estado antes de permitir una nueva conmutacion. Esto ayuda a filtrar cambios rapidos debidos a ruido, mediciones inestables o fluctuaciones transitorias del proceso. En una aplicacion real tambien sirve para proteger actuadores que no conviene conmutar demasiado seguido, como un compresor, una electroválvula o un relé.
 
 En el estado actual:
 
 - el sensor de proceso esta fijado al indice `0`
 - la logica de sensores vive en `app`, no en la HMI
-- la estrategia implementada hoy es `on/off`
-- la estructura de `src/control/` ya esta preparada para sumar otras estrategias mas adelante
+- el control implementado hoy es un unico lazo `on/off`
+
+## Futuras funciones posibles
+
+Esta base hoy esta enfocada en un solo lazo de control simple, pero hay varias extensiones razonables para etapas futuras del proyecto:
+
+- control de multiples lazos en simultaneo
+  - soporte para varios sensores y varios actuadores trabajando en paralelo
+  - util si se quiere controlar mas de un fermentador, o distintas zonas termicas dentro de un mismo sistema
+
+- seleccion explicita del sensor de proceso
+  - hoy la app usa siempre el primer sensor detectado
+  - una mejora posible es permitir elegir desde la HMI que sensor usar como variable de control
+
+- alarmas de proceso
+  - alarmas por temperatura alta (`HI`)
+  - alarmas por temperatura baja (`LO`)
+  - alarma de error o perdida de sensor
+  - estas alarmas podrian reflejarse en el LCD, en un buzzer o en una salida dedicada
+
+- salidas separadas para calentar y enfriar
+  - en vez de una unica salida logica, el sistema podria manejar una salida dedicada para calefaccion y otra para enfriamiento
+  - esto es util cuando ambos actuadores existen en el mismo equipo
+
+- nuevos modos de control
+  - ademas del `on/off`, se podria agregar un control proporcional o `PI`
+  - eso permitiria una regulacion mas fina en procesos con mayor inercia o con requerimientos mas exigentes de estabilidad
+
+- salidas moduladas por `PWM`
+  - una salida `PWM` puede ser util cuando el actuador admite modulacion en vez de simple conmutacion
+  - por ejemplo, para regular la potencia de una resistencia calefactora a traves de una etapa de potencia adecuada, o para modular la velocidad de una bomba o ventilador si el hardware asociado lo permite
+
+- mejoras generales de supervision
+  - registro de eventos o historico basico de temperaturas
+  - configuracion mas completa desde HMI
+  - diagnostico de sensores y actuadores
+  - integracion futura con telemetria o supervisión externa
 
 ## Uso de la HMI
 
@@ -60,7 +115,8 @@ La navegacion actual se hace asi:
 - `Tecla 3`: baja o decrementa
 - `Tecla 4`: entra en una opcion o confirma edicion
 
-Por ahora no hay una accion especial asociada a mantener una tecla presionada.
+Cada tecla se captura por `PIN_INT0..3`, se valida con debounce por software y la HMI consume un evento discreto cuando la pulsacion queda confirmada.
+Como feedback de interfaz, cada pulsacion valida tambien activa un beep corto en el buzzer del poncho.
 
 ### Menu actual
 
@@ -74,19 +130,217 @@ Menu actual:
 - `Param control`
   - `Setpoint`
   - `Histeresis`
+  - `Tmin ON`
+  - `Tmin OFF`
   - `Modo`
 
 Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale de la edicion con `Menu`, el valor temporal se descarta.
 
+## Desarrollo
+
+Esta base se fue armando con la idea de tener un proyecto embebido que pudiera entenderse, compilarse y depurarse sin depender del IDE original. En otras palabras, la meta fue dejar un entorno de desarrollo claro y reproducible para la EDU-CIAA-NXP, usando herramientas abiertas y configuraciones visibles en el repo.
+
+Hoy el trabajo se apoya en:
+
+- `VS Code` como editor e integracion de tareas
+- `CMake` como generador de build
+- `arm-none-eabi-gcc` como toolchain
+- `OpenOCD` para programacion y servidor GDB
+- `arm-none-eabi-gdb` para debug del core M4
+
+La idea general es que el build, el arranque del micro, el linker, los drivers y la aplicacion queden visibles y trazables, sin pasos ocultos del IDE.
+
+### Entorno y objetivo del proyecto
+
+El objetivo principal fue independizar el desarrollo del firmware respecto de Eclipse o MCUXpresso. Para eso hubo que resolver de forma explicita:
+
+- configuracion del toolchain cruzado para ARM
+- integracion de startup, linker script y `SystemInit`
+- generacion de binarios `ELF`, `BIN` y `HEX`
+- flashing con `OpenOCD`
+- debug con `GDB` desde `VS Code`
+
+La idea es mejorar la reproducibilidad y control del entorno de desarrollo (en MCUExpresso es mas dificil). El flujo oficial del repo no depende de archivos generados por un IDE ni de configuraciones ocultas: lo que define el build esta en `CMake`, lo que define el debug esta en `.vscode/` y lo que define la plataforma esta en `platform/`.
+
+### Roadmap de desarrollo realizado
+
+El desarrollo del proyecto fue avanzando por etapas relativamente claras:
+
+1. `Entorno moderno sin Eclipse`
+   - primero se armo un flujo de build y debug con `CMake`, `VS Code`, `arm-none-eabi-gcc`, `OpenOCD` y `GDB`
+   - esto permitio dejar de depender del proyecto heredado del IDE y volver el repo mas portable y mas facil de revisar en CI
+
+2. `Startup basico del micro`
+   - una vez resuelto el entorno, se dejo un arranque minimo para el LPC4337 con vector table, `ResetISR`, `SystemInit` y linker script integrados al build
+   - separar esa base del resto del firmware ayuda a que la aplicacion no quede mezclada con detalles de bootstrap del microcontrolador
+
+3. `Desarrollo y prueba de drivers`
+   - con el entorno ya funcionando, se implementaron y adaptaron drivers para GPIO, LCD, pulsadores, buzzer, EEPROM, ADC, 1-Wire, DS18B20 y UART
+   - en varios casos el codigo esta escrito como capa fina sobre LPCOpen, dejando explicito que la logica de placa vive en drivers propios y no repartida por toda la aplicacion
+   - tambien quedaron drivers o experimentos previos que hoy no forman parte del lazo principal, pero siguen siendo utiles como base de reutilizacion o como referencia didactica
+
+4. `Desarrollo de app separada de main`
+   - `main` se dejo deliberadamente chico y la orquestacion real se movio a `app`
+   - eso evita que la logica del producto quede escondida en el entrypoint y hace mas clara la separacion entre inicializacion de bajo nivel y comportamiento funcional
+
+5. `Desarrollo de la HMI`
+   - sobre esa base se construyo una HMI simple para LCD de 16x2 y cuatro pulsadores
+   - la HMI permite exponer el estado del control y editar parametros sin contaminar `main` ni `app` con detalles de presentacion
+   - en la version actual, los botones se toman por interrupcion y luego se validan con debounce por software antes de entregar el evento a la interfaz
+
+### Arquitectura general del firmware
+
+La arquitectura actual del firmware se reparte asi:
+
+- `main`
+  - contiene el punto de entrada y algunos handlers de interrupcion simples
+  - evita cargar logica funcional pesada; su rol es ceder rapido al resto del firmware
+
+- `app`
+  - es la capa que coordina el sistema
+  - inicializa drivers, descubre sensores, sincroniza la HMI con los parametros persistentes, ejecuta el control y actualiza la salida
+  - hoy es el lugar donde vive toda la logica del sistema.
+
+- `control`
+  - encapsula el lazo `on/off`
+  - recibe medicion, setpoint, histeresis y tiempos minimos de encendido y apagado
+  - decide si la salida debe permanecer activa o no sin depender del hardware
+
+- `hmi`
+  - implementa la interfaz sobre LCD y pulsadores
+  - mantiene el menu y la edicion temporal de parametros
+
+- `drivers`
+  - concentran el acceso a perifericos y funciones de bajo nivel de la placa
+  - son la capa que traduce entre la aplicacion y LPCOpen o los registros del micro
+
+- `startup`
+  - contiene el codigo de arranque, `SystemInit` y los simbolos necesarios para boot y enlazado del firmware
+
+En la practica, `main` queda minimo y `app` pasa a ser el coordinador central del firmware.
+
+### Drivers implementados
+
+Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de uso en el firmware actual: algunos participan directamente del lazo principal, otros estan inicializados pero hoy no afectan el control, y otros quedaron como desarrollo previo o soporte potencial para futuras etapas.
+
+#### Drivers activos en el firmware actual
+
+- `buttons_driver`
+  - abstrae los cuatro pulsadores del poncho
+  - hoy la HMI no lee los GPIO crudos directamente: el driver captura la pulsacion por `PIN_INT0..3`, aplica un debounce simple por software y deja un evento pendiente para que la interfaz lo consuma
+  - ademas conserva funciones de lectura directa, que siguen siendo utiles para diagnostico o para una integracion futura distinta
+
+- `delay_driver`
+  - abstrae retardos en microsegundos y milisegundos
+  - se apoya en las rutinas `StopWatch` de LPCOpen y se inicializa una sola vez
+  - se usa en drivers que requieren temporizaciones precisas, por ejemplo el LCD y el bus `1-Wire`
+
+- `timer_driver`
+  - abstrae el temporizador `RIT`
+  - es la base temporal del firmware: mantiene un tick ciclico y permite ejecutar el lazo principal cada `20 ms` sin usar un delay bloqueante
+
+- `onewire_driver`
+  - implementa el bus 1-Wire por bit-banging sobre GPIO
+  - resuelve reset, escritura y lectura de bits y bytes, lectura/escritura de ROM y bus search
+  - esta escrito con delays explicitos porque el protocolo 1-Wire depende de ventanas de tiempo cortas y bien definidas
+  - hoy no se usa directamente desde `app`; entra como base del `ds18b20_driver`
+
+- `ds18b20_driver`
+  - implementa el protocolo de mas alto nivel para sensores DS18B20 sobre 1-Wire
+  - soporta un modo de dispositivo unico y un modo de bus con multiples sensores, con descubrimiento, CRC y conversion no bloqueante
+  - la app actual usa el modo de bus, pero toma siempre el primer sensor detectado como variable de proceso
+  - las funciones mas relevantes son `ds18b20_bus_init()`, `ds18b20_bus_discover()`, `ds18b20_bus_start_conversion()`, `ds18b20_bus_process()` y `ds18b20_bus_get_latest_raw()`
+
+- `eeprom_driver`
+  - habilita el uso de la EEPROM interna del LPC4337
+  - internamente trabaja por paginas y usa una estrategia de lectura, modificacion y escritura del bloque afectado
+  - hoy lo usa el modulo `parametros` para guardar y restaurar la configuracion del control
+
+- `lcd_driver`
+  - abstrae el LCD alfanumerico del poncho en modo de 4 bits
+  - maneja inicializacion, posicionamiento del cursor, envio de comandos y escritura de caracteres o cadenas
+  - depende de delays explicitos porque la temporizacion del controlador LCD es parte del protocolo de bajo nivel
+  - hoy lo usa la HMI para dibujar la pantalla principal y el menu
+
+- `led_driver`
+  - abstrae los LEDs de la placa como salidas discretas simples
+  - hoy la app usa `LED1` como actuador de prueba para reflejar el estado de la salida del control
+  - sus funciones principales son `led_init()`, `led_turn_on()` y `led_turn_off()`
+
+- `buzzer_driver`
+  - abstrae el buzzer como salida digital simple
+  - hoy se inicializa en `app` y se apaga explicitamente al arranque
+  - la HMI lo usa como feedback sonoro simple, generando un beep corto por cada pulsacion valida
+
+#### Drivers implementados pero no usados en el flujo actual
+
+- `adc_driver`
+  - abstrae el ADC del micro y soporta tanto inicializacion por canal como soporte para interrupcion
+  - hoy no esta integrado en la app y no participa del lazo principal, que se basa en DS18B20
+
+- `keyboard_driver`
+  - implementa un teclado matricial sobre filas y columnas, con posibilidad de usar interrupciones sobre las filas
+  - en este proyecto ya existia de una etapa anterior y se conserva como codigo propio reutilizable y como referencia didactica
+  - hoy no esta integrado en la app ni en la HMI actual
+
+- `uart_driver`
+  - implementa una UART basica por polling, sin buffers ni ISR
+  - es util como canal de diagnostico o comunicacion simple, pero hoy no forma parte del flujo principal del firmware
+
+- `uart_driver_irq`
+  - agrega una capa de UART con interrupciones y ring buffers sobre la base de LPCOpen
+  - soporta wrappers de ISR para `USART0`, `USART2` y `USART3`
+  - hoy no esta integrado en la app, pero deja preparada una base mas robusta para telemetria o consola futura
+
+### Manejo de interrupciones
+
+El startup define una vector table completa con handlers por defecto, pero eso no significa que todo ese conjunto de interrupciones este realmente en uso. En el codigo propio solo aparecen algunas ISR especificas y, aun asi, no todas forman parte activa del comportamiento actual del producto.
+
+#### Handlers presentes en el firmware actual
+
+- `RIT_Handler`
+  - delega la actualizacion del tick del sistema en `timer_driver`
+  - este handler forma parte del funcionamiento real del firmware actual, porque a partir de ese tick la app ejecuta periodicamente su lazo principal
+
+- `PIN_INT0..3`
+  - en `main` existen handlers chicos para las cuatro teclas
+  - cuando una tecla genera un flanco, la ISR se limita a notificar al `buttons_driver` y limpiar el flag de hardware
+  - el driver se encarga despues de validar la pulsacion con una ventana de debounce por software y de entregar un unico evento a la HMI
+  - cuando la HMI detecta ese evento, activa un beep corto en el buzzer
+
+#### Interrupciones soportadas por drivers, pero no activas en el flujo principal actual
+
+- `PIN_INT4..7` del `keyboard_driver`
+  - el driver puede habilitar interrupciones sobre las filas del teclado matricial
+  - si se integrara, las ISR servirian para detectar actividad del teclado y reconstruir la tecla presionada sin depender exclusivamente de polling
+
+- `ADC0_IRQn` del `adc_driver`
+  - el driver puede trabajar con interrupcion de conversion
+  - en una aplicacion futura eso permitiria capturar muestras analogicas y disparar procesamiento cuando el ADC termina, sin consultar el estado de manera activa
+
+- `USART0/2/3_IRQn` del `uart_driver_irq`
+  - el driver con IRQ instala wrappers para esas UART y usa ring buffers para recepcion y transmision
+  - si se integrara en la app, permitiria una comunicacion serial no bloqueante con menos carga sobre el lazo principal
+
 ## Estructura
 
+- `src/`: codigo propio del firmware, incluyendo aplicacion, HMI, control, drivers y startup.
+- `third_party/`: codigo vendor reutilizado sin modificar internamente, como LPCOpen.
+- `platform/`: archivos de soporte especificos de la placa y del entorno de desarrollo, como linker scripts, OpenOCD y SVD.
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
-- `platform/lpc43xx/`: codigo vendor heredado de NXP/LPCOpen que se conserva como capa de chip support.
-- `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
-- `src/`: startup, system init, aplicacion actual y target minimo de validacion.
 - `.vscode/`: tasks, launch y settings para VS Code.
 
-Por ahora la documentacion vive centralizada en este README. Si el proyecto sigue creciendo, una evolucion razonable seria agregar un `README.md` chico en carpetas como `src/`, `src/Driver/`, `src/control/` y `src/hmi/`.
+Si en el futuro aparece otro archivo necesario para linker, flashing o debug de la placa, deberia agregarse en `platform/` antes que en `src/`.
+
+Ademas del README principal, las carpetas mas importantes ya incluyen notas cortas para orientar el recorrido del repo:
+
+- `src/`
+- `src/app/`
+- `src/control/`
+- `src/drivers/`
+- `src/hmi/`
+- `src/startup/`
+- `third_party/lpcopen/`
 
 ## Prerrequisitos en Windows
 
@@ -211,10 +465,15 @@ Cada target genera:
 
 Los artefactos quedan en `build/debug/` o `build/release/`.
 
+Uso previsto de cada formato:
+
+- `*.elf`: debug con simbolos, GDB y VS Code
+- `*.bin`: programacion de flash con OpenOCD
+- `*.hex`: artefacto alternativo para programacion o distribucion
+
 ## Documentacion API
 
-El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir
-de `README.md`, `src/` y los comentarios Doxygen del codigo.
+El repo incluye un `Doxyfile` en la raiz para generar documentacion HTML a partir de `README.md`, `src/` y los comentarios Doxygen del codigo.
 
 Uso local:
 
@@ -250,7 +509,7 @@ La idea de esta base es que los archivos de CMake se puedan seguir sin conocer d
   - define el startup del micro
   - arma el ejecutable `cursada_mc2_app`
   - lista los modulos de aplicacion, control y HMI que se compilan
-- `src/Driver/CMakeLists.txt`
+- `src/drivers/CMakeLists.txt`
   - lista los drivers propios que forman la biblioteca `cursada_mc2_drivers`
 - `cmake/lpc4337.cmake`
   - concentra la configuracion especifica del LPC4337
@@ -259,6 +518,9 @@ La idea de esta base es que los archivos de CMake se puedan seguir sin conocer d
 - `cmake/toolchain-arm-none-eabi.cmake`
   - busca el toolchain `arm-none-eabi-*`
   - define como CMake encuentra compilador y herramientas auxiliares
+- `arm-none-eabi-gcc.cmake`
+  - shim legacy mantenido por compatibilidad
+  - el entrypoint oficial del toolchain es `cmake/toolchain-arm-none-eabi.cmake`
 - `CMakePresets.json`
   - define los presets `debug` y `release`
   - indica en que carpeta se construye cada configuracion
@@ -270,16 +532,18 @@ Si agregas o eliminas codigo propio, normalmente alcanza con editar uno de estos
 - nuevo modulo de aplicacion, HMI o control:
   - agregar o quitar el `.c` en `src/CMakeLists.txt`
 - nuevo driver propio:
-  - agregar o quitar el `.c` en `src/Driver/CMakeLists.txt`
+  - agregar o quitar el `.c` en `src/drivers/CMakeLists.txt`
 
 Ejemplo: si agregas `src/control/control_pi.c`, tenes que sumarlo a la lista `CURSADA_MC2_APP_SOURCES` en `src/CMakeLists.txt`.
 
-Ejemplo: si agregas `src/Driver/eeprom_driver.c`, tenes que sumarlo a la lista `CURSADA_MC2_DRIVER_SOURCES` en `src/Driver/CMakeLists.txt`.
+Ejemplo: si agregas `src/drivers/eeprom_driver.c`, tenes que sumarlo a la lista `CURSADA_MC2_DRIVER_SOURCES` en `src/drivers/CMakeLists.txt`.
 
 ### Cuando hace falta tocar otros archivos
 
 - cambiar flags generales, includes o defines comunes:
   - revisar `CMakeLists.txt`
+- cambiar que parte de LPCOpen se compila:
+  - revisar `third_party/lpcopen/chip_43xx/CMakeLists.txt`
 - cambiar formato de salida, linker o comando de flash:
   - revisar `cmake/lpc4337.cmake`
 - cambiar como se encuentra el toolchain:
@@ -296,10 +560,10 @@ cmake --preset debug
 cmake --build --preset debug --target cursada_mc2_app
 ```
 
-Si tambien cambiaste tooling o integracion local, conviene correr ademas:
+Si tambien cambiaste el entorno de desarrollo o la integracion local, conviene correr ademas:
 
 ```powershell
-cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/Driver -Iplatform/lpc43xx/lpc_chip_43xx/inc src/main.c src/sysinit.c src/hmi src/app src/control src/Driver
+cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/startup/sysinit.c src/hmi src/app src/control src/drivers
 ```
 
 Como alternativa, el proyecto expone un target opcional de CMake:
@@ -334,6 +598,14 @@ Aplicacion actual:
 cmake --build --preset debug --target flash_cursada_mc2_app
 ```
 
+Ese target:
+
+- genera antes el `*.bin` desde el `*.elf`
+- programa la flash principal en `0x1A000000`
+- verifica sobre el `*.bin`
+
+Se usa `*.bin` en vez de programar el `*.elf` directamente porque el flujo es mas robusto con OpenOCD en LPC43xx, especialmente cuando el ELF tiene secciones con direccion de ejecucion en RAM.
+
 OpenOCD usa siempre:
 
 ```powershell
@@ -351,9 +623,34 @@ Extensiones recomendadas:
 Flujo:
 
 1. Ejecutar `Configure [debug]` o usar el preset `debug` de CMake Tools.
-2. Ejecutar `Build App [debug]`.
-3. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
-4. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
+2. Ejecutar `Build App [debug]` o `Build + Flash App [debug]`.
+3. Si queres programar la placa sin abrir una sesion de debug, ejecutar `Flash App [debug]`.
+4. Elegir `Debug App (OpenOCD)` en la pestana Run and Debug.
+5. El debugger usa `runToEntryPoint: main`, asi que debe detenerse en `main`.
+
+La configuracion de debug sigue usando el `*.elf`, mientras que el target de flash de CMake usa el `*.bin`.
+
+Tambien hay un perfil complementario:
+
+- `Attach App (OpenOCD)`
+
+Ese perfil sirve para adjuntarse a una placa ya programada sin relanzar la carga desde VS Code. Es util cuando primero queres flashear desde terminal o task de CMake y despues abrir una sesion GDB sobre ese firmware.
+
+## SVD y perifericos en debug
+
+La configuracion de VS Code referencia:
+
+- `platform/svd/LPC43xx_43Sxx.svd`
+
+Ese archivo habilita la vista de perifericos y registros en `cortex-debug`.
+
+Estado actual:
+
+- es util para inspeccion de registros de la familia LPC43xx
+- se mantiene integrado en `launch.json`
+- no debe asumirse como una descripcion exacta y perfecta del `LPC4337` concreto
+
+Si mas adelante se consigue un `SVD` mas preciso para el LPC4337/M4F, conviene reemplazarlo sin cambiar el flujo de debug.
 
 ## Validacion de OpenOCD y del probe FTDI
 
@@ -385,9 +682,39 @@ LPCOpen queda reducido a vendor code de soporte:
 
 - CMSIS headers
 - chip support
-- startup/system integration alineada con LPC4337
+- drivers de chip realmente usados por el firmware actual
 
 No se usa board library. El codigo propio vive en `src/` y se apoya en `lpc_chip_43xx` como capa de bajo nivel.
+
+En esta etapa:
+
+- no se tocaron archivos internos de LPCOpen
+- se redujo desde CMake la lista de fuentes vendor compiladas a las efectivamente necesarias
+- se reubico LPCOpen en `third_party/lpcopen/chip_43xx/` para dejar mas claro su rol de vendor
+
+## Startup, linker y system init
+
+La base actual conserva estos archivos como parte del arranque bare-metal del M4:
+
+- `src/startup/cr_startup_lpc43xx.c`
+- `src/startup/sysinit.c`
+- `src/startup/crp.c`
+- `platform/ldscripts/default/mem/mem.ld`
+- `platform/ldscripts/default/sections/sections.ld`
+
+Origen y criterio:
+
+- provienen de la base NXP/MCUXpresso/LPCOpen
+- estan integrados a CMake y validados con esta placa
+- se conservan por compatibilidad y estabilidad
+
+No se reemplazaron en esta etapa porque hoy no son el problema principal del repo y ya resuelven correctamente:
+
+- vector table
+- inicializacion temprana
+- `SystemInit`
+- layout de memoria
+- enlace del firmware bare-metal
 
 ## Sensores DS18B20 por 1-Wire
 
@@ -434,8 +761,8 @@ La aplicacion usa el bus `1-Wire` al iniciar:
 
 ### Archivos relevantes
 
-- [src/Driver/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/onewire_driver.h)
-- [src/Driver/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/Driver/ds18b20_driver.h)
+- [src/drivers/onewire_driver.h](e:/Users/agust/Documents/cursada_mc2/src/drivers/onewire_driver.h)
+- [src/drivers/ds18b20_driver.h](e:/Users/agust/Documents/cursada_mc2/src/drivers/ds18b20_driver.h)
 - [src/app/app.c](e:/Users/agust/Documents/cursada_mc2/src/app/app.c)
 - [src/hmi/hmi.c](e:/Users/agust/Documents/cursada_mc2/src/hmi/hmi.c)
 
@@ -481,6 +808,7 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 - Confirmar que `arm-none-eabi-gdb` este en `PATH`.
 - Confirmar que `openocd` arranca sin errores con el mismo `cfg`.
 - Revisar que el `launch.json` apunte al `.elf` del preset `debug` y que `arm-none-eabi-gdb`, `arm-none-eabi-objdump` y `openocd` esten en `PATH`.
+- Si queres conectarte sin relanzar la carga desde VS Code, usar `Attach App (OpenOCD)` en vez de `Debug App (OpenOCD)`.
 - Si una sesion previa dejo `openocd` abierto, cerrar la sesion de debug o terminar el proceso antes de reintentar.
 
 ### VS Code no encuentra el toolchain
@@ -498,8 +826,8 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ### Errores de linker o startup
 
 - Confirmar que el target sea el core M4.
-- Confirmar que no se haya cambiado el linker script base bajo `platform/lpc43xx/ldscripts/default/`.
-- Confirmar que `src/cr_startup_lpc43xx.c` y `src/sysinit.c` esten siendo compilados.
+- Confirmar que no se haya cambiado el linker script base bajo `platform/ldscripts/default/`.
+- Confirmar que `src/startup/cr_startup_lpc43xx.c` y `src/startup/sysinit.c` esten siendo compilados.
 
 ### Problemas por dependencias viejas de LPCOpen
 
@@ -515,7 +843,20 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 4. Abrir `Debug App (OpenOCD)` en VS Code.
 5. Confirmar que el debugger se detiene en `main`.
 
-## Nota sobre el arbol `Debug/`
+## Artefactos legacy removidos
 
-El directorio `Debug/` heredado de MCUXpresso quedo como referencia historica. El flujo reproducible actual usa exclusivamente `build/debug` y `build/release`.
+Esta base ya no trackea artefactos del flujo Eclipse/MCUXpresso que no participan del entorno reproducible actual, por ejemplo:
 
+- `.project`
+- `.cproject`
+
+El flujo soportado del repo usa exclusivamente:
+
+- `build/debug`
+- `build/release`
+- VS Code
+- CMake presets
+- OpenOCD
+- arm-none-eabi-gdb
+
+El ejemplo legacy `periph_uart` no forma parte del flujo reproducible actual y debe tratarse como material viejo fuera del firmware principal.

@@ -18,6 +18,8 @@
 #endif
 
 #include "app/app.h"
+#include "drivers/buttons_driver.h"
+#include "drivers/timer_driver.h"
 
 int main(void)
 {
@@ -44,31 +46,34 @@ int main(void)
 
 void PININT0_IRQ_HANDLER(void)
 {
+    button_notify_irq(TECLA1);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH0);
 }
 
 
 void PININT1_IRQ_HANDLER(void)
 {
+    button_notify_irq(TECLA2);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH1);
 }
 
 
 void PININT2_IRQ_HANDLER(void)
 {
+    button_notify_irq(TECLA3);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH2);
 }
 
 
 void PININT3_IRQ_HANDLER(void)
 {
+    button_notify_irq(TECLA4);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH3);
 }
 
 
 void RIT_Handler(void)
 {
+    board_timer_irq_handler();
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
-    NVIC_EnableIRQ(RITIMER_IRQn);
-    Chip_RIT_ClearInt(LPC_RITIMER);
 }

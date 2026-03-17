@@ -5,8 +5,9 @@
 
 #include "hmi/hmi.h"
 
-#include "Driver/buttons_driver.h"
-#include "Driver/lcd_driver.h"
+#include "drivers/buttons_driver.h"
+#include "drivers/buzzer_driver.h"
+#include "drivers/lcd_driver.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -14,6 +15,9 @@
 #include <stdlib.h>
 
 #define HMI_CANTIDAD_COLUMNAS_LCD 16U
+#define HMI_PERIODO_PROCESO_MS 20U
+#define HMI_BEEP_PULSACION_MS 20U
+#define HMI_BEEP_PULSACION_TICKS (HMI_BEEP_PULSACION_MS / HMI_PERIODO_PROCESO_MS)
 
 typedef enum {
     HMI_EVENTO_NINGUNO = 0,
@@ -50,6 +54,8 @@ typedef struct {
 typedef struct {
     int16_t setpoint_deci_celsius;
     int16_t histeresis_deci_celsius;
+    int16_t tiempo_minimo_encendido_decisegundos;
+    int16_t tiempo_minimo_apagado_decisegundos;
     int16_t modo_calentar;
 } hmi_configuracion_t;
 
@@ -66,9 +72,9 @@ typedef struct {
 typedef struct {
     hmi_pantalla_t pantalla_actual;
     uint8_t nodo_actual;
-    uint8_t mascara_botones_anterior;
     int16_t valor_edicion;
     bool necesita_redibujado;
+    uint8_t ticks_buzzer_restantes;
 } hmi_interfaz_t;
 
 typedef struct {
@@ -83,6 +89,8 @@ enum {
     HMI_NODE_PARAMS,
     HMI_NODE_SETPOINT,
     HMI_NODE_HYSTERESIS,
+    HMI_NODE_TMIN_ON,
+    HMI_NODE_TMIN_OFF,
     HMI_NODE_MODE,
 };
 
@@ -90,6 +98,8 @@ static hmi_contexto_t hmi_ = {
     .configuracion = {
         .setpoint_deci_celsius = 270,
         .histeresis_deci_celsius = 20,
+        .tiempo_minimo_encendido_decisegundos = 0,
+        .tiempo_minimo_apagado_decisegundos = 0,
         .modo_calentar = 1,
     },
 };
@@ -120,17 +130,39 @@ static const hmi_item_menu_t hmi_menu_tree_[] = {
         .titulo = "Histeresis",
         .padre = HMI_NODE_PARAMS,
         .hermano_anterior = HMI_NODE_SETPOINT,
-        .hermano_siguiente = HMI_NODE_MODE,
+        .hermano_siguiente = HMI_NODE_TMIN_ON,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_.configuracion.histeresis_deci_celsius,
         .valor_minimo = 1,
         .valor_maximo = 200,
         .paso = 1,
     },
+    [HMI_NODE_TMIN_ON] = {
+        .titulo = "Tmin ON",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .hermano_siguiente = HMI_NODE_TMIN_OFF,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_.configuracion.tiempo_minimo_encendido_decisegundos,
+        .valor_minimo = 0,
+        .valor_maximo = 6000,
+        .paso = 1,
+    },
+    [HMI_NODE_TMIN_OFF] = {
+        .titulo = "Tmin OFF",
+        .padre = HMI_NODE_PARAMS,
+        .hermano_anterior = HMI_NODE_TMIN_ON,
+        .hermano_siguiente = HMI_NODE_MODE,
+        .tipo = HMI_ITEM_PARAMETRO,
+        .valor = &hmi_.configuracion.tiempo_minimo_apagado_decisegundos,
+        .valor_minimo = 0,
+        .valor_maximo = 6000,
+        .paso = 1,
+    },
     [HMI_NODE_MODE] = {
         .titulo = "Modo",
         .padre = HMI_NODE_PARAMS,
-        .hermano_anterior = HMI_NODE_HYSTERESIS,
+        .hermano_anterior = HMI_NODE_TMIN_OFF,
         .tipo = HMI_ITEM_PARAMETRO,
         .valor = &hmi_.configuracion.modo_calentar,
         .valor_minimo = 0,
@@ -266,11 +298,19 @@ static void hmi_dibujar_edicion(void)
         return;
     }
 
-    if ((hmi_.interfaz.nodo_actual == HMI_NODE_SETPOINT) || (hmi_.interfaz.nodo_actual == HMI_NODE_HYSTERESIS)) {
+    if ((hmi_.interfaz.nodo_actual == HMI_NODE_SETPOINT)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_HYSTERESIS)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_ON)
+        || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_OFF)) {
         char texto_valor[8];
 
         hmi_formatear_valor_deci(texto_valor, sizeof(texto_valor), hmi_.interfaz.valor_edicion);
-        (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s", item_actual->titulo, texto_valor);
+        if ((hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_ON)
+            || (hmi_.interfaz.nodo_actual == HMI_NODE_TMIN_OFF)) {
+            (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%ss", item_actual->titulo, texto_valor);
+        } else {
+            (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%s", item_actual->titulo, texto_valor);
+        }
     } else {
         (void) snprintf(linea_valor, sizeof(linea_valor), "%s:%d", item_actual->titulo, hmi_.interfaz.valor_edicion);
     }
@@ -304,26 +344,38 @@ static void hmi_dibujar(void)
 
 static hmi_evento_t hmi_leer_evento(void)
 {
-    const uint8_t mascara_actual = button_read_all_pins();
-    const uint8_t flancos_presionados =
-        (uint8_t) (mascara_actual & (uint8_t) ~hmi_.interfaz.mascara_botones_anterior);
+    const uint8_t tecla = button_get_event();
 
-    hmi_.interfaz.mascara_botones_anterior = mascara_actual;
-
-    if ((flancos_presionados & 0x01U) != 0U) {
+    if (tecla == TECLA1) {
         return HMI_EVENTO_MENU;
     }
-    if ((flancos_presionados & 0x02U) != 0U) {
+    if (tecla == TECLA2) {
         return HMI_EVENTO_SUBIR;
     }
-    if ((flancos_presionados & 0x04U) != 0U) {
+    if (tecla == TECLA3) {
         return HMI_EVENTO_BAJAR;
     }
-    if ((flancos_presionados & 0x08U) != 0U) {
+    if (tecla == TECLA4) {
         return HMI_EVENTO_ACEPTAR;
     }
 
     return HMI_EVENTO_NINGUNO;
+}
+
+static void hmi_actualizar_buzzer(void)
+{
+    if (hmi_.interfaz.ticks_buzzer_restantes > 0U) {
+        hmi_.interfaz.ticks_buzzer_restantes--;
+        if (hmi_.interfaz.ticks_buzzer_restantes == 0U) {
+            buzzer_turn_off();
+        }
+    }
+}
+
+static void hmi_emitir_beep_pulsacion(void)
+{
+    hmi_.interfaz.ticks_buzzer_restantes = HMI_BEEP_PULSACION_TICKS;
+    buzzer_turn_on();
 }
 
 static void hmi_entrar_menu_raiz(void)
@@ -428,9 +480,9 @@ void hmi_init(void)
 {
     hmi_.interfaz.pantalla_actual = HMI_PANTALLA_INICIO;
     hmi_.interfaz.nodo_actual = HMI_NODE_PARAMS;
-    hmi_.interfaz.mascara_botones_anterior = 0U;
     hmi_.interfaz.valor_edicion = 0;
     hmi_.interfaz.necesita_redibujado = true;
+    hmi_.interfaz.ticks_buzzer_restantes = 0U;
 
     driver_lcd_write_char('\b');
     hmi_dibujar();
@@ -439,6 +491,12 @@ void hmi_init(void)
 void hmi_process(void)
 {
     const hmi_evento_t evento = hmi_leer_evento();
+
+    hmi_actualizar_buzzer();
+
+    if (evento != HMI_EVENTO_NINGUNO) {
+        hmi_emitir_beep_pulsacion();
+    }
 
     switch (hmi_.interfaz.pantalla_actual) {
     case HMI_PANTALLA_INICIO:
@@ -485,6 +543,16 @@ uint16_t hmi_obtener_histeresis_deci_celsius(void)
     return (uint16_t) hmi_.configuracion.histeresis_deci_celsius;
 }
 
+uint32_t hmi_obtener_tiempo_minimo_encendido_ms(void)
+{
+    return (uint32_t) hmi_.configuracion.tiempo_minimo_encendido_decisegundos * 100U;
+}
+
+uint32_t hmi_obtener_tiempo_minimo_apagado_ms(void)
+{
+    return (uint32_t) hmi_.configuracion.tiempo_minimo_apagado_decisegundos * 100U;
+}
+
 bool hmi_modo_control_es_calentar(void)
 {
     return (hmi_.configuracion.modo_calentar != 0);
@@ -492,23 +560,26 @@ bool hmi_modo_control_es_calentar(void)
 
 void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
                                    uint16_t histeresis_deci_celsius,
+                                   uint32_t tiempo_minimo_encendido_ms,
+                                   uint32_t tiempo_minimo_apagado_ms,
                                    bool modo_calentar)
 {
     hmi_.configuracion.setpoint_deci_celsius = setpoint_deci_celsius;
     hmi_.configuracion.histeresis_deci_celsius = (int16_t) histeresis_deci_celsius;
+    hmi_.configuracion.tiempo_minimo_encendido_decisegundos = (int16_t) (tiempo_minimo_encendido_ms / 100U);
+    hmi_.configuracion.tiempo_minimo_apagado_decisegundos = (int16_t) (tiempo_minimo_apagado_ms / 100U);
     hmi_.configuracion.modo_calentar = modo_calentar ? 1 : 0;
     hmi_.interfaz.valor_edicion = 0;
     hmi_.interfaz.necesita_redibujado = true;
 }
 
-void hmi_cargar_estado_control(bool salida_activa, bool sensor_resuelto, uint8_t indice_sensor_proceso)
+void hmi_cargar_estado_control(bool salida_activa, bool sensor_disponible)
 {
     const bool hubo_cambios = (hmi_.control.salida_activa != salida_activa)
-        || (hmi_.control.sensor_resuelto != sensor_resuelto);
+        || (hmi_.control.sensor_resuelto != sensor_disponible);
 
-    (void) indice_sensor_proceso;
     hmi_.control.salida_activa = salida_activa;
-    hmi_.control.sensor_resuelto = sensor_resuelto;
+    hmi_.control.sensor_resuelto = sensor_disponible;
 
     if (hubo_cambios && (hmi_.interfaz.pantalla_actual == HMI_PANTALLA_INICIO)) {
         hmi_.interfaz.necesita_redibujado = true;

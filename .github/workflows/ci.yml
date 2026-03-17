@@ -9,15 +9,14 @@ permissions:
   contents: read
 
 jobs:
-  build-app:
-    if: startsWith(github.head_ref, 'dev/')
+  embedded:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install dependencies
+      - name: Install embedded dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -28,7 +27,7 @@ jobs:
             binutils-arm-none-eabi \
             libnewlib-arm-none-eabi
 
-      - name: Show tool versions
+      - name: Show embedded tool versions
         run: |
           cmake --version
           ninja --version
@@ -39,27 +38,11 @@ jobs:
       - name: Configure debug
         run: cmake --preset debug
 
-      - name: Run cppcheck
-        run: |
-          cppcheck \
-            --enable=warning,style,performance,portability \
-            --error-exitcode=1 \
-            --inline-suppr \
-            --suppress=missingIncludeSystem \
-            --suppress=constParameterPointer:platform/lpc43xx/lpc_chip_43xx/inc/* \
-            -D__GNUC__ \
-            -DCORE_M4 \
-            -Isrc \
-            -Isrc/Driver \
-            -Iplatform/lpc43xx/lpc_chip_43xx/inc \
-            src/main.c \
-            src/sysinit.c \
-            src/hmi \
-            src/Driver \
-            --quiet
-
       - name: Build app debug
         run: cmake --build --preset debug --target cursada_mc2_app
+
+      - name: Run cppcheck
+        run: cmake --build --preset debug --target cppcheck
 
       - name: Configure release
         run: cmake --preset release
@@ -68,7 +51,7 @@ jobs:
         run: cmake --build --preset release --target cursada_mc2_app
 
       - name: Upload debug artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: cursada_mc2_app-debug
           path: |
@@ -79,7 +62,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: cursada_mc2_app-release
           path: |

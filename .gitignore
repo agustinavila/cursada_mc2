@@ -2,6 +2,11 @@ Debug
 build/
 .codex-tmp/
 .settings
+.project
+.cproject
+.vscode/.cortex-debug.peripherals.state.json
+.vscode/.cortex-debug.registers.state.json
+platform/lpc43xx/periph_uart/
 poncho_Educativo_UNSJ/*
 # Prerequisites
 *.d
