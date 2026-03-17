@@ -94,6 +94,17 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 
 En esta etapa LPCOpen se movio a `third_party/lpcopen/` para dejar mas claro que es codigo vendor. Los linker scripts y OpenOCD se mantienen en `platform/` porque forman parte de la integracion especifica con la placa.
 
+Criterio general de organizacion:
+
+- `src/`
+  - Codigo propio del firmware: aplicacion, HMI, control, drivers y startup.
+- `third_party/`
+  - Codigo vendor que el proyecto reutiliza sin modificar internamente, como LPCOpen.
+- `platform/`
+  - Archivos de soporte especificos de la integracion con la placa y el flujo de tooling.
+
+Si en el futuro aparece otro archivo necesario para linker, flashing o debug de la placa, deberia agregarse en `platform/` antes que en `src/`.
+
 Ademas del README principal, las carpetas mas importantes ya incluyen notas cortas para orientar el recorrido del repo:
 
 - `src/`
