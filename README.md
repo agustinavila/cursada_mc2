@@ -21,7 +21,6 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - [Sensores DS18B20 por 1-Wire](#sensores-ds18b20-por-1-wire)
 - [Troubleshooting](#troubleshooting)
 - [Validacion minima sugerida](#validacion-minima-sugerida)
-- [Artefactos legacy removidos](#artefactos-legacy-removidos)
 
 ## Funcionamiento general
 
@@ -819,7 +818,6 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 
 ### Problemas con rutas en Windows
 
-- Esta base usa `build/debug` y `build/release`, no el arbol legado `Debug/`.
 - Si moves el repo de carpeta, reconfigura con `cmake --preset debug`.
 - No reutilices `CMakeCache.txt` viejos de otra ruta.
 
@@ -838,25 +836,7 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ## Validacion minima sugerida
 
 1. Compilar `cursada_mc2_app`.
-2. Verificar `build/debug/cursada_mc2_app.elf`, `.bin` y `.hex`.
+2. Verificar que se generen `cursada_mc2_app.elf`, `.bin` y `.hex`.
 3. Flashear `cursada_mc2_app`.
 4. Abrir `Debug App (OpenOCD)` en VS Code.
 5. Confirmar que el debugger se detiene en `main`.
-
-## Artefactos legacy removidos
-
-Esta base ya no trackea artefactos del flujo Eclipse/MCUXpresso que no participan del entorno reproducible actual, por ejemplo:
-
-- `.project`
-- `.cproject`
-
-El flujo soportado del repo usa exclusivamente:
-
-- `build/debug`
-- `build/release`
-- VS Code
-- CMake presets
-- OpenOCD
-- arm-none-eabi-gdb
-
-El ejemplo legacy `periph_uart` no forma parte del flujo reproducible actual y debe tratarse como material viejo fuera del firmware principal.
