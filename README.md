@@ -89,6 +89,51 @@ En el estado actual:
 - la logica de sensores vive en `app`, no en la HMI
 - el control implementado hoy es un unico lazo `on/off`
 
+## Futuras funciones posibles
+
+Esta base hoy esta enfocada en un solo lazo de control simple, pero hay varias
+extensiones razonables para etapas futuras del proyecto:
+
+- control de multiples lazos en simultaneo
+  - soporte para varios sensores y varios actuadores trabajando en paralelo
+  - util si se quiere controlar mas de un fermentador, o distintas zonas
+    termicas dentro de un mismo sistema
+
+- seleccion explicita del sensor de proceso
+  - hoy la app usa siempre el primer sensor detectado
+  - una mejora posible es permitir elegir desde la HMI que sensor usar como
+    variable de control
+
+- alarmas de proceso
+  - alarmas por temperatura alta (`HI`)
+  - alarmas por temperatura baja (`LO`)
+  - alarma de error o perdida de sensor
+  - estas alarmas podrian reflejarse en el LCD, en un buzzer o en una salida
+    dedicada
+
+- salidas separadas para calentar y enfriar
+  - en vez de una unica salida logica, el sistema podria manejar una salida
+    dedicada para calefaccion y otra para enfriamiento
+  - esto es util cuando ambos actuadores existen en el mismo equipo
+
+- nuevos modos de control
+  - ademas del `on/off`, se podria agregar un control proporcional o `PI`
+  - eso permitiria una regulacion mas fina en procesos con mayor inercia o con
+    requerimientos mas exigentes de estabilidad
+
+- salidas moduladas por `PWM`
+  - una salida `PWM` puede ser util cuando el actuador admite modulacion en vez
+    de simple conmutacion
+  - por ejemplo, para regular la potencia de una resistencia calefactora a
+    traves de una etapa de potencia adecuada, o para modular la velocidad de una
+    bomba o ventilador si el hardware asociado lo permite
+
+- mejoras generales de supervision
+  - registro de eventos o historico basico de temperaturas
+  - configuracion mas completa desde HMI
+  - diagnostico de sensores y actuadores
+  - integracion futura con telemetria o supervisión externa
+
 ## Uso de la HMI
 
 La interfaz de usuario usa el LCD de 16x2 y los cuatro pulsadores del poncho.
