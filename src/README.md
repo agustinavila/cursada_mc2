@@ -8,4 +8,4 @@ Subcarpetas principales:
 - `drivers/`: drivers propios del proyecto
 - `hmi/`: interfaz de usuario sobre LCD y pulsadores
 
-El arranque bare-metal del LPC4337 ya no vive aca: se movio a `platform/lpc4337/startup/` para separar mejor bootstrap de aplicacion.
+La carpeta `src/startup/` contiene el arranque bare-metal del LPC4337 para dejar el bootstrap junto al resto del codigo propio, pero separado de la logica de aplicacion.

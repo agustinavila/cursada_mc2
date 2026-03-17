@@ -61,7 +61,7 @@
         {
             "label": "Cppcheck",
             "type": "shell",
-            "command": "cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr \"--suppress=missingIncludeSystem\" \"--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*\" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c platform/lpc4337/startup/sysinit.c src/hmi src/app src/control src/drivers",
+            "command": "cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr \"--suppress=missingIncludeSystem\" \"--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*\" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/startup/sysinit.c src/hmi src/app src/control src/drivers",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

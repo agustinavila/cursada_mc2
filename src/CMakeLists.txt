@@ -1,7 +1,7 @@
 set(CURSADA_MC2_STARTUP_SOURCES
-    ../platform/lpc4337/startup/cr_startup_lpc43xx.c
-    ../platform/lpc4337/startup/crp.c
-    ../platform/lpc4337/startup/sysinit.c
+    startup/cr_startup_lpc43xx.c
+    startup/crp.c
+    startup/sysinit.c
 )
 
 # Startup, vector table e inicializacion temprana del microcontrolador.
@@ -11,7 +11,7 @@ add_library(cursada_mc2_startup OBJECT
 target_link_libraries(cursada_mc2_startup PRIVATE lpc43xx_common)
 target_include_directories(cursada_mc2_startup PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_SOURCE_DIR}/platform/lpc4337/startup"
+    "${CMAKE_CURRENT_SOURCE_DIR}/startup"
 )
 
 # Drivers y modulos de mas bajo nivel.
