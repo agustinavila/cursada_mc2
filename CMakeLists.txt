@@ -11,7 +11,7 @@ include(lpc4337)
 
 # Rutas base del chip, scripts de linker y configuracion de OpenOCD.
 set(LPC4337_CHIP_DIR "${CMAKE_SOURCE_DIR}/third_party/lpcopen/chip_43xx")
-set(LPC4337_LINKER_DIR "${CMAKE_SOURCE_DIR}/platform/lpc43xx/ldscripts/default")
+set(LPC4337_LINKER_DIR "${CMAKE_SOURCE_DIR}/platform/ldscripts/default")
 set(OPENOCD_CONFIG "${CMAKE_SOURCE_DIR}/platform/openocd/ciaa-nxp.cfg" CACHE FILEPATH "OpenOCD configuration file for the EDU-CIAA-NXP debug probe")
 
 # OpenOCD es opcional para compilar, pero necesario para los targets de flash.

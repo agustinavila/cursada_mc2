@@ -15,7 +15,7 @@
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
             ],
             "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
-            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
+            "svdFile": "${workspaceFolder}/platform/svd/LPC43xx_43Sxx.svd",
             "runToEntryPoint": "main",
             "showDevDebugOutput": "raw",
             "preLaunchTask": "Prepare Debug [debug]"
@@ -34,7 +34,7 @@
                 "${workspaceFolder}/platform/openocd/ciaa-nxp.cfg"
             ],
             "executable": "${workspaceFolder}/build/debug/cursada_mc2_app.elf",
-            "svdFile": "${workspaceFolder}/LPC43xx_43Sxx.svd",
+            "svdFile": "${workspaceFolder}/platform/svd/LPC43xx_43Sxx.svd",
             "showDevDebugOutput": "raw",
             "preLaunchTask": "Stop Debug Servers"
         }

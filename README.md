@@ -86,7 +86,8 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 - `src/startup/`: arranque bare-metal del M4, `SystemInit` y CRP.
 - `third_party/lpcopen/chip_43xx/`: codigo vendor heredado de LPCOpen.
   En esta base se usa solo como chip support layer del LPC4337.
-- `platform/lpc43xx/ldscripts/default/`: fragmentos de linker script heredados de NXP/MCUXpresso para el LPC4337.
+- `platform/ldscripts/default/`: fragmentos de linker script heredados de NXP/MCUXpresso para el LPC4337.
+- `platform/svd/LPC43xx_43Sxx.svd`: descripcion SVD usada por el debugger para registros y perifericos.
 - `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
 - `.vscode/`: tasks, launch y settings para VS Code.
@@ -402,7 +403,7 @@ Ese perfil sirve para adjuntarse a una placa ya programada sin relanzar la carga
 
 La configuracion de VS Code referencia:
 
-- `LPC43xx_43Sxx.svd`
+- `platform/svd/LPC43xx_43Sxx.svd`
 
 Ese archivo habilita la vista de perifericos y registros en `cortex-debug`.
 
@@ -461,8 +462,8 @@ La base actual conserva estos archivos como parte del arranque bare-metal del M4
 - `src/startup/cr_startup_lpc43xx.c`
 - `src/startup/sysinit.c`
 - `src/startup/crp.c`
-- `platform/lpc43xx/ldscripts/default/mem/mem.ld`
-- `platform/lpc43xx/ldscripts/default/sections/sections.ld`
+- `platform/ldscripts/default/mem/mem.ld`
+- `platform/ldscripts/default/sections/sections.ld`
 
 Origen y criterio:
 
@@ -588,7 +589,7 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ### Errores de linker o startup
 
 - Confirmar que el target sea el core M4.
-- Confirmar que no se haya cambiado el linker script base bajo `platform/lpc43xx/ldscripts/default/`.
+- Confirmar que no se haya cambiado el linker script base bajo `platform/ldscripts/default/`.
 - Confirmar que `src/startup/cr_startup_lpc43xx.c` y `src/startup/sysinit.c` esten siendo compilados.
 
 ### Problemas por dependencias viejas de LPCOpen
@@ -621,4 +622,4 @@ El flujo soportado del repo usa exclusivamente:
 - OpenOCD
 - arm-none-eabi-gdb
 
-El ejemplo legacy `platform/lpc43xx/periph_uart/` no forma parte del flujo reproducible actual y debe tratarse como material viejo fuera del firmware principal.
+El ejemplo legacy `periph_uart` no forma parte del flujo reproducible actual y debe tratarse como material viejo fuera del firmware principal.
