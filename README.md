@@ -115,6 +115,9 @@ La navegacion actual se hace asi:
 - `Tecla 3`: baja o decrementa
 - `Tecla 4`: entra en una opcion o confirma edicion
 
+Cada tecla se captura por `PIN_INT0..3`, se valida con debounce por software y la HMI consume un evento discreto cuando la pulsacion queda confirmada.
+Como feedback de interfaz, cada pulsacion valida tambien activa un beep corto en el buzzer del poncho.
+
 ### Menu actual
 
 La HMI implementa un menu jerarquico simple. En el LCD:
@@ -266,8 +269,8 @@ Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de u
 
 - `buzzer_driver`
   - abstrae el buzzer como salida digital simple
-  - hoy se inicializa en `app` y se apaga explicitamente al arranque, pero no forma parte de la accion de control ni de una logica de alarmas activa
-  - queda disponible para futuras alarmas o avisos de interfaz
+  - hoy se inicializa en `app` y se apaga explicitamente al arranque
+  - la HMI lo usa como feedback sonoro simple, generando un beep corto por cada pulsacion valida
 
 #### Drivers implementados pero no usados en el flujo actual
 
@@ -303,6 +306,7 @@ El startup define una vector table completa con handlers por defecto, pero eso n
   - en `main` existen handlers chicos para las cuatro teclas
   - cuando una tecla genera un flanco, la ISR se limita a notificar al `buttons_driver` y limpiar el flag de hardware
   - el driver se encarga despues de validar la pulsacion con una ventana de debounce por software y de entregar un unico evento a la HMI
+  - cuando la HMI detecta ese evento, activa un beep corto en el buzzer
 
 #### Interrupciones soportadas por drivers, pero no activas en el flujo principal actual
 
