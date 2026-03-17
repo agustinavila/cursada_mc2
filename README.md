@@ -6,6 +6,7 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 
 - [Funcionamiento general](#funcionamiento-general)
 - [Uso de la HMI](#uso-de-la-hmi)
+- [Desarrollo](#desarrollo)
 - [Estructura](#estructura)
 - [Prerrequisitos en Windows](#prerrequisitos-en-windows)
 - [Targets disponibles](#targets-disponibles)
@@ -155,8 +156,6 @@ La navegacion actual se hace asi:
 - `Tecla 3`: baja o decrementa
 - `Tecla 4`: entra en una opcion o confirma edicion
 
-Por ahora no hay una accion especial asociada a mantener una tecla presionada.
-
 ### Menu actual
 
 La HMI implementa un menu jerarquico simple. En el LCD:
@@ -169,15 +168,272 @@ Menu actual:
 - `Param control`
   - `Setpoint`
   - `Histeresis`
+  - `Tmin ON`
+  - `Tmin OFF`
   - `Modo`
 
 Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale de la edicion con `Menu`, el valor temporal se descarta.
+
+## Desarrollo
+
+Esta base se fue armando con la idea de tener un proyecto embebido que pudiera
+entenderse, compilarse y depurarse sin depender del IDE original. En otras
+palabras, la meta fue dejar un entorno de desarrollo claro y reproducible para
+la EDU-CIAA-NXP, usando herramientas abiertas y configuraciones visibles en el
+repo.
+
+Hoy el trabajo se apoya en:
+
+- `VS Code` como editor e integracion de tareas
+- `CMake` como generador de build
+- `arm-none-eabi-gcc` como toolchain
+- `OpenOCD` para programacion y servidor GDB
+- `arm-none-eabi-gdb` para debug del core M4
+
+La idea general es que el build, el arranque del micro, el linker, los drivers
+y la aplicacion queden visibles y trazables, sin pasos ocultos del IDE.
+
+### Entorno y objetivo del proyecto
+
+El objetivo principal fue independizar el desarrollo del firmware respecto de
+Eclipse o MCUXpresso. Para eso hubo que resolver de forma explicita:
+
+- configuracion del toolchain cruzado para ARM
+- integracion de startup, linker script y `SystemInit`
+- generacion de binarios `ELF`, `BIN` y `HEX`
+- flashing con `OpenOCD`
+- debug con `GDB` desde `VS Code`
+
+La idea es mejorar la reproducibilidad y control del entorno de desarrollo (en MCUExpresso es mas dificil). El
+flujo oficial del repo no depende de archivos generados por un IDE ni de
+configuraciones ocultas: lo que define el build esta en `CMake`, lo que define
+el debug esta en `.vscode/` y lo que define la plataforma esta en `platform/`.
+
+### Roadmap de desarrollo realizado
+
+El desarrollo del proyecto fue avanzando por etapas relativamente claras:
+
+1. `Entorno moderno sin Eclipse`
+   - primero se armo un flujo de build y debug con `CMake`, `VS Code`,
+     `arm-none-eabi-gcc`, `OpenOCD` y `GDB`
+   - esto permitio dejar de depender del proyecto heredado del IDE y volver el
+     repo mas portable y mas facil de revisar en CI
+
+2. `Startup basico del micro`
+   - una vez resuelto el entorno, se dejo un arranque minimo para el LPC4337
+     con vector table, `ResetISR`, `SystemInit` y linker script integrados al
+     build
+   - separar esa base del resto del firmware ayuda a que la aplicacion no quede
+     mezclada con detalles de bootstrap del microcontrolador
+
+3. `Desarrollo y prueba de drivers`
+   - con el entorno ya funcionando, se implementaron y adaptaron drivers para
+     GPIO, LCD, pulsadores, buzzer, EEPROM, ADC, 1-Wire, DS18B20 y UART
+   - en varios casos el codigo esta escrito como capa fina sobre LPCOpen,
+     dejando explicito que la logica de placa vive en drivers propios y no
+     repartida por toda la aplicacion
+   - tambien quedaron drivers o experimentos previos que hoy no forman parte
+     del lazo principal, pero siguen siendo utiles como base de reutilizacion o
+     como referencia didactica
+
+4. `Desarrollo de app separada de main`
+   - `main` se dejo deliberadamente chico y la orquestacion real se movio a
+     `app`
+   - eso evita que la logica del producto quede escondida en el entrypoint y
+     hace mas clara la separacion entre inicializacion de bajo nivel y
+     comportamiento funcional
+
+5. `Desarrollo de la HMI`
+   - sobre esa base se construyo una HMI simple para LCD de 16x2 y cuatro
+     pulsadores
+   - la HMI permite exponer el estado del control y editar parametros sin
+     contaminar `main` ni `app` con detalles de presentacion
+   - en la version actual, los botones se toman por interrupcion y luego se
+     validan con debounce por software antes de entregar el evento a la interfaz
+
+### Arquitectura general del firmware
+
+La arquitectura actual del firmware se reparte asi:
+
+- `main`
+  - contiene el punto de entrada y algunos handlers de interrupcion simples
+  - evita cargar logica funcional pesada; su rol es ceder rapido al resto del
+    firmware
+
+- `app`
+  - es la capa que coordina el sistema
+  - inicializa drivers, descubre sensores, sincroniza la HMI con los
+    parametros persistentes, ejecuta el control y actualiza la salida
+  - hoy es el lugar donde vive toda la logica del sistema.
+
+- `control`
+  - encapsula el lazo `on/off`
+  - recibe medicion, setpoint, histeresis y tiempos minimos de encendido y
+    apagado
+  - decide si la salida debe permanecer activa o no sin depender del hardware
+
+- `hmi`
+  - implementa la interfaz sobre LCD y pulsadores
+  - mantiene el menu y la edicion temporal de parametros
+
+- `drivers`
+  - concentran el acceso a perifericos y funciones de bajo nivel de la placa
+  - son la capa que traduce entre la aplicacion y LPCOpen o los registros del
+    micro
+
+- `startup`
+  - contiene el codigo de arranque, `SystemInit` y los simbolos necesarios para
+    boot y enlazado del firmware
+
+En la practica, `main` queda minimo y `app` pasa a ser el coordinador central
+del firmware.
+
+### Drivers implementados
+
+Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de
+uso en el firmware actual: algunos participan directamente del lazo principal,
+otros estan inicializados pero hoy no afectan el control, y otros quedaron como
+desarrollo previo o soporte potencial para futuras etapas.
+
+#### Drivers activos en el firmware actual
+
+- `buttons_driver`
+  - abstrae los cuatro pulsadores del poncho
+  - hoy la HMI no lee los GPIO crudos directamente: el driver captura la
+    pulsacion por `PIN_INT0..3`, aplica un debounce simple por software y deja
+    un evento pendiente para que la interfaz lo consuma
+  - ademas conserva funciones de lectura directa, que siguen siendo utiles para
+    diagnostico o para una integracion futura distinta
+
+- `delay_driver`
+  - abstrae retardos en microsegundos y milisegundos
+  - se apoya en las rutinas `StopWatch` de LPCOpen y se inicializa una sola vez
+  - se usa en drivers que requieren temporizaciones precisas,
+    por ejemplo el LCD y el bus `1-Wire`
+
+- `timer_driver`
+  - abstrae el temporizador `RIT`
+  - es la base temporal del firmware: mantiene un tick ciclico y permite ejecutar el lazo principal cada `20 ms` sin usar un delay bloqueante
+
+- `onewire_driver`
+  - implementa el bus 1-Wire por bit-banging sobre GPIO
+  - resuelve reset, escritura y lectura de bits y bytes, lectura/escritura de
+    ROM y bus search
+  - esta escrito con delays explicitos porque el protocolo 1-Wire depende de ventanas de tiempo cortas y bien definidas
+  - hoy no se usa directamente desde `app`; entra como base del
+    `ds18b20_driver`
+
+- `ds18b20_driver`
+  - implementa el protocolo de mas alto nivel para sensores DS18B20 sobre
+    1-Wire
+  - soporta un modo de dispositivo unico y un modo de bus con multiples
+    sensores, con descubrimiento, CRC y conversion no bloqueante
+  - la app actual usa el modo de bus, pero toma siempre el primer sensor
+    detectado como variable de proceso
+  - las funciones mas relevantes son `ds18b20_bus_init()`,
+    `ds18b20_bus_discover()`, `ds18b20_bus_start_conversion()`,
+    `ds18b20_bus_process()` y `ds18b20_bus_get_latest_raw()`
+
+- `eeprom_driver`
+  - habilita el uso de la EEPROM interna del LPC4337
+  - internamente trabaja por paginas y usa una estrategia de lectura,
+    modificacion y escritura del bloque afectado
+  - hoy lo usa el modulo `parametros` para guardar y restaurar la configuracion del control
+
+- `lcd_driver`
+  - abstrae el LCD alfanumerico del poncho en modo de 4 bits
+  - maneja inicializacion, posicionamiento del cursor, envio de comandos y
+    escritura de caracteres o cadenas
+  - depende de delays explicitos porque la temporizacion del controlador LCD es
+    parte del protocolo de bajo nivel
+  - hoy lo usa la HMI para dibujar la pantalla principal y el menu
+
+- `led_driver`
+  - abstrae los LEDs de la placa como salidas discretas simples
+  - hoy la app usa `LED1` como actuador de prueba para reflejar el estado de la
+    salida del control
+  - sus funciones principales son `led_init()`, `led_turn_on()` y `led_turn_off()`
+
+- `buzzer_driver`
+  - abstrae el buzzer como salida digital simple
+  - hoy se inicializa en `app` y se apaga explicitamente al arranque, pero no
+    forma parte de la accion de control ni de una logica de alarmas activa
+  - queda disponible para futuras alarmas o avisos de interfaz
+
+#### Drivers implementados pero no usados en el flujo actual
+
+- `adc_driver`
+  - abstrae el ADC del micro y soporta tanto inicializacion por canal como
+    soporte para interrupcion
+  - hoy no esta integrado en la app y no participa del lazo principal, que se
+    basa en DS18B20
+
+- `keyboard_driver`
+  - implementa un teclado matricial sobre filas y columnas, con posibilidad de
+    usar interrupciones sobre las filas
+  - en este proyecto ya existia de una etapa anterior y se conserva como codigo
+    propio reutilizable y como referencia didactica
+  - hoy no esta integrado en la app ni en la HMI actual
+
+- `uart_driver`
+  - implementa una UART basica por polling, sin buffers ni ISR
+  - es util como canal de diagnostico o comunicacion simple, pero hoy no forma
+    parte del flujo principal del firmware
+
+- `uart_driver_irq`
+  - agrega una capa de UART con interrupciones y ring buffers sobre la base de
+    LPCOpen
+  - soporta wrappers de ISR para `USART0`, `USART2` y `USART3`
+  - hoy no esta integrado en la app, pero deja preparada una base mas robusta
+    para telemetria o consola futura
+
+### Manejo de interrupciones
+
+El startup define una vector table completa con handlers por defecto, pero eso
+no significa que todo ese conjunto de interrupciones este realmente en uso. En
+el codigo propio solo aparecen algunas ISR especificas y, aun asi, no todas
+forman parte activa del comportamiento actual del producto.
+
+#### Handlers presentes en el firmware actual
+
+- `RIT_Handler`
+  - delega la actualizacion del tick del
+    sistema en `timer_driver`
+  - este handler forma parte del funcionamiento real del firmware actual,
+    porque a partir de ese tick la app ejecuta periodicamente su lazo principal
+
+- `PIN_INT0..3`
+  - en `main` existen handlers chicos para las cuatro teclas
+  - cuando una tecla genera un flanco, la ISR se limita a notificar al
+    `buttons_driver` y limpiar el flag de hardware
+  - el driver se encarga despues de validar la pulsacion con una ventana de
+    debounce por software y de entregar un unico evento a la HMI
+
+#### Interrupciones soportadas por drivers, pero no activas en el flujo principal actual
+
+- `PIN_INT4..7` del `keyboard_driver`
+  - el driver puede habilitar interrupciones sobre las filas del teclado
+    matricial
+  - si se integrara, las ISR servirian para detectar actividad del teclado y
+    reconstruir la tecla presionada sin depender exclusivamente de polling
+
+- `ADC0_IRQn` del `adc_driver`
+  - el driver puede trabajar con interrupcion de conversion
+  - en una aplicacion futura eso permitiria capturar muestras analogicas y
+    disparar procesamiento cuando el ADC termina, sin consultar el estado de
+    manera activa
+
+- `USART0/2/3_IRQn` del `uart_driver_irq`
+  - el driver con IRQ instala wrappers para esas UART y usa ring buffers para
+    recepcion y transmision
+  - si se integrara en la app, permitiria una comunicacion serial no bloqueante
+    con menos carga sobre el lazo principal
 
 ## Estructura
 
 - `src/`: codigo propio del firmware, incluyendo aplicacion, HMI, control, drivers y startup.
 - `third_party/`: codigo vendor reutilizado sin modificar internamente, como LPCOpen.
-- `platform/`: archivos de soporte especificos de la placa y del flujo de tooling, como linker scripts, OpenOCD y SVD.
+- `platform/`: archivos de soporte especificos de la placa y del entorno de desarrollo, como linker scripts, OpenOCD y SVD.
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
 - `.vscode/`: tasks, launch y settings para VS Code.
 
@@ -412,7 +668,7 @@ cmake --preset debug
 cmake --build --preset debug --target cursada_mc2_app
 ```
 
-Si tambien cambiaste tooling o integracion local, conviene correr ademas:
+Si tambien cambiaste el entorno de desarrollo o la integracion local, conviene correr ademas:
 
 ```powershell
 cppcheck --template=gcc --enable=warning,style,performance,portability --error-exitcode=1 --inline-suppr "--suppress=missingIncludeSystem" "--suppress=constParameterPointer:third_party/lpcopen/chip_43xx/inc/*" -D__GNUC__ -DCORE_M4 -Isrc -Isrc/drivers -Ithird_party/lpcopen/chip_43xx/inc src/main.c src/startup/sysinit.c src/hmi src/app src/control src/drivers
