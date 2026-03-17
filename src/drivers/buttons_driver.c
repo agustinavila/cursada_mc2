@@ -207,7 +207,7 @@ void buttons_process(uint32_t delta_ms)
         estado->irq_pendiente = false;
         estado->debounce_acumulado_ms = 0U;
 
-        if (presionado_actual && estado->armado) {
+        if (estado->armado) {
             estado->presionado_estable = true;
             estado->armado = false;
             estado->evento_pendiente = true;
