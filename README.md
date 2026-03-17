@@ -175,27 +175,11 @@ Los cambios de parametros se aplican solo al confirmar con `Enter`. Si se sale d
 
 ## Estructura
 
-- `src/`: codigo propio del firmware.
-  Incluye aplicacion, control, HMI y drivers propios en `src/drivers/`.
-- `src/startup/`: arranque bare-metal del M4, `SystemInit` y CRP.
-- `third_party/lpcopen/chip_43xx/`: codigo vendor heredado de LPCOpen.
-  En esta base se usa solo como chip support layer del LPC4337.
-- `platform/ldscripts/default/`: fragmentos de linker script heredados de NXP/MCUXpresso para el LPC4337.
-- `platform/svd/LPC43xx_43Sxx.svd`: descripcion SVD usada por el debugger para registros y perifericos.
-- `platform/openocd/ciaa-nxp.cfg`: configuracion de OpenOCD validada para la interfaz FTDI/JTAG de la EDU-CIAA-NXP.
+- `src/`: codigo propio del firmware, incluyendo aplicacion, HMI, control, drivers y startup.
+- `third_party/`: codigo vendor reutilizado sin modificar internamente, como LPCOpen.
+- `platform/`: archivos de soporte especificos de la placa y del flujo de tooling, como linker scripts, OpenOCD y SVD.
 - `cmake/`: toolchain y helpers de CMake para bare-metal.
 - `.vscode/`: tasks, launch y settings para VS Code.
-
-En esta etapa LPCOpen se movio a `third_party/lpcopen/` para dejar mas claro que es codigo vendor. Los linker scripts y OpenOCD se mantienen en `platform/` porque forman parte de la integracion especifica con la placa.
-
-Criterio general de organizacion:
-
-- `src/`
-  - Codigo propio del firmware: aplicacion, HMI, control, drivers y startup.
-- `third_party/`
-  - Codigo vendor que el proyecto reutiliza sin modificar internamente, como LPCOpen.
-- `platform/`
-  - Archivos de soporte especificos de la integracion con la placa y el flujo de tooling.
 
 Si en el futuro aparece otro archivo necesario para linker, flashing o debug de la placa, deberia agregarse en `platform/` antes que en `src/`.
 
