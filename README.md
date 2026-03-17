@@ -26,6 +26,27 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 
 La aplicacion actual implementa una base para control de temperatura sobre la EDU-CIAA-NXP.
 
+Un caso de uso concreto para esta base es el control de temperatura durante la
+fermentacion de cerveza. En ese proceso, mantener la temperatura dentro de un
+rango estable es importante porque afecta directamente la actividad de la
+levadura, la velocidad de fermentacion y el perfil final de aromas y sabores.
+Una temperatura demasiado alta puede generar subproductos no deseados y una
+temperatura demasiado baja puede frenar o volver ineficiente la fermentacion.
+
+La base soporta ambos modos de trabajo, calentar y enfriar, pero en este caso
+el uso mas comun suele ser enfriar, porque la fermentacion es un proceso
+exotermico. Eso permite, por ejemplo, habilitar la circulacion de un chiller a
+traves de una serpentina cuando la temperatura supera el valor objetivo. En una
+implementacion concreta, la accion de control podria activar una bomba para
+forzar esa circulacion o una electroválvula que habilite el paso del fluido de
+enfriamiento.
+
+Tambien hay un caso complementario en temporadas de invierno o en ambientes muy
+frios, donde la temperatura exterior puede hacer caer demasiado la temperatura
+del fermentador. En esa situacion, el mismo esquema de control permite trabajar
+en modo calentar para sostener la temperatura de fermentacion dentro del rango
+deseado.
+
 A grandes rasgos, el flujo es este:
 
 - uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
@@ -33,6 +54,34 @@ A grandes rasgos, el flujo es este:
 - la HMI muestra el estado general del control en el LCD y permite editar sus parametros principales con cuatro pulsadores
 - sobre esa medicion corre un control `on/off` con histeresis y tiempos minimos de encendido/apagado
 - la salida del control se refleja hoy en `LED1` como actuador de prueba
+
+### Proceso de control
+
+El lazo implementado hoy es un control `on/off`. Eso significa que la salida no
+trabaja de manera proporcional, sino que solo tiene dos estados posibles:
+encendida o apagada. El controlador compara la temperatura medida contra el
+`setpoint` y decide si debe activar o desactivar la salida segun el modo de
+trabajo:
+
+- en `calentar`, la salida se activa cuando la temperatura cae por debajo del
+  rango permitido y se desactiva al recuperar la temperatura objetivo
+- en `enfriar`, la salida se activa cuando la temperatura supera el rango
+  permitido y se desactiva al volver al objetivo
+
+Para evitar que la salida conmute continuamente alrededor del `setpoint`, el
+control usa `histeresis`. La histeresis define una banda de tolerancia alrededor
+del valor objetivo y evita que pequeñas variaciones o ruido en la medicion
+produzcan encendidos y apagados repetidos. Sin histeresis, si la temperatura se
+mantuviera oscilando muy cerca del setpoint, la salida podria cambiar de estado
+demasiado seguido.
+
+Ademas, el control incorpora tiempos minimos de encendido y apagado. Estos
+delays no bloquean el lazo principal, sino que obligan a que la salida permanezca
+un tiempo minimo en cada estado antes de permitir una nueva conmutacion. Esto
+ayuda a filtrar cambios rapidos debidos a ruido, mediciones inestables o
+fluctuaciones transitorias del proceso. En una aplicacion real tambien sirve
+para proteger actuadores que no conviene conmutar demasiado seguido, como un
+compresor, una electroválvula o un relé.
 
 En el estado actual:
 
