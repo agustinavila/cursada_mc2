@@ -25,7 +25,7 @@ typedef struct {
     uint32_t debounce_acumulado_ms;
 } button_estado_t;
 
-static button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
+static volatile button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
     [0] = {.armado = true},
     [1] = {.armado = true},
     [2] = {.armado = true},
@@ -178,7 +178,7 @@ void buttons_process(uint32_t delta_ms)
     for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
         const uint8_t tecla = (uint8_t) (indice + 1U);
         const bool presionado_actual = (button_read_pin(tecla) != 0U);
-        button_estado_t* estado = &button_estados_[indice];
+        volatile button_estado_t* estado = &button_estados_[indice];
 
         if (estado->presionado_estable && !presionado_actual) {
             estado->presionado_estable = false;
