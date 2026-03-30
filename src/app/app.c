@@ -20,8 +20,8 @@
 static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
 
 typedef struct {
-    ds18b20_bus_driver_t bus_temperatura;
-    uint8_t cantidad;
+    ds18b20_driver_t sensor_temperatura;
+    bool inicializado;
     uint16_t ticks_actualizacion;
 } app_sensores_t;
 
@@ -56,12 +56,11 @@ static bool app_obtener_temperatura_sensor_principal(int16_t* temperatura_deci_c
 {
     int16_t temperatura_cruda = 0;
 
-    if (temperatura_deci_celsius == 0) {
+    if ((temperatura_deci_celsius == 0) || !app_sensores_.inicializado) {
         return false;
     }
 
-    if ((app_sensores_.cantidad == 0U)
-        || !ds18b20_bus_get_latest_raw(&app_sensores_.bus_temperatura, 0U, &temperatura_cruda)) {
+    if (!ds18b20_get_latest_raw(&app_sensores_.sensor_temperatura, &temperatura_cruda)) {
         return false;
     }
 
@@ -82,18 +81,18 @@ static void app_cargar_sensor_en_hmi(void)
 
 static void app_actualizar_sensores(void)
 {
-    ds18b20_bus_process(&app_sensores_.bus_temperatura, 20U);
+    if (!app_sensores_.inicializado) {
+        app_cargar_sensor_en_hmi();
+        return;
+    }
 
-    if (!ds18b20_bus_is_busy(&app_sensores_.bus_temperatura)) {
+    ds18b20_process(&app_sensores_.sensor_temperatura, 20U);
+
+    if (!ds18b20_is_busy(&app_sensores_.sensor_temperatura)) {
         app_sensores_.ticks_actualizacion++;
         if (app_sensores_.ticks_actualizacion >= 50U) {
             app_sensores_.ticks_actualizacion = 0U;
-            if (app_sensores_.cantidad == 0U) {
-                app_sensores_.cantidad = ds18b20_bus_discover(&app_sensores_.bus_temperatura);
-            }
-            if (app_sensores_.cantidad > 0U) {
-                (void) ds18b20_bus_start_conversion(&app_sensores_.bus_temperatura);
-            }
+            (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
         }
     } else {
         app_sensores_.ticks_actualizacion = 0U;
@@ -149,17 +148,15 @@ static void app_sincronizar_control_desde_parametros(void)
     control_on_off_configurar(app_control_on_off_configuracion_actual_);
 }
 
-static bool app_sincronizar_hmi_en_parametros(void)
+static void app_sincronizar_hmi_en_parametros(void)
 {
-    if (!parametros_actualizar_control(hmi_obtener_setpoint_deci_celsius(),
-                                       hmi_obtener_histeresis_deci_celsius(),
-                                       hmi_obtener_tiempo_minimo_encendido_ms(),
-                                       hmi_obtener_tiempo_minimo_apagado_ms(),
-                                       hmi_modo_control_es_calentar())) {
-        return true;
+    if (parametros_actualizar_control(hmi_obtener_setpoint_deci_celsius(),
+                                      hmi_obtener_histeresis_deci_celsius(),
+                                      hmi_obtener_tiempo_minimo_encendido_ms(),
+                                      hmi_obtener_tiempo_minimo_apagado_ms(),
+                                      hmi_modo_control_es_calentar())) {
+        (void) parametros_guardar();
     }
-
-    return parametros_guardar();
 }
 
 static void app_actualizar_control(void)
@@ -167,11 +164,7 @@ static void app_actualizar_control(void)
     int16_t temperatura_deci_celsius = 0;
     bool salida_activa = false;
 
-    if (!app_sincronizar_hmi_en_parametros()) {
-        hmi_cargar_estado_control(false, false);
-        led_turn_off(LED1);
-        return;
-    }
+    app_sincronizar_hmi_en_parametros();
     app_sincronizar_control_desde_parametros();
 
     if (!app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
@@ -203,11 +196,9 @@ void app_init(void)
     (void) driver_eeprom_init();
     (void) parametros_init();
 
-    if (ds18b20_bus_init(&app_sensores_.bus_temperatura, &app_pin_ds18b20_)) {
-        app_sensores_.cantidad = ds18b20_bus_discover(&app_sensores_.bus_temperatura);
-        if (app_sensores_.cantidad > 0U) {
-            (void) ds18b20_bus_start_conversion(&app_sensores_.bus_temperatura);
-        }
+    app_sensores_.inicializado = ds18b20_init(&app_sensores_.sensor_temperatura, &app_pin_ds18b20_);
+    if (app_sensores_.inicializado) {
+        (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
     }
 
     app_cargar_sensor_en_hmi();
