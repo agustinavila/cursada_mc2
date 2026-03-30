@@ -54,7 +54,7 @@ typedef struct {
  * @param configuracion Configuracion inicial.
  *
  * @retval true Si la inicializacion fue correcta.
- * @retval false Si algun puntero es invalido o la configuracion no es valida.
+ * @retval false Si algun puntero es invalido.
  */
 bool control_on_off_inicializar(control_on_off_t* control,
                                 const control_on_off_configuracion_t* configuracion);
@@ -66,7 +66,7 @@ bool control_on_off_inicializar(control_on_off_t* control,
  * @param configuracion Nueva configuracion.
  *
  * @retval true Si la configuracion fue aceptada.
- * @retval false Si algun puntero es invalido o la configuracion no es valida.
+ * @retval false Si algun puntero es invalido o el control no esta inicializado.
  */
 bool control_on_off_configurar(control_on_off_t* control,
                                const control_on_off_configuracion_t* configuracion);

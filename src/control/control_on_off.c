@@ -7,20 +7,6 @@
 
 #include <limits.h>
 
-static bool control_on_off_configuracion_es_valida(const control_on_off_configuracion_t* configuracion)
-{
-    if (configuracion == 0) {
-        return false;
-    }
-
-    if ((configuracion->sentido != CONTROL_ON_OFF_SENTIDO_CALENTAR)
-        && (configuracion->sentido != CONTROL_ON_OFF_SENTIDO_ENFRIAR)) {
-        return false;
-    }
-
-    return true;
-}
-
 static int16_t control_on_off_obtener_umbral_activacion(const control_on_off_t* control)
 {
     if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
@@ -80,7 +66,7 @@ static bool control_on_off_puede_conmutar(const control_on_off_t* control, bool 
 bool control_on_off_inicializar(control_on_off_t* control,
                                 const control_on_off_configuracion_t* configuracion)
 {
-    if ((control == 0) || !control_on_off_configuracion_es_valida(configuracion)) {
+    if ((control == 0) || (configuracion == 0)) {
         return false;
     }
 
@@ -96,7 +82,7 @@ bool control_on_off_inicializar(control_on_off_t* control,
 bool control_on_off_configurar(control_on_off_t* control,
                                const control_on_off_configuracion_t* configuracion)
 {
-    if ((control == 0) || !control->inicializado || !control_on_off_configuracion_es_valida(configuracion)) {
+    if ((control == 0) || (configuracion == 0) || !control->inicializado) {
         return false;
     }
 
