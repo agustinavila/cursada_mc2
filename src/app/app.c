@@ -50,76 +50,39 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
     return (int16_t) ((temperatura_escalada - 8) / 16);
 }
 
-static bool app_obtener_temperatura_sensor_principal(int16_t* temperatura_deci_celsius)
-{
-    int16_t temperatura_cruda = 0;
-
-    if ((temperatura_deci_celsius == 0) || !app_sensores_.inicializado) {
-        return false;
-    }
-
-    if (!ds18b20_get_latest_raw(&app_sensores_.sensor_temperatura, &temperatura_cruda)) {
-        return false;
-    }
-
-    *temperatura_deci_celsius = app_convertir_temperatura_raw_a_deci(temperatura_cruda);
-    return true;
-}
-
-static void app_actualizar_sensores(void)
-{
-    int16_t temperatura_deci_celsius = 0;
-
-    if (!app_sensores_.inicializado) {
-        hmi_cargar_estado_sensor(false, 0);
-        return;
-    }
-
-    ds18b20_process(&app_sensores_.sensor_temperatura, APP_LOOP_DELTA_MS);
-
-    if (!ds18b20_is_busy(&app_sensores_.sensor_temperatura)) {
-        app_sensores_.ticks_actualizacion++;
-        if (app_sensores_.ticks_actualizacion >= 50U) {
-            app_sensores_.ticks_actualizacion = 0U;
-            (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
-        }
-    } else {
-        app_sensores_.ticks_actualizacion = 0U;
-    }
-
-    if (app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
-        hmi_cargar_estado_sensor(true, temperatura_deci_celsius);
-    } else {
-        hmi_cargar_estado_sensor(false, 0);
-    }
-}
-
-static void app_cargar_parametros_en_hmi(void)
-{
-    const parametros_t* parametros = parametros_obtener();
-
-    hmi_cargar_parametros_control(parametros->control.setpoint_deci_celsius,
-                                  parametros->control.histeresis_deci_celsius,
-                                  parametros->control.tiempo_minimo_encendido_ms,
-                                  parametros->control.tiempo_minimo_apagado_ms,
-                                  parametros->control.modo_calentar);
-}
-
-static void app_actualizar_control(void)
+static void app_step_20ms(void)
 {
     const hmi_parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
-    const parametros_t* parametros = parametros_obtener();
+    const parametros_t* parametros = 0;
+    int16_t temperatura_cruda = 0;
     int16_t temperatura_deci_celsius = 0;
+    bool temperatura_valida = false;
     bool salida_activa = false;
-    control_on_off_configuracion_t configuracion_control = {
-        .sentido = parametros->control.modo_calentar
-            ? CONTROL_ON_OFF_SENTIDO_CALENTAR
-            : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
-        .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
-        .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
-        .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
-    };
+
+    if (app_sensores_.inicializado) {
+        ds18b20_process(&app_sensores_.sensor_temperatura, APP_LOOP_DELTA_MS);
+
+        if (!ds18b20_is_busy(&app_sensores_.sensor_temperatura)) {
+            app_sensores_.ticks_actualizacion++;
+            if (app_sensores_.ticks_actualizacion >= 50U) {
+                app_sensores_.ticks_actualizacion = 0U;
+                (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
+            }
+        } else {
+            app_sensores_.ticks_actualizacion = 0U;
+        }
+
+        // Lee la ultima conversion lista del DS18B20 y la pasa a decimas de grado.
+        if (ds18b20_get_latest_raw(&app_sensores_.sensor_temperatura, &temperatura_cruda)) {
+            temperatura_deci_celsius = app_convertir_temperatura_raw_a_deci(temperatura_cruda);
+            temperatura_valida = true;
+        }
+    }
+
+    hmi_cargar_estado_sensor(temperatura_valida, temperatura_valida ? temperatura_deci_celsius : 0);
+
+    buttons_process(APP_LOOP_DELTA_MS);
+    hmi_process();
 
     if (parametros_actualizar_control(parametros_hmi.setpoint_deci_celsius,
                                       parametros_hmi.histeresis_deci_celsius,
@@ -127,19 +90,20 @@ static void app_actualizar_control(void)
                                       parametros_hmi.tiempo_minimo_apagado_ms,
                                       parametros_hmi.modo_calentar)) {
         (void) parametros_guardar();
-        parametros = parametros_obtener();
-        configuracion_control.sentido = parametros->control.modo_calentar
-            ? CONTROL_ON_OFF_SENTIDO_CALENTAR
-            : CONTROL_ON_OFF_SENTIDO_ENFRIAR;
-        configuracion_control.setpoint_deci_celsius = parametros->control.setpoint_deci_celsius;
-        configuracion_control.histeresis_deci_celsius = parametros->control.histeresis_deci_celsius;
-        configuracion_control.tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms;
-        configuracion_control.tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms;
     }
 
-    control_on_off_configurar(configuracion_control);
+    parametros = parametros_obtener();
+    control_on_off_configurar((control_on_off_configuracion_t) {
+        .sentido = parametros->control.modo_calentar
+            ? CONTROL_ON_OFF_SENTIDO_CALENTAR
+            : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
+        .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
+        .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
+        .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
+    });
 
-    if (!app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
+    if (!temperatura_valida) {
         hmi_cargar_estado_control(false, false);
         led_turn_off(LED1);
         return;
@@ -173,12 +137,17 @@ void app_init(void)
         (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
     }
 
-    hmi_cargar_estado_sensor(false, 0);
     hmi_init();
-    app_cargar_parametros_en_hmi();
-
     {
         const parametros_t* parametros = parametros_obtener();
+
+        hmi_cargar_estado_sensor(false, 0);
+        hmi_cargar_parametros_control(parametros->control.setpoint_deci_celsius,
+                                      parametros->control.histeresis_deci_celsius,
+                                      parametros->control.tiempo_minimo_encendido_ms,
+                                      parametros->control.tiempo_minimo_apagado_ms,
+                                      parametros->control.modo_calentar);
+
         control_on_off_configuracion_t configuracion_control = {
             .sentido = parametros->control.modo_calentar
                 ? CONTROL_ON_OFF_SENTIDO_CALENTAR
@@ -201,9 +170,6 @@ void app_process(void)
     while ((uint32_t) (tick_actual_ms - app_ultimo_tick_procesado_ms_) >= APP_LOOP_DELTA_MS) {
         app_ultimo_tick_procesado_ms_ += APP_LOOP_DELTA_MS;
 
-        app_actualizar_sensores();
-        buttons_process(APP_LOOP_DELTA_MS);
-        hmi_process();
-        app_actualizar_control();
+        app_step_20ms();
     }
 }
