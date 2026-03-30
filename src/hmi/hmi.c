@@ -355,7 +355,7 @@ void hmi_process(void)
     hmi_dibujar();
 }
 
-void hmi_cargar_parametros_control(const hmi_parametros_control_t* parametros)
+void hmi_cargar_parametros_control(const parametros_control_t* parametros)
 {
     if (parametros == 0) {
         return;
@@ -391,9 +391,9 @@ void hmi_cargar_estado_proceso(const hmi_estado_proceso_t* estado)
     }
 }
 
-hmi_parametros_control_t hmi_obtener_parametros_control(void)
+parametros_control_t hmi_obtener_parametros_control(void)
 {
-    hmi_parametros_control_t parametros = {
+    parametros_control_t parametros = {
         .setpoint_deci_celsius = hmi_.config.setpoint_deci_celsius,
         .histeresis_deci_celsius = (uint16_t) hmi_.config.histeresis_deci_celsius,
         .tiempo_minimo_encendido_ms = (uint32_t) hmi_.config.tmin_on_decisegundos * 100U,

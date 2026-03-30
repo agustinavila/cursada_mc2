@@ -6,16 +6,9 @@
 #if !defined(HMI_H_)
 #define HMI_H_
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "app/parametros.h"
 
-typedef struct {
-    int16_t setpoint_deci_celsius;
-    uint16_t histeresis_deci_celsius;
-    uint32_t tiempo_minimo_encendido_ms;
-    uint32_t tiempo_minimo_apagado_ms;
-    bool modo_calentar;
-} hmi_parametros_control_t;
+#include <stdbool.h>
 
 typedef struct {
     bool temperatura_valida;
@@ -44,7 +37,7 @@ void hmi_process(void);
  *
  * @param parametros Estructura con los parametros visibles/editables del control.
  */
-void hmi_cargar_parametros_control(const hmi_parametros_control_t* parametros);
+void hmi_cargar_parametros_control(const parametros_control_t* parametros);
 
 /**
  * @brief Carga en la HMI el estado visible actual del proceso.
@@ -58,6 +51,6 @@ void hmi_cargar_estado_proceso(const hmi_estado_proceso_t* estado);
  *
  * @return Copia de los parametros editables actuales.
  */
-hmi_parametros_control_t hmi_obtener_parametros_control(void);
+parametros_control_t hmi_obtener_parametros_control(void);
 
 #endif // HMI_H_

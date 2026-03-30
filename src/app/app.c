@@ -52,16 +52,9 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 
 static void app_step_20ms(void)
 {
-    const hmi_parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
+    const parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
     hmi_estado_proceso_t estado_hmi = {0};
     const parametros_control_t* parametros = 0;
-    const parametros_control_t parametros_hmi_convertidos = {
-        .setpoint_deci_celsius = parametros_hmi.setpoint_deci_celsius,
-        .histeresis_deci_celsius = parametros_hmi.histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = parametros_hmi.tiempo_minimo_encendido_ms,
-        .tiempo_minimo_apagado_ms = parametros_hmi.tiempo_minimo_apagado_ms,
-        .modo_calentar = parametros_hmi.modo_calentar,
-    };
     int16_t temperatura_cruda = 0;
     int16_t temperatura_deci_celsius = 0;
     bool temperatura_valida = false;
@@ -93,7 +86,7 @@ static void app_step_20ms(void)
     buttons_process(APP_LOOP_DELTA_MS);
     hmi_process();
 
-    if (parametros_actualizar(&parametros_hmi_convertidos)) {
+    if (parametros_actualizar(&parametros_hmi)) {
         (void) parametros_guardar();
     }
 
@@ -157,7 +150,7 @@ void app_init(void)
     hmi_init();
     parametros = parametros_obtener();
     hmi_cargar_estado_proceso(&(hmi_estado_proceso_t) {0});
-    hmi_cargar_parametros_control(&(hmi_parametros_control_t) {
+    hmi_cargar_parametros_control(&(parametros_control_t) {
         .setpoint_deci_celsius = parametros->setpoint_deci_celsius,
         .histeresis_deci_celsius = parametros->histeresis_deci_celsius,
         .tiempo_minimo_encendido_ms = parametros->tiempo_minimo_encendido_ms,
