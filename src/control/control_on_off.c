@@ -60,12 +60,6 @@ void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms)
     control_on_off_.ultima_medicion_deci_celsius = medicion;
     control_on_off_.tiene_medicion = true;
 
-    if (!control_on_off_.configuracion.habilitado) {
-        control_on_off_.salida_activa = false;
-        control_on_off_.tiempo_en_estado_ms = 0U;
-        return;
-    }
-
     umbral_corte = control_on_off_.configuracion.setpoint_deci_celsius;
     if (control_on_off_.configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
         umbral_activacion = (int16_t) (control_on_off_.configuracion.setpoint_deci_celsius

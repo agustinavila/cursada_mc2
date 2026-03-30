@@ -123,7 +123,6 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
         .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
         .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
         .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
-        .habilitado = true,
     };
 
     return configuracion;
@@ -139,8 +138,7 @@ static void app_sincronizar_control_desde_parametros(void)
         && (nueva_configuracion.tiempo_minimo_encendido_ms
             == app_control_on_off_configuracion_actual_.tiempo_minimo_encendido_ms)
         && (nueva_configuracion.tiempo_minimo_apagado_ms
-            == app_control_on_off_configuracion_actual_.tiempo_minimo_apagado_ms)
-        && (nueva_configuracion.habilitado == app_control_on_off_configuracion_actual_.habilitado)) {
+            == app_control_on_off_configuracion_actual_.tiempo_minimo_apagado_ms)) {
         return;
     }
 

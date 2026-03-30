@@ -32,36 +32,6 @@
 void buttons_init(void);
 
 /**
- * @brief Lee el estado actual de un pulsador.
- *
- * @param button_id Identificador de la tecla a consultar.
- *
- * @retval 1 Si la tecla esta presionada.
- * @retval 0 Si la tecla no esta presionada.
- */
-uint8_t button_read_pin(uint8_t button_id);
-
-/**
- * @brief Lee simultaneamente el estado de los cuatro pulsadores.
- *
- * El resultado se devuelve como mascara de bits:
- * - bit 0: TECLA1
- * - bit 1: TECLA2
- * - bit 2: TECLA3
- * - bit 3: TECLA4
- *
- * @return Mascara con el estado actual de las teclas.
- */
-uint8_t button_read_all_pins(void);
-
-/**
- * @brief Habilita la interrupcion externa asociada a un pulsador.
- *
- * @param button_id Identificador de la tecla a configurar.
- */
-void button_int_enable(uint8_t button_id);
-
-/**
  * @brief Notifica al driver que una tecla genero una interrupcion externa.
  *
  * Esta funcion debe llamarse desde el handler asociado a la tecla

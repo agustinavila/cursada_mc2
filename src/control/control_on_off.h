@@ -32,7 +32,6 @@ typedef struct {
     uint16_t histeresis_deci_celsius;   // histeresis en decimas de grado Celsius
     uint32_t tiempo_minimo_encendido_ms; // permanencia minima en estado encendido
     uint32_t tiempo_minimo_apagado_ms;   // permanencia minima en estado apagado
-    bool habilitado;                     // habilita o deshabilita el control
 } control_on_off_configuracion_t;
 
 /**

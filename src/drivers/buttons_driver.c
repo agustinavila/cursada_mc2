@@ -48,36 +48,7 @@ static uint8_t button_indice_desde_tecla(uint8_t tecla)
     }
 }
 
-void buttons_init(void)
-{
-    uint8_t indice = 0U;
-
-    Chip_GPIO_Init(LPC_GPIO_PORT);
-    Chip_SCU_PinMux(1, 0, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 1, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 2, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 6, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 4), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 8), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 9), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 1, (1 << 9), 0);
-
-    for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
-        button_estados_[indice].irq_pendiente = false;
-        button_estados_[indice].presionado_estable = false;
-        button_estados_[indice].armado = true;
-        button_estados_[indice].evento_pendiente = false;
-        button_estados_[indice].debounce_acumulado_ms = 0U;
-    }
-
-    button_int_enable(TECLA1);
-    button_int_enable(TECLA2);
-    button_int_enable(TECLA3);
-    button_int_enable(TECLA4);
-}
-
-uint8_t button_read_pin(uint8_t numero_tecla)
+static uint8_t button_read_pin(uint8_t numero_tecla)
 {
     uint8_t tecla = 0;
     switch (numero_tecla) {
@@ -100,18 +71,7 @@ uint8_t button_read_pin(uint8_t numero_tecla)
     return tecla;
 }
 
-uint8_t button_read_all_pins(void)
-{
-    uint8_t teclas = 0;
-    teclas = button_read_pin(TECLA1);
-    teclas |= (button_read_pin(TECLA2) << 1);
-    teclas |= (button_read_pin(TECLA3) << 2);
-    teclas |= (button_read_pin(TECLA4) << 3);
-    return teclas;
-}
-
-
-void button_int_enable(uint8_t tecla)
+static void button_int_enable(uint8_t tecla)
 {
     switch (tecla) {
     case TECLA1:
@@ -157,6 +117,35 @@ void button_int_enable(uint8_t tecla)
     default:
         break;
     }
+}
+
+void buttons_init(void)
+{
+    uint8_t indice = 0U;
+
+    Chip_GPIO_Init(LPC_GPIO_PORT);
+    Chip_SCU_PinMux(1, 0, MD_PUP | MD_EZI | MD_ZI, FUNC0);
+    Chip_SCU_PinMux(1, 1, MD_PUP | MD_EZI | MD_ZI, FUNC0);
+    Chip_SCU_PinMux(1, 2, MD_PUP | MD_EZI | MD_ZI, FUNC0);
+    Chip_SCU_PinMux(1, 6, MD_PUP | MD_EZI | MD_ZI, FUNC0);
+
+    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 4), 0);
+    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 8), 0);
+    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 9), 0);
+    Chip_GPIO_SetDir(LPC_GPIO_PORT, 1, (1 << 9), 0);
+
+    for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
+        button_estados_[indice].irq_pendiente = false;
+        button_estados_[indice].presionado_estable = false;
+        button_estados_[indice].armado = true;
+        button_estados_[indice].evento_pendiente = false;
+        button_estados_[indice].debounce_acumulado_ms = 0U;
+    }
+
+    button_int_enable(TECLA1);
+    button_int_enable(TECLA2);
+    button_int_enable(TECLA3);
+    button_int_enable(TECLA4);
 }
 
 void button_notify_irq(uint8_t button_id)
