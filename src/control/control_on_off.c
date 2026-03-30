@@ -7,62 +7,6 @@
 
 #include <limits.h>
 
-static int16_t control_on_off_obtener_umbral_activacion(const control_on_off_t* control)
-{
-    if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
-        return (int16_t) (control->configuracion.setpoint_deci_celsius
-                          - (int16_t) control->configuracion.histeresis_deci_celsius);
-    }
-
-    return (int16_t) (control->configuracion.setpoint_deci_celsius
-                      + (int16_t) control->configuracion.histeresis_deci_celsius);
-}
-
-static int16_t control_on_off_obtener_umbral_corte(const control_on_off_t* control)
-{
-    return control->configuracion.setpoint_deci_celsius;
-}
-
-static bool control_on_off_salida_deseada(const control_on_off_t* control, int16_t medicion)
-{
-    const int16_t umbral_activacion = control_on_off_obtener_umbral_activacion(control);
-    const int16_t umbral_corte = control_on_off_obtener_umbral_corte(control);
-
-    if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
-        if (medicion <= umbral_activacion) {
-            return true;
-        }
-        if (medicion >= umbral_corte) {
-            return false;
-        }
-    } else {
-        if (medicion >= umbral_activacion) {
-            return true;
-        }
-        if (medicion <= umbral_corte) {
-            return false;
-        }
-    }
-
-    return control->salida_activa;
-}
-
-static uint32_t control_on_off_obtener_tiempo_minimo_para_conmutar(const control_on_off_t* control,
-                                                                   bool nueva_salida_activa)
-{
-    if (nueva_salida_activa) {
-        return control->configuracion.tiempo_minimo_apagado_ms;
-    }
-
-    return control->configuracion.tiempo_minimo_encendido_ms;
-}
-
-static bool control_on_off_puede_conmutar(const control_on_off_t* control, bool nueva_salida_activa)
-{
-    return control->tiempo_en_estado_ms
-        >= control_on_off_obtener_tiempo_minimo_para_conmutar(control, nueva_salida_activa);
-}
-
 bool control_on_off_inicializar(control_on_off_t* control,
                                 const control_on_off_configuracion_t* configuracion)
 {
@@ -116,6 +60,9 @@ void control_on_off_reiniciar(control_on_off_t* control)
 bool control_on_off_procesar(control_on_off_t* control, int16_t medicion, uint32_t delta_tiempo_ms)
 {
     bool salida_deseada = false;
+    int16_t umbral_activacion = 0;
+    int16_t umbral_corte = 0;
+    uint32_t tiempo_minimo_requerido_ms = 0U;
 
     if ((control == 0) || !control->inicializado) {
         return false;
@@ -136,12 +83,40 @@ bool control_on_off_procesar(control_on_off_t* control, int16_t medicion, uint32
         return true;
     }
 
-    salida_deseada = control_on_off_salida_deseada(control, medicion);
+    umbral_corte = control->configuracion.setpoint_deci_celsius;
+    if (control->configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
+        umbral_activacion = (int16_t) (control->configuracion.setpoint_deci_celsius
+                                       - (int16_t) control->configuracion.histeresis_deci_celsius);
+        if (medicion <= umbral_activacion) {
+            salida_deseada = true;
+        } else if (medicion >= umbral_corte) {
+            salida_deseada = false;
+        } else {
+            salida_deseada = control->salida_activa;
+        }
+    } else {
+        umbral_activacion = (int16_t) (control->configuracion.setpoint_deci_celsius
+                                       + (int16_t) control->configuracion.histeresis_deci_celsius);
+        if (medicion >= umbral_activacion) {
+            salida_deseada = true;
+        } else if (medicion <= umbral_corte) {
+            salida_deseada = false;
+        } else {
+            salida_deseada = control->salida_activa;
+        }
+    }
+
     if (salida_deseada == control->salida_activa) {
         return true;
     }
 
-    if (!control_on_off_puede_conmutar(control, salida_deseada)) {
+    if (salida_deseada) {
+        tiempo_minimo_requerido_ms = control->configuracion.tiempo_minimo_apagado_ms;
+    } else {
+        tiempo_minimo_requerido_ms = control->configuracion.tiempo_minimo_encendido_ms;
+    }
+
+    if (control->tiempo_en_estado_ms < tiempo_minimo_requerido_ms) {
         return true;
     }
 
