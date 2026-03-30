@@ -20,7 +20,6 @@ add_subdirectory(drivers)
 set(CURSADA_MC2_APP_SOURCES
     app/app.c
     app/parametros.c
-    app/parametros_default.c
     control/control_on_off.c
     hmi/hmi.c
     main.c

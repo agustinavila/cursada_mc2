@@ -10,5 +10,4 @@ Responsabilidades actuales:
 
 Archivos relevantes:
 - `app.c`: orquesta el flujo principal
-- `parametros.c`: carga y guarda parametros persistentes
-- `parametros_default.c`: define los valores por defecto
+- `parametros.c`: carga, valida y guarda parametros persistentes, incluyendo los defaults internos

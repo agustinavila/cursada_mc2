@@ -6,7 +6,6 @@
 #include "app/parametros.h"
 
 #include "drivers/eeprom_driver.h"
-#include "app/parametros_default.h"
 
 #define PARAMETROS_PERSISTENTES_MAGIC   0x5041524DU
 #define PARAMETROS_PERSISTENTES_VERSION 3U
@@ -27,6 +26,13 @@ typedef struct {
 } parametros_persistentes_t;
 
 static parametros_control_t parametros_actuales_;
+static const parametros_control_t parametros_default_ = {
+    .setpoint_deci_celsius = 270,
+    .histeresis_deci_celsius = 20U,
+    .tiempo_minimo_encendido_ms = 0U,
+    .tiempo_minimo_apagado_ms = 0U,
+    .modo_calentar = true,
+};
 
 /**
  * @brief Calcula el CRC32 del bloque persistido de parametros.
@@ -56,7 +62,7 @@ static uint32_t parametros_calcular_crc32(const void* datos, uint32_t longitud)
 
 static void parametros_cargar_defaults_en_ram(void)
 {
-    parametros_actuales_ = *parametros_default_obtener();
+    parametros_actuales_ = parametros_default_;
 }
 
 /**
