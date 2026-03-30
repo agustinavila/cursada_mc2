@@ -148,11 +148,13 @@ static void app_sincronizar_control_desde_parametros(void)
 
 static void app_sincronizar_hmi_en_parametros(void)
 {
-    if (parametros_actualizar_control(hmi_obtener_setpoint_deci_celsius(),
-                                      hmi_obtener_histeresis_deci_celsius(),
-                                      hmi_obtener_tiempo_minimo_encendido_ms(),
-                                      hmi_obtener_tiempo_minimo_apagado_ms(),
-                                      hmi_modo_control_es_calentar())) {
+    const hmi_parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
+
+    if (parametros_actualizar_control(parametros_hmi.setpoint_deci_celsius,
+                                      parametros_hmi.histeresis_deci_celsius,
+                                      parametros_hmi.tiempo_minimo_encendido_ms,
+                                      parametros_hmi.tiempo_minimo_apagado_ms,
+                                      parametros_hmi.modo_calentar)) {
         (void) parametros_guardar();
     }
 }

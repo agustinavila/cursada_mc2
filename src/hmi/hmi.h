@@ -9,6 +9,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef struct {
+    int16_t setpoint_deci_celsius;
+    uint16_t histeresis_deci_celsius;
+    uint32_t tiempo_minimo_encendido_ms;
+    uint32_t tiempo_minimo_apagado_ms;
+    bool modo_calentar;
+} hmi_parametros_control_t;
+
 /**
  * @brief Inicializa el estado interno de la HMI y dibuja la pantalla inicial.
  *
@@ -65,51 +73,8 @@ void hmi_cargar_estado_control(bool salida_activa,
                                bool sensor_disponible);
 
 /**
- * @brief Obtiene el setpoint configurado desde la HMI.
- *
- * El valor se devuelve en decimas de grado Celsius para que la aplicacion
- * pueda usarlo directamente en la capa de control.
- *
- * @return Setpoint actual en decimas de grado Celsius.
+ * @brief Obtiene todos los parametros de control actualmente cargados en la HMI.
  */
-int16_t hmi_obtener_setpoint_deci_celsius(void);
-
-/**
- * @brief Obtiene la histeresis configurada desde la HMI.
- *
- * El valor se devuelve en decimas de grado Celsius para que la aplicacion
- * pueda usarlo directamente en la capa de control.
- *
- * @return Histeresis actual en decimas de grado Celsius.
- */
-uint16_t hmi_obtener_histeresis_deci_celsius(void);
-
-/**
- * @brief Obtiene el tiempo minimo de encendido configurado desde la HMI.
- *
- * El valor se devuelve en milisegundos para que la aplicacion pueda usarlo
- * directamente en la capa de control.
- *
- * @return Tiempo minimo de encendido actual en milisegundos.
- */
-uint32_t hmi_obtener_tiempo_minimo_encendido_ms(void);
-
-/**
- * @brief Obtiene el tiempo minimo de apagado configurado desde la HMI.
- *
- * El valor se devuelve en milisegundos para que la aplicacion pueda usarlo
- * directamente en la capa de control.
- *
- * @return Tiempo minimo de apagado actual en milisegundos.
- */
-uint32_t hmi_obtener_tiempo_minimo_apagado_ms(void);
-
-/**
- * @brief Indica si el modo configurado en la HMI corresponde a calentar.
- *
- * @retval true Si el modo actual es calentar.
- * @retval false Si el modo actual es enfriar.
- */
-bool hmi_modo_control_es_calentar(void);
+hmi_parametros_control_t hmi_obtener_parametros_control(void);
 
 #endif // HMI_H_
