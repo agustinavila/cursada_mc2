@@ -53,6 +53,7 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 static void app_step_20ms(void)
 {
     const hmi_parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
+    hmi_estado_proceso_t estado_hmi = {0};
     const parametros_control_t* parametros = 0;
     const parametros_control_t parametros_hmi_convertidos = {
         .setpoint_deci_celsius = parametros_hmi.setpoint_deci_celsius,
@@ -86,7 +87,8 @@ static void app_step_20ms(void)
         }
     }
 
-    hmi_cargar_estado_sensor(temperatura_valida, temperatura_valida ? temperatura_deci_celsius : 0);
+    estado_hmi.temperatura_valida = temperatura_valida;
+    estado_hmi.temperatura_deci_celsius = temperatura_valida ? temperatura_deci_celsius : 0;
 
     buttons_process(APP_LOOP_DELTA_MS);
     hmi_process();
@@ -107,14 +109,18 @@ static void app_step_20ms(void)
     });
 
     if (!temperatura_valida) {
-        hmi_cargar_estado_control(false, false);
+        estado_hmi.salida_activa = false;
+        estado_hmi.sensor_disponible = false;
+        hmi_cargar_estado_proceso(&estado_hmi);
         led_turn_off(LED1);
         return;
     }
 
     control_on_off_procesar(temperatura_deci_celsius, APP_LOOP_DELTA_MS);
     salida_activa = control_on_off_esta_salida_activa();
-    hmi_cargar_estado_control(salida_activa, true);
+    estado_hmi.salida_activa = salida_activa;
+    estado_hmi.sensor_disponible = true;
+    hmi_cargar_estado_proceso(&estado_hmi);
 
     if (salida_activa) {
         led_turn_on(LED1);
@@ -150,12 +156,14 @@ void app_init(void)
     // Inicializacion de la HMI con el estado persistido.
     hmi_init();
     parametros = parametros_obtener();
-    hmi_cargar_estado_sensor(false, 0);
-    hmi_cargar_parametros_control(parametros->setpoint_deci_celsius,
-                                  parametros->histeresis_deci_celsius,
-                                  parametros->tiempo_minimo_encendido_ms,
-                                  parametros->tiempo_minimo_apagado_ms,
-                                  parametros->modo_calentar);
+    hmi_cargar_estado_proceso(&(hmi_estado_proceso_t) {0});
+    hmi_cargar_parametros_control(&(hmi_parametros_control_t) {
+        .setpoint_deci_celsius = parametros->setpoint_deci_celsius,
+        .histeresis_deci_celsius = parametros->histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = parametros->tiempo_minimo_encendido_ms,
+        .tiempo_minimo_apagado_ms = parametros->tiempo_minimo_apagado_ms,
+        .modo_calentar = parametros->modo_calentar,
+    });
 
     // Inicializacion del lazo de control a partir de los parametros cargados.
     configuracion_control.sentido = parametros->modo_calentar

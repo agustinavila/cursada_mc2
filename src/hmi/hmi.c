@@ -48,14 +48,14 @@ typedef struct {
     int16_t tmin_on_decisegundos;
     int16_t tmin_off_decisegundos;
     int16_t modo_calentar;
-} hmi_config_t;
+} hmi_config_interno_t;
 
 typedef struct {
     bool temperatura_valida;
     int16_t temperatura_deci_celsius;
     bool salida_activa;
     bool sensor_disponible;
-} hmi_estado_t;
+} hmi_estado_interno_t;
 
 typedef struct {
     hmi_pantalla_t pantalla;
@@ -75,8 +75,8 @@ typedef struct {
 } hmi_param_desc_t;
 
 typedef struct {
-    hmi_config_t config;
-    hmi_estado_t estado;
+    hmi_config_interno_t config;
+    hmi_estado_interno_t estado;
     hmi_ui_t ui;
 } hmi_contexto_t;
 
@@ -355,40 +355,36 @@ void hmi_process(void)
     hmi_dibujar();
 }
 
-void hmi_cargar_estado_sensor(bool temperatura_valida, int16_t temperatura_deci_celsius)
+void hmi_cargar_parametros_control(const hmi_parametros_control_t* parametros)
 {
-    const bool hubo_cambios = (hmi_.estado.temperatura_valida != temperatura_valida)
-        || (hmi_.estado.temperatura_deci_celsius != temperatura_deci_celsius);
-
-    hmi_.estado.temperatura_valida = temperatura_valida;
-    hmi_.estado.temperatura_deci_celsius = temperatura_deci_celsius;
-
-    if (hubo_cambios && (hmi_.ui.pantalla == HMI_PANTALLA_INICIO)) {
-        hmi_.ui.necesita_redibujado = true;
+    if (parametros == 0) {
+        return;
     }
-}
 
-void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
-                                   uint16_t histeresis_deci_celsius,
-                                   uint32_t tiempo_minimo_encendido_ms,
-                                   uint32_t tiempo_minimo_apagado_ms,
-                                   bool modo_calentar)
-{
-    hmi_.config.setpoint_deci_celsius = setpoint_deci_celsius;
-    hmi_.config.histeresis_deci_celsius = (int16_t) histeresis_deci_celsius;
-    hmi_.config.tmin_on_decisegundos = (int16_t) (tiempo_minimo_encendido_ms / 100U);
-    hmi_.config.tmin_off_decisegundos = (int16_t) (tiempo_minimo_apagado_ms / 100U);
-    hmi_.config.modo_calentar = modo_calentar ? 1 : 0;
+    hmi_.config.setpoint_deci_celsius = parametros->setpoint_deci_celsius;
+    hmi_.config.histeresis_deci_celsius = (int16_t) parametros->histeresis_deci_celsius;
+    hmi_.config.tmin_on_decisegundos = (int16_t) (parametros->tiempo_minimo_encendido_ms / 100U);
+    hmi_.config.tmin_off_decisegundos = (int16_t) (parametros->tiempo_minimo_apagado_ms / 100U);
+    hmi_.config.modo_calentar = parametros->modo_calentar ? 1 : 0;
     hmi_.ui.necesita_redibujado = true;
 }
 
-void hmi_cargar_estado_control(bool salida_activa, bool sensor_disponible)
+void hmi_cargar_estado_proceso(const hmi_estado_proceso_t* estado)
 {
-    const bool hubo_cambios = (hmi_.estado.salida_activa != salida_activa)
-        || (hmi_.estado.sensor_disponible != sensor_disponible);
+    const bool hubo_cambios = (estado != 0)
+        && ((hmi_.estado.temperatura_valida != estado->temperatura_valida)
+            || (hmi_.estado.temperatura_deci_celsius != estado->temperatura_deci_celsius)
+            || (hmi_.estado.salida_activa != estado->salida_activa)
+            || (hmi_.estado.sensor_disponible != estado->sensor_disponible));
 
-    hmi_.estado.salida_activa = salida_activa;
-    hmi_.estado.sensor_disponible = sensor_disponible;
+    if (estado == 0) {
+        return;
+    }
+
+    hmi_.estado.temperatura_valida = estado->temperatura_valida;
+    hmi_.estado.temperatura_deci_celsius = estado->temperatura_deci_celsius;
+    hmi_.estado.salida_activa = estado->salida_activa;
+    hmi_.estado.sensor_disponible = estado->sensor_disponible;
 
     if (hubo_cambios && (hmi_.ui.pantalla == HMI_PANTALLA_INICIO)) {
         hmi_.ui.necesita_redibujado = true;

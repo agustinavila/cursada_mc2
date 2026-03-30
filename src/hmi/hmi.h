@@ -1,6 +1,6 @@
 /**
  * @file hmi.h
- * @brief Interfaz de la HMI jerarquica para LCD y pulsadores de la EDU-CIAA
+ * @brief Interfaz publica de la HMI.
  */
 
 #if !defined(HMI_H_)
@@ -17,11 +17,18 @@ typedef struct {
     bool modo_calentar;
 } hmi_parametros_control_t;
 
+typedef struct {
+    bool temperatura_valida;
+    int16_t temperatura_deci_celsius;
+    bool salida_activa;
+    bool sensor_disponible;
+} hmi_estado_proceso_t;
+
 /**
  * @brief Inicializa el estado interno de la HMI y dibuja la pantalla inicial.
  *
  * Debe llamarse una sola vez luego de haber inicializado los drivers de
- * hardware necesarios, en particular el LCD y la capa de delays.
+ * hardware necesarios, en particular el LCD.
  */
 void hmi_init(void);
 
@@ -29,51 +36,27 @@ void hmi_init(void);
  * @brief Procesa la navegacion de la interfaz y actualiza el LCD si es necesario.
  *
  * Esta funcion debe llamarse de manera periodica desde el lazo principal.
- * Internamente:
- * - lee el estado de los pulsadores,
- * - detecta eventos de navegacion,
- * - actualiza el estado de la HMI,
- * - y redibuja la pantalla cuando corresponde.
  */
 void hmi_process(void);
 
 /**
- * @brief Carga en la HMI el estado actual del sensor de proceso.
- *
- * La aplicacion es la dueña del bus DS18B20 y le entrega a la HMI solamente
- * el valor visible del sensor usado por el control.
- *
- * @param temperatura_valida `true` si la temperatura actual es valida.
- * @param temperatura_deci_celsius Temperatura en decimas de grado Celsius.
- */
-void hmi_cargar_estado_sensor(bool temperatura_valida, int16_t temperatura_deci_celsius);
-
-/**
  * @brief Carga en la HMI los parametros de control vigentes.
  *
- * @param setpoint_deci_celsius Setpoint en decimas de grado Celsius.
- * @param histeresis_deci_celsius Histeresis en decimas de grado Celsius.
- * @param tiempo_minimo_encendido_ms Tiempo minimo de encendido en milisegundos.
- * @param tiempo_minimo_apagado_ms Tiempo minimo de apagado en milisegundos.
- * @param modo_calentar `true` si el modo es calentar.
+ * @param parametros Estructura con los parametros visibles/editables del control.
  */
-void hmi_cargar_parametros_control(int16_t setpoint_deci_celsius,
-                                   uint16_t histeresis_deci_celsius,
-                                   uint32_t tiempo_minimo_encendido_ms,
-                                   uint32_t tiempo_minimo_apagado_ms,
-                                   bool modo_calentar);
+void hmi_cargar_parametros_control(const hmi_parametros_control_t* parametros);
 
 /**
- * @brief Carga en la HMI el estado actual del lazo de control.
+ * @brief Carga en la HMI el estado visible actual del proceso.
  *
- * @param salida_activa `true` si la salida del control esta activa.
- * @param sensor_disponible `true` si hay una medicion valida disponible.
+ * @param estado Estructura con temperatura, presencia de sensor y estado de salida.
  */
-void hmi_cargar_estado_control(bool salida_activa,
-                               bool sensor_disponible);
+void hmi_cargar_estado_proceso(const hmi_estado_proceso_t* estado);
 
 /**
  * @brief Obtiene todos los parametros de control actualmente cargados en la HMI.
+ *
+ * @return Copia de los parametros editables actuales.
  */
 hmi_parametros_control_t hmi_obtener_parametros_control(void);
 
