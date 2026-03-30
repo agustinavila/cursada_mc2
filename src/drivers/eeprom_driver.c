@@ -13,28 +13,9 @@
 
 static bool eeprom_driver_inicializado_ = false;
 
-/**
- * @brief Verifica que una operacion quede dentro de la region reservada.
- *
- * El driver expone offsets logicos desde cero para no propagar detalles de
- * direccionamiento fisico al resto de la aplicacion.
- */
-static bool driver_eeprom_rango_valido(uint32_t offset, uint32_t cantidad)
+static bool driver_eeprom_rango_valido(uint32_t cantidad)
 {
-    if (offset > DRIVER_EEPROM_REGION_SIZE) {
-        return false;
-    }
-
-    if (cantidad > (DRIVER_EEPROM_REGION_SIZE - offset)) {
-        return false;
-    }
-
-    return true;
-}
-
-static uint8_t* driver_eeprom_obtener_direccion(uint32_t offset)
-{
-    return (uint8_t*) (EEPROM_START + DRIVER_EEPROM_REGION_OFFSET + offset);
+    return (cantidad <= DRIVER_EEPROM_REGION_SIZE);
 }
 
 /**
@@ -68,7 +49,7 @@ bool driver_eeprom_init(void)
     return true;
 }
 
-bool driver_eeprom_read(uint32_t offset, void* destino, uint32_t cantidad)
+bool driver_eeprom_read(void* destino, uint32_t cantidad)
 {
     if (!eeprom_driver_inicializado_ || (destino == 0)) {
         return false;
@@ -78,18 +59,19 @@ bool driver_eeprom_read(uint32_t offset, void* destino, uint32_t cantidad)
         return true;
     }
 
-    if (!driver_eeprom_rango_valido(offset, cantidad)) {
+    if (!driver_eeprom_rango_valido(cantidad)) {
         return false;
     }
 
-    (void) memcpy(destino, driver_eeprom_obtener_direccion(offset), cantidad);
+    (void) memcpy(destino, (const void*) EEPROM_START, cantidad);
     return true;
 }
 
-bool driver_eeprom_write(uint32_t offset, const void* origen, uint32_t cantidad)
+bool driver_eeprom_write(const void* origen, uint32_t cantidad)
 {
     const uint8_t* datos_origen = (const uint8_t*) origen;
     uint8_t pagina_buffer[EEPROM_PAGE_SIZE];
+    uint32_t offset = 0U;
 
     if (!eeprom_driver_inicializado_ || (origen == 0)) {
         return false;
@@ -99,7 +81,7 @@ bool driver_eeprom_write(uint32_t offset, const void* origen, uint32_t cantidad)
         return true;
     }
 
-    if (!driver_eeprom_rango_valido(offset, cantidad)) {
+    if (!driver_eeprom_rango_valido(cantidad)) {
         return false;
     }
 
@@ -108,11 +90,11 @@ bool driver_eeprom_write(uint32_t offset, const void* origen, uint32_t cantidad)
      *
      * Primero se copia la pagina actual desde EEPROM, luego se parchea en RAM
      * solo el rango solicitado y finalmente se reprograma la pagina completa
-     * solo si hubo cambios reales. Esto evita escrituras innecesarias y permite
-     * ofrecer una API por bytes sobre un hardware orientado a paginas.
+     * solo si hubo cambios reales. Esto evita escrituras innecesarias aunque la
+     * API publica siempre escriba el bloque completo reservado para la app.
      */
     while (cantidad > 0U) {
-        const uint32_t direccion_actual = DRIVER_EEPROM_REGION_OFFSET + offset;
+        const uint32_t direccion_actual = offset;
         const uint32_t pagina = direccion_actual / EEPROM_PAGE_SIZE;
         const uint32_t offset_pagina = direccion_actual % EEPROM_PAGE_SIZE;
         const uint32_t bytes_pagina = EEPROM_PAGE_SIZE - offset_pagina;

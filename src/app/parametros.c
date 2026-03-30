@@ -102,7 +102,7 @@ bool parametros_init(void)
 {
     parametros_persistentes_t persistentes;
 
-    if (!driver_eeprom_read(0U, &persistentes, (uint32_t) sizeof(persistentes))) {
+    if (!driver_eeprom_read(&persistentes, (uint32_t) sizeof(persistentes))) {
         /* Si no se puede leer EEPROM, se arranca con defaults y se intenta persistirlos. */
         parametros_cargar_defaults_en_ram();
         return parametros_guardar();
@@ -128,7 +128,7 @@ bool parametros_guardar(void)
     parametros_persistentes_t persistentes;
 
     parametros_serializar(&persistentes);
-    return driver_eeprom_write(0U, &persistentes, (uint32_t) sizeof(persistentes));
+    return driver_eeprom_write(&persistentes, (uint32_t) sizeof(persistentes));
 }
 
 void parametros_restablecer_defaults(void)

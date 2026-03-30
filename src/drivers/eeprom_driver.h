@@ -9,8 +9,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** Region reservada para persistencia de parametros. */
-#define DRIVER_EEPROM_REGION_OFFSET 0U
 /** Tamano reservado para datos persistentes de la aplicacion. */
 #define DRIVER_EEPROM_REGION_SIZE   256U
 
@@ -23,27 +21,25 @@
 bool driver_eeprom_init(void);
 
 /**
- * @brief Lee datos desde la region reservada de EEPROM.
+ * @brief Lee un bloque desde la region reservada de EEPROM.
  *
- * @param offset Offset logico dentro de la region reservada.
  * @param destino Buffer de destino.
  * @param cantidad Cantidad de bytes a leer.
  *
  * @retval true Si la lectura fue valida.
  * @retval false Si el rango o los punteros son invalidos.
  */
-bool driver_eeprom_read(uint32_t offset, void* destino, uint32_t cantidad);
+bool driver_eeprom_read(void* destino, uint32_t cantidad);
 
 /**
- * @brief Escribe datos dentro de la region reservada de EEPROM.
+ * @brief Escribe un bloque dentro de la region reservada de EEPROM.
  *
- * @param offset Offset logico dentro de la region reservada.
  * @param origen Buffer de origen.
  * @param cantidad Cantidad de bytes a escribir.
  *
  * @retval true Si la escritura fue valida.
  * @retval false Si el rango o los punteros son invalidos.
  */
-bool driver_eeprom_write(uint32_t offset, const void* origen, uint32_t cantidad);
+bool driver_eeprom_write(const void* origen, uint32_t cantidad);
 
 #endif // EEPROM_DRIVER_H_
