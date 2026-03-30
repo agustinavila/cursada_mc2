@@ -31,19 +31,6 @@ void control_on_off_configurar(control_on_off_configuracion_t configuracion)
     control_on_off_.configuracion = configuracion;
 }
 
-control_on_off_configuracion_t control_on_off_obtener_configuracion(void)
-{
-    return control_on_off_.configuracion;
-}
-
-void control_on_off_reiniciar(void)
-{
-    control_on_off_.tiempo_en_estado_ms = 0U;
-    control_on_off_.salida_activa = false;
-    control_on_off_.tiene_medicion = false;
-    control_on_off_.ultima_medicion_deci_celsius = 0;
-}
-
 void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms)
 {
     bool salida_deseada = false;
@@ -62,6 +49,7 @@ void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms)
 
     umbral_corte = control_on_off_.configuracion.setpoint_deci_celsius;
     if (control_on_off_.configuracion.sentido == CONTROL_ON_OFF_SENTIDO_CALENTAR) {
+        // Para calentar se activa por debajo del setpoint menos histeresis.
         umbral_activacion = (int16_t) (control_on_off_.configuracion.setpoint_deci_celsius
                                        - (int16_t) control_on_off_.configuracion.histeresis_deci_celsius);
         if (medicion <= umbral_activacion) {
@@ -72,6 +60,7 @@ void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms)
             salida_deseada = control_on_off_.salida_activa;
         }
     } else {
+        // Para enfriar se activa por encima del setpoint mas histeresis.
         umbral_activacion = (int16_t) (control_on_off_.configuracion.setpoint_deci_celsius
                                        + (int16_t) control_on_off_.configuracion.histeresis_deci_celsius);
         if (medicion >= umbral_activacion) {
@@ -104,14 +93,4 @@ void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms)
 bool control_on_off_esta_salida_activa(void)
 {
     return control_on_off_.salida_activa;
-}
-
-bool control_on_off_tiene_medicion(void)
-{
-    return control_on_off_.tiene_medicion;
-}
-
-int16_t control_on_off_obtener_ultima_medicion(void)
-{
-    return control_on_off_.ultima_medicion_deci_celsius;
 }

@@ -49,16 +49,6 @@ void control_on_off_inicializar(control_on_off_configuracion_t configuracion);
 void control_on_off_configurar(control_on_off_configuracion_t configuracion);
 
 /**
- * @brief Obtiene la configuracion actual.
- */
-control_on_off_configuracion_t control_on_off_obtener_configuracion(void);
-
-/**
- * @brief Restablece el estado dinamico del controlador.
- */
-void control_on_off_reiniciar(void);
-
-/**
  * @brief Procesa una nueva medicion y actualiza la salida del control.
  *
  * @param medicion Medicion actual del proceso.
@@ -70,17 +60,5 @@ void control_on_off_procesar(int16_t medicion, uint32_t delta_tiempo_ms);
  * @brief Indica si la salida del control esta activa.
  */
 bool control_on_off_esta_salida_activa(void);
-
-/**
- * @brief Indica si ya se proceso al menos una medicion.
- */
-bool control_on_off_tiene_medicion(void);
-
-/**
- * @brief Obtiene la ultima medicion procesada.
- *
- * @return Ultima medicion en decimas de grado Celsius.
- */
-int16_t control_on_off_obtener_ultima_medicion(void);
 
 #endif // CONTROL_CONTROL_ON_OFF_H_
