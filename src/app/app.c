@@ -53,7 +53,14 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 static void app_step_20ms(void)
 {
     const hmi_parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
-    const parametros_t* parametros = 0;
+    const parametros_control_t* parametros = 0;
+    const parametros_control_t parametros_hmi_convertidos = {
+        .setpoint_deci_celsius = parametros_hmi.setpoint_deci_celsius,
+        .histeresis_deci_celsius = parametros_hmi.histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = parametros_hmi.tiempo_minimo_encendido_ms,
+        .tiempo_minimo_apagado_ms = parametros_hmi.tiempo_minimo_apagado_ms,
+        .modo_calentar = parametros_hmi.modo_calentar,
+    };
     int16_t temperatura_cruda = 0;
     int16_t temperatura_deci_celsius = 0;
     bool temperatura_valida = false;
@@ -84,23 +91,19 @@ static void app_step_20ms(void)
     buttons_process(APP_LOOP_DELTA_MS);
     hmi_process();
 
-    if (parametros_actualizar_control(parametros_hmi.setpoint_deci_celsius,
-                                      parametros_hmi.histeresis_deci_celsius,
-                                      parametros_hmi.tiempo_minimo_encendido_ms,
-                                      parametros_hmi.tiempo_minimo_apagado_ms,
-                                      parametros_hmi.modo_calentar)) {
+    if (parametros_actualizar(&parametros_hmi_convertidos)) {
         (void) parametros_guardar();
     }
 
     parametros = parametros_obtener();
     control_on_off_configurar((control_on_off_configuracion_t) {
-        .sentido = parametros->control.modo_calentar
+        .sentido = parametros->modo_calentar
             ? CONTROL_ON_OFF_SENTIDO_CALENTAR
             : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
-        .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
-        .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
-        .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
+        .setpoint_deci_celsius = parametros->setpoint_deci_celsius,
+        .histeresis_deci_celsius = parametros->histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = parametros->tiempo_minimo_encendido_ms,
+        .tiempo_minimo_apagado_ms = parametros->tiempo_minimo_apagado_ms,
     });
 
     if (!temperatura_valida) {
@@ -122,6 +125,10 @@ static void app_step_20ms(void)
 
 void app_init(void)
 {
+    const parametros_control_t* parametros = 0;
+    control_on_off_configuracion_t configuracion_control = {0};
+
+    // Inicializacion de la base de tiempo y drivers discretos.
     driver_delay_init();
     board_timer_init(APP_TIMER_TICK_MS);
     led_init();
@@ -129,37 +136,38 @@ void app_init(void)
     buzzer_turn_off();
     buttons_init();
     driver_lcd_init();
+
+    // Inicializacion de la persistencia de parametros.
     (void) driver_eeprom_init();
     (void) parametros_init();
 
+    // Inicializacion del sensor de temperatura.
     app_sensores_.inicializado = ds18b20_init(&app_sensores_.sensor_temperatura, &app_pin_ds18b20_);
     if (app_sensores_.inicializado) {
         (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
     }
 
+    // Inicializacion de la HMI con el estado persistido.
     hmi_init();
-    {
-        const parametros_t* parametros = parametros_obtener();
+    parametros = parametros_obtener();
+    hmi_cargar_estado_sensor(false, 0);
+    hmi_cargar_parametros_control(parametros->setpoint_deci_celsius,
+                                  parametros->histeresis_deci_celsius,
+                                  parametros->tiempo_minimo_encendido_ms,
+                                  parametros->tiempo_minimo_apagado_ms,
+                                  parametros->modo_calentar);
 
-        hmi_cargar_estado_sensor(false, 0);
-        hmi_cargar_parametros_control(parametros->control.setpoint_deci_celsius,
-                                      parametros->control.histeresis_deci_celsius,
-                                      parametros->control.tiempo_minimo_encendido_ms,
-                                      parametros->control.tiempo_minimo_apagado_ms,
-                                      parametros->control.modo_calentar);
+    // Inicializacion del lazo de control a partir de los parametros cargados.
+    configuracion_control.sentido = parametros->modo_calentar
+        ? CONTROL_ON_OFF_SENTIDO_CALENTAR
+        : CONTROL_ON_OFF_SENTIDO_ENFRIAR;
+    configuracion_control.setpoint_deci_celsius = parametros->setpoint_deci_celsius;
+    configuracion_control.histeresis_deci_celsius = parametros->histeresis_deci_celsius;
+    configuracion_control.tiempo_minimo_encendido_ms = parametros->tiempo_minimo_encendido_ms;
+    configuracion_control.tiempo_minimo_apagado_ms = parametros->tiempo_minimo_apagado_ms;
+    control_on_off_inicializar(configuracion_control);
 
-        control_on_off_configuracion_t configuracion_control = {
-            .sentido = parametros->control.modo_calentar
-                ? CONTROL_ON_OFF_SENTIDO_CALENTAR
-                : CONTROL_ON_OFF_SENTIDO_ENFRIAR,
-            .setpoint_deci_celsius = parametros->control.setpoint_deci_celsius,
-            .histeresis_deci_celsius = parametros->control.histeresis_deci_celsius,
-            .tiempo_minimo_encendido_ms = parametros->control.tiempo_minimo_encendido_ms,
-            .tiempo_minimo_apagado_ms = parametros->control.tiempo_minimo_apagado_ms,
-        };
-
-        control_on_off_inicializar(configuracion_control);
-    }
+    // Arranque del lazo cooperativo temporizado.
     app_ultimo_tick_procesado_ms_ = board_timer_get_ticks();
 }
 

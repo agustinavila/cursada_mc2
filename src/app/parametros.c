@@ -23,10 +23,10 @@ typedef struct {
     uint16_t version;
     uint16_t tamano;
     uint32_t crc;
-    parametros_t datos;
+    parametros_control_t datos;
 } parametros_persistentes_t;
 
-static parametros_t parametros_actuales_;
+static parametros_control_t parametros_actuales_;
 
 /**
  * @brief Calcula el CRC32 del bloque persistido de parametros.
@@ -66,7 +66,7 @@ static void parametros_serializar(parametros_persistentes_t* persistentes)
 {
     persistentes->magic = PARAMETROS_PERSISTENTES_MAGIC;
     persistentes->version = PARAMETROS_PERSISTENTES_VERSION;
-    persistentes->tamano = (uint16_t) sizeof(parametros_t);
+    persistentes->tamano = (uint16_t) sizeof(parametros_control_t);
     persistentes->datos = parametros_actuales_;
     persistentes->crc = parametros_calcular_crc32(&persistentes->datos, (uint32_t) sizeof(persistentes->datos));
 }
@@ -84,7 +84,7 @@ static bool parametros_persistentes_validos(const parametros_persistentes_t* per
         return false;
     }
 
-    if (persistentes->tamano != sizeof(parametros_t)) {
+    if (persistentes->tamano != sizeof(parametros_control_t)) {
         return false;
     }
 
@@ -112,7 +112,7 @@ bool parametros_init(void)
     return true;
 }
 
-const parametros_t* parametros_obtener(void)
+const parametros_control_t* parametros_obtener(void)
 {
     return &parametros_actuales_;
 }
@@ -132,36 +132,36 @@ void parametros_restablecer_defaults(void)
     (void) parametros_guardar();
 }
 
-bool parametros_actualizar_control(int16_t setpoint_deci_celsius,
-                                   uint16_t histeresis_deci_celsius,
-                                   uint32_t tiempo_minimo_encendido_ms,
-                                   uint32_t tiempo_minimo_apagado_ms,
-                                   bool modo_calentar)
+bool parametros_actualizar(const parametros_control_t* nuevos_parametros)
 {
     bool hubo_cambios = false;
 
-    if (parametros_actuales_.control.setpoint_deci_celsius != setpoint_deci_celsius) {
-        parametros_actuales_.control.setpoint_deci_celsius = setpoint_deci_celsius;
+    if (nuevos_parametros == 0) {
+        return false;
+    }
+
+    if (parametros_actuales_.setpoint_deci_celsius != nuevos_parametros->setpoint_deci_celsius) {
+        parametros_actuales_.setpoint_deci_celsius = nuevos_parametros->setpoint_deci_celsius;
         hubo_cambios = true;
     }
 
-    if (parametros_actuales_.control.histeresis_deci_celsius != histeresis_deci_celsius) {
-        parametros_actuales_.control.histeresis_deci_celsius = histeresis_deci_celsius;
+    if (parametros_actuales_.histeresis_deci_celsius != nuevos_parametros->histeresis_deci_celsius) {
+        parametros_actuales_.histeresis_deci_celsius = nuevos_parametros->histeresis_deci_celsius;
         hubo_cambios = true;
     }
 
-    if (parametros_actuales_.control.tiempo_minimo_encendido_ms != tiempo_minimo_encendido_ms) {
-        parametros_actuales_.control.tiempo_minimo_encendido_ms = tiempo_minimo_encendido_ms;
+    if (parametros_actuales_.tiempo_minimo_encendido_ms != nuevos_parametros->tiempo_minimo_encendido_ms) {
+        parametros_actuales_.tiempo_minimo_encendido_ms = nuevos_parametros->tiempo_minimo_encendido_ms;
         hubo_cambios = true;
     }
 
-    if (parametros_actuales_.control.tiempo_minimo_apagado_ms != tiempo_minimo_apagado_ms) {
-        parametros_actuales_.control.tiempo_minimo_apagado_ms = tiempo_minimo_apagado_ms;
+    if (parametros_actuales_.tiempo_minimo_apagado_ms != nuevos_parametros->tiempo_minimo_apagado_ms) {
+        parametros_actuales_.tiempo_minimo_apagado_ms = nuevos_parametros->tiempo_minimo_apagado_ms;
         hubo_cambios = true;
     }
 
-    if (parametros_actuales_.control.modo_calentar != modo_calentar) {
-        parametros_actuales_.control.modo_calentar = modo_calentar;
+    if (parametros_actuales_.modo_calentar != nuevos_parametros->modo_calentar) {
+        parametros_actuales_.modo_calentar = nuevos_parametros->modo_calentar;
         hubo_cambios = true;
     }
 

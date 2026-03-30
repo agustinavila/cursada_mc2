@@ -17,18 +17,10 @@ typedef struct {
     bool modo_calentar;                    // sentido actual del control on/off
 } parametros_control_t;
 
-typedef struct {
-    parametros_control_t control;
-} parametros_t;
-
 bool parametros_init(void);
-const parametros_t* parametros_obtener(void);
+const parametros_control_t* parametros_obtener(void);
 bool parametros_guardar(void);
 void parametros_restablecer_defaults(void);
-bool parametros_actualizar_control(int16_t setpoint_deci_celsius,
-                                   uint16_t histeresis_deci_celsius,
-                                   uint32_t tiempo_minimo_encendido_ms,
-                                   uint32_t tiempo_minimo_apagado_ms,
-                                   bool modo_calentar);
+bool parametros_actualizar(const parametros_control_t* nuevos_parametros);
 
 #endif // APP_PARAMETROS_H_

@@ -8,6 +8,6 @@
 
 #include "app/parametros.h"
 
-const parametros_t* parametros_default_obtener(void);
+const parametros_control_t* parametros_default_obtener(void);
 
 #endif // APP_PARAMETROS_DEFAULT_H_
