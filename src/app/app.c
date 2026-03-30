@@ -17,7 +17,6 @@
 #include "control/control_on_off.h"
 #include "hmi/hmi.h"
 
-static control_on_off_t app_control_on_off_;
 static control_on_off_configuracion_t app_control_on_off_configuracion_actual_;
 
 typedef struct {
@@ -131,7 +130,7 @@ static control_on_off_configuracion_t app_obtener_configuracion_control_desde_pa
     return configuracion;
 }
 
-static bool app_sincronizar_control_desde_parametros(void)
+static void app_sincronizar_control_desde_parametros(void)
 {
     control_on_off_configuracion_t nueva_configuracion = app_obtener_configuracion_control_desde_parametros();
 
@@ -143,11 +142,11 @@ static bool app_sincronizar_control_desde_parametros(void)
         && (nueva_configuracion.tiempo_minimo_apagado_ms
             == app_control_on_off_configuracion_actual_.tiempo_minimo_apagado_ms)
         && (nueva_configuracion.habilitado == app_control_on_off_configuracion_actual_.habilitado)) {
-        return true;
+        return;
     }
 
     app_control_on_off_configuracion_actual_ = nueva_configuracion;
-    return control_on_off_configurar(&app_control_on_off_, &app_control_on_off_configuracion_actual_);
+    control_on_off_configurar(app_control_on_off_configuracion_actual_);
 }
 
 static bool app_sincronizar_hmi_en_parametros(void)
@@ -168,11 +167,12 @@ static void app_actualizar_control(void)
     int16_t temperatura_deci_celsius = 0;
     bool salida_activa = false;
 
-    if (!app_sincronizar_hmi_en_parametros() || !app_sincronizar_control_desde_parametros()) {
+    if (!app_sincronizar_hmi_en_parametros()) {
         hmi_cargar_estado_control(false, false);
         led_turn_off(LED1);
         return;
     }
+    app_sincronizar_control_desde_parametros();
 
     if (!app_obtener_temperatura_sensor_principal(&temperatura_deci_celsius)) {
         hmi_cargar_estado_control(false, false);
@@ -180,13 +180,8 @@ static void app_actualizar_control(void)
         return;
     }
 
-    if (!control_on_off_procesar(&app_control_on_off_, temperatura_deci_celsius, APP_LOOP_DELTA_MS)) {
-        hmi_cargar_estado_control(false, true);
-        led_turn_off(LED1);
-        return;
-    }
-
-    salida_activa = control_on_off_esta_salida_activa(&app_control_on_off_);
+    control_on_off_procesar(temperatura_deci_celsius, APP_LOOP_DELTA_MS);
+    salida_activa = control_on_off_esta_salida_activa();
     hmi_cargar_estado_control(salida_activa, true);
 
     if (salida_activa) {
@@ -220,7 +215,7 @@ void app_init(void)
     app_cargar_parametros_en_hmi();
 
     app_control_on_off_configuracion_actual_ = app_obtener_configuracion_control_desde_parametros();
-    (void) control_on_off_inicializar(&app_control_on_off_, &app_control_on_off_configuracion_actual_);
+    control_on_off_inicializar(app_control_on_off_configuracion_actual_);
     app_ultimo_tick_procesado_ms_ = board_timer_get_ticks();
 }
 
