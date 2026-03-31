@@ -22,6 +22,7 @@ void board_timer_init(uint32_t timer_value_ms)
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
     NVIC_EnableIRQ(RITIMER_IRQn);
 }
+
 void board_timer_irq_handler(void)
 {
     board_timer_ticks_++;

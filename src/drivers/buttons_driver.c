@@ -1,5 +1,5 @@
 /**
- * @file teclas_driver.c
+ * @file buttons_driver.c
  * @author agustinavila (tinto.avila@gmail.com)
  * @brief 
  * @version 0.1
@@ -54,15 +54,18 @@ static volatile button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
 
 static int8_t button_indice_desde_tecla(uint8_t tecla)
 {
-    uint8_t indice = 0U;
-
-    for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
-        if (button_hw_[indice].tecla == tecla) {
-            return (int8_t) indice;
-        }
+    switch (tecla) {
+    case TECLA1:
+        return 0;
+    case TECLA2:
+        return 1;
+    case TECLA3:
+        return 2;
+    case TECLA4:
+        return 3;
+    default:
+        return -1;
     }
-
-    return -1;
 }
 
 static bool button_esta_presionado(uint8_t indice)

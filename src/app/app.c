@@ -48,7 +48,6 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
 
 static void app_step_20ms(void)
 {
-    const parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
     hmi_estado_proceso_t estado_hmi = {0};
     int16_t temperatura_cruda = 0;
     int16_t temperatura_deci_celsius = 0;
@@ -81,11 +80,12 @@ static void app_step_20ms(void)
     buttons_process(APP_LOOP_DELTA_MS);
     hmi_process();
 
+    // Primero se procesa la HMI y despues se toma la configuracion confirmada en ese mismo ciclo.
+    const parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
     if (parametros_actualizar(&parametros_hmi)) {
         (void) parametros_guardar();
+        control_on_off_configurar(parametros_hmi);
     }
-
-    control_on_off_configurar(*parametros_obtener());
 
     // Sin una medicion valida, la salida queda inhibida y la HMI muestra sensor ausente.
     estado_hmi.sensor_disponible = temperatura_valida;
