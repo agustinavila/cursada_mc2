@@ -140,36 +140,18 @@ void parametros_restablecer_defaults(void)
 
 bool parametros_actualizar(const parametros_control_t* nuevos_parametros)
 {
-    bool hubo_cambios = false;
-
     if (nuevos_parametros == 0) {
         return false;
     }
 
-    if (parametros_actuales_.setpoint_deci_celsius != nuevos_parametros->setpoint_deci_celsius) {
-        parametros_actuales_.setpoint_deci_celsius = nuevos_parametros->setpoint_deci_celsius;
-        hubo_cambios = true;
+    if ((parametros_actuales_.setpoint_deci_celsius == nuevos_parametros->setpoint_deci_celsius)
+        && (parametros_actuales_.histeresis_deci_celsius == nuevos_parametros->histeresis_deci_celsius)
+        && (parametros_actuales_.tiempo_minimo_encendido_ms == nuevos_parametros->tiempo_minimo_encendido_ms)
+        && (parametros_actuales_.tiempo_minimo_apagado_ms == nuevos_parametros->tiempo_minimo_apagado_ms)
+        && (parametros_actuales_.modo_calentar == nuevos_parametros->modo_calentar)) {
+        return false;
     }
 
-    if (parametros_actuales_.histeresis_deci_celsius != nuevos_parametros->histeresis_deci_celsius) {
-        parametros_actuales_.histeresis_deci_celsius = nuevos_parametros->histeresis_deci_celsius;
-        hubo_cambios = true;
-    }
-
-    if (parametros_actuales_.tiempo_minimo_encendido_ms != nuevos_parametros->tiempo_minimo_encendido_ms) {
-        parametros_actuales_.tiempo_minimo_encendido_ms = nuevos_parametros->tiempo_minimo_encendido_ms;
-        hubo_cambios = true;
-    }
-
-    if (parametros_actuales_.tiempo_minimo_apagado_ms != nuevos_parametros->tiempo_minimo_apagado_ms) {
-        parametros_actuales_.tiempo_minimo_apagado_ms = nuevos_parametros->tiempo_minimo_apagado_ms;
-        hubo_cambios = true;
-    }
-
-    if (parametros_actuales_.modo_calentar != nuevos_parametros->modo_calentar) {
-        parametros_actuales_.modo_calentar = nuevos_parametros->modo_calentar;
-        hubo_cambios = true;
-    }
-
-    return hubo_cambios;
+    parametros_actuales_ = *nuevos_parametros;
+    return true;
 }
