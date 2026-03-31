@@ -6,47 +6,24 @@
 #if !defined(CONTROL_CONTROL_ON_OFF_H_)
 #define CONTROL_CONTROL_ON_OFF_H_
 
+#include "app/parametros.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
 /**
- * @brief Sentido de accion del control on/off.
- *
- * - CALENTAR: activa la salida cuando la temperatura esta por debajo del objetivo.
- * - ENFRIAR: activa la salida cuando la temperatura esta por encima del objetivo.
- */
-typedef enum {
-    CONTROL_ON_OFF_SENTIDO_CALENTAR = 0,
-    CONTROL_ON_OFF_SENTIDO_ENFRIAR,
-} control_on_off_sentido_t;
-
-/**
- * @brief Configuracion del control on/off con histeresis.
- *
- * Todas las temperaturas se expresan en decimas de grado Celsius para evitar
- * el uso de punto flotante dentro del lazo de control.
- */
-typedef struct {
-    control_on_off_sentido_t sentido;
-    int16_t setpoint_deci_celsius;      // setpoint en decimas de grado Celsius
-    uint16_t histeresis_deci_celsius;   // histeresis en decimas de grado Celsius
-    uint32_t tiempo_minimo_encendido_ms; // permanencia minima en estado encendido
-    uint32_t tiempo_minimo_apagado_ms;   // permanencia minima en estado apagado
-} control_on_off_configuracion_t;
-
-/**
  * @brief Inicializa el control on/off.
  *
- * @param configuracion Configuracion inicial.
+ * @param parametros Parametros iniciales del control.
  */
-void control_on_off_inicializar(control_on_off_configuracion_t configuracion);
+void control_on_off_inicializar(parametros_control_t parametros);
 
 /**
  * @brief Actualiza la configuracion del control on/off.
  *
- * @param configuracion Nueva configuracion.
+ * @param parametros Nuevos parametros del control.
  */
-void control_on_off_configurar(control_on_off_configuracion_t configuracion);
+void control_on_off_configurar(parametros_control_t parametros);
 
 /**
  * @brief Procesa una nueva medicion y actualiza la salida del control.
