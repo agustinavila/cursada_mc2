@@ -20,6 +20,7 @@
 static ds18b20_driver_t app_sensor_temperatura_;
 static bool app_sensor_inicializado_ = false;
 static uint16_t app_sensor_ticks_actualizacion_ = 0U;
+static uint16_t app_sensor_ticks_reintento_ = 0U;
 
 static const onewire_pin_config_t app_pin_ds18b20_ = {
     .scu_port = 6U,
@@ -54,7 +55,16 @@ static void app_step_20ms(void)
     bool temperatura_valida = false;
     bool salida_activa = false;
 
-    if (app_sensor_inicializado_) {
+    if (!app_sensor_inicializado_) {
+        app_sensor_ticks_reintento_++;
+        if (app_sensor_ticks_reintento_ >= 50U) {
+            app_sensor_ticks_reintento_ = 0U;
+            app_sensor_inicializado_ = ds18b20_init(&app_sensor_temperatura_, &app_pin_ds18b20_);
+            if (app_sensor_inicializado_) {
+                (void) ds18b20_start_conversion(&app_sensor_temperatura_);
+            }
+        }
+    } else {
         ds18b20_process(&app_sensor_temperatura_, APP_LOOP_DELTA_MS);
 
         if (!ds18b20_is_busy(&app_sensor_temperatura_)) {
@@ -124,6 +134,7 @@ void app_init(void)
 
     // Inicializacion del sensor de temperatura.
     app_sensor_inicializado_ = ds18b20_init(&app_sensor_temperatura_, &app_pin_ds18b20_);
+    app_sensor_ticks_reintento_ = 0U;
     if (app_sensor_inicializado_) {
         (void) ds18b20_start_conversion(&app_sensor_temperatura_);
     }
