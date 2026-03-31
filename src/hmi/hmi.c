@@ -43,30 +43,6 @@ typedef enum {
 } hmi_evento_t;
 
 typedef struct {
-    int16_t setpoint_deci_celsius;
-    int16_t histeresis_deci_celsius;
-    int16_t tmin_on_decisegundos;
-    int16_t tmin_off_decisegundos;
-    int16_t modo_calentar;
-} hmi_config_interno_t;
-
-typedef struct {
-    bool temperatura_valida;
-    int16_t temperatura_deci_celsius;
-    bool salida_activa;
-    bool sensor_disponible;
-} hmi_estado_interno_t;
-
-typedef struct {
-    hmi_pantalla_t pantalla;
-    hmi_parametro_t menu_index;
-    hmi_parametro_t editando;
-    int16_t valor_edicion;
-    bool necesita_redibujado;
-    uint8_t ticks_buzzer_restantes;
-} hmi_ui_t;
-
-typedef struct {
     const char* titulo;
     int16_t minimo;
     int16_t maximo;
@@ -75,27 +51,35 @@ typedef struct {
 } hmi_param_desc_t;
 
 typedef struct {
-    hmi_config_interno_t config;
-    hmi_estado_interno_t estado;
-    hmi_ui_t ui;
-} hmi_contexto_t;
+    int16_t setpoint_deci_celsius;
+    int16_t histeresis_deci_celsius;
+    int16_t tmin_on_decisegundos;
+    int16_t tmin_off_decisegundos;
+    int16_t modo_calentar;
+    bool temperatura_valida;
+    int16_t temperatura_deci_celsius;
+    bool salida_activa;
+    bool sensor_disponible;
+    hmi_pantalla_t pantalla;
+    hmi_parametro_t menu_index;
+    hmi_parametro_t editando;
+    int16_t valor_edicion;
+    bool necesita_redibujado;
+    uint8_t ticks_buzzer_restantes;
+} hmi_estado_t;
 
-static hmi_contexto_t hmi_ = {
-    .config = {
-        .setpoint_deci_celsius = 270,
-        .histeresis_deci_celsius = 20,
-        .tmin_on_decisegundos = 0,
-        .tmin_off_decisegundos = 0,
-        .modo_calentar = 1,
-    },
-    .ui = {
-        .pantalla = HMI_PANTALLA_INICIO,
-        .menu_index = HMI_PARAM_SETPOINT,
-        .editando = HMI_PARAM_SETPOINT,
-        .valor_edicion = 0,
-        .necesita_redibujado = true,
-        .ticks_buzzer_restantes = 0U,
-    },
+static hmi_estado_t hmi_ = {
+    .setpoint_deci_celsius = 270,
+    .histeresis_deci_celsius = 20,
+    .tmin_on_decisegundos = 0,
+    .tmin_off_decisegundos = 0,
+    .modo_calentar = 1,
+    .pantalla = HMI_PANTALLA_INICIO,
+    .menu_index = HMI_PARAM_SETPOINT,
+    .editando = HMI_PARAM_SETPOINT,
+    .valor_edicion = 0,
+    .necesita_redibujado = true,
+    .ticks_buzzer_restantes = 0U,
 };
 
 static const hmi_param_desc_t hmi_param_descs_[HMI_PARAM_COUNT] = {
@@ -136,19 +120,19 @@ static void hmi_dibujar_inicio(void)
     char h[8];
     char linea1[HMI_LCD_COLUMNAS + 1U];
     char linea2[HMI_LCD_COLUMNAS + 1U];
-    const char* salida = hmi_.estado.salida_activa ? "ON" : "OFF";
-    const char* modo = (hmi_.config.modo_calentar != 0) ? "CAL" : "ENF";
+    const char* salida = hmi_.salida_activa ? "ON" : "OFF";
+    const char* modo = (hmi_.modo_calentar != 0) ? "CAL" : "ENF";
 
-    if (hmi_.estado.sensor_disponible && hmi_.estado.temperatura_valida) {
+    if (hmi_.sensor_disponible && hmi_.temperatura_valida) {
         char temp[8];
-        hmi_formatear_deci(temp, sizeof(temp), hmi_.estado.temperatura_deci_celsius);
+        hmi_formatear_deci(temp, sizeof(temp), hmi_.temperatura_deci_celsius);
         (void) snprintf(temp_con_unidad, sizeof(temp_con_unidad), "%sC", temp);
     } else {
         (void) snprintf(temp_con_unidad, sizeof(temp_con_unidad), "--.-C");
     }
 
-    hmi_formatear_deci(sp, sizeof(sp), hmi_.config.setpoint_deci_celsius);
-    hmi_formatear_deci(h, sizeof(h), hmi_.config.histeresis_deci_celsius);
+    hmi_formatear_deci(sp, sizeof(sp), hmi_.setpoint_deci_celsius);
+    hmi_formatear_deci(h, sizeof(h), hmi_.histeresis_deci_celsius);
 
     (void) snprintf(linea1, sizeof(linea1), "T:%s %s %s", temp_con_unidad, salida, modo);
     (void) snprintf(linea2, sizeof(linea2), "SP:%s H:%s", sp, h);
@@ -160,14 +144,14 @@ static void hmi_dibujar_inicio(void)
 static void hmi_dibujar_menu(void)
 {
     hmi_escribir_linea(1U, "MENU:Param control");
-    hmi_escribir_linea(2U, hmi_param_descs_[hmi_.ui.menu_index].titulo);
+    hmi_escribir_linea(2U, hmi_param_descs_[hmi_.menu_index].titulo);
 }
 
 static void hmi_dibujar_edicion(void)
 {
     char valor[12];
     char linea2[HMI_LCD_COLUMNAS + 1U];
-    const hmi_parametro_t parametro = hmi_.ui.editando;
+    const hmi_parametro_t parametro = hmi_.editando;
 
     hmi_escribir_linea(1U, "EDITAR");
 
@@ -176,13 +160,13 @@ static void hmi_dibujar_edicion(void)
             linea2,
             sizeof(linea2),
             "Modo:%s",
-            (hmi_.ui.valor_edicion != 0) ? "Calentar" : "Enfriar"
+            (hmi_.valor_edicion != 0) ? "Calentar" : "Enfriar"
         );
         hmi_escribir_linea(2U, linea2);
         return;
     }
 
-    hmi_formatear_deci(valor, sizeof(valor), hmi_.ui.valor_edicion);
+    hmi_formatear_deci(valor, sizeof(valor), hmi_.valor_edicion);
 
     if ((parametro == HMI_PARAM_TMIN_ON) || (parametro == HMI_PARAM_TMIN_OFF)) {
         (void) snprintf(linea2, sizeof(linea2), "%s:%ss", hmi_param_descs_[parametro].titulo, valor);
@@ -195,11 +179,11 @@ static void hmi_dibujar_edicion(void)
 
 static void hmi_dibujar(void)
 {
-    if (!hmi_.ui.necesita_redibujado) {
+    if (!hmi_.necesita_redibujado) {
         return;
     }
 
-    switch (hmi_.ui.pantalla) {
+    switch (hmi_.pantalla) {
     case HMI_PANTALLA_INICIO:
         hmi_dibujar_inicio();
         break;
@@ -213,17 +197,17 @@ static void hmi_dibujar(void)
         break;
     }
 
-    hmi_.ui.necesita_redibujado = false;
+    hmi_.necesita_redibujado = false;
 }
 
 void hmi_init(void)
 {
-    hmi_.ui.pantalla = HMI_PANTALLA_INICIO;
-    hmi_.ui.menu_index = HMI_PARAM_SETPOINT;
-    hmi_.ui.editando = HMI_PARAM_SETPOINT;
-    hmi_.ui.valor_edicion = 0;
-    hmi_.ui.necesita_redibujado = true;
-    hmi_.ui.ticks_buzzer_restantes = 0U;
+    hmi_.pantalla = HMI_PANTALLA_INICIO;
+    hmi_.menu_index = HMI_PARAM_SETPOINT;
+    hmi_.editando = HMI_PARAM_SETPOINT;
+    hmi_.valor_edicion = 0;
+    hmi_.necesita_redibujado = true;
+    hmi_.ticks_buzzer_restantes = 0U;
 
     driver_lcd_write_char('\b');
     hmi_dibujar();
@@ -244,107 +228,107 @@ void hmi_process(void)
         evento = HMI_EVENTO_ACEPTAR;
     }
 
-    if (hmi_.ui.ticks_buzzer_restantes > 0U) {
-        hmi_.ui.ticks_buzzer_restantes--;
-        if (hmi_.ui.ticks_buzzer_restantes == 0U) {
+    if (hmi_.ticks_buzzer_restantes > 0U) {
+        hmi_.ticks_buzzer_restantes--;
+        if (hmi_.ticks_buzzer_restantes == 0U) {
             buzzer_turn_off();
         }
     }
 
     if (evento != HMI_EVENTO_NINGUNO) {
-        hmi_.ui.ticks_buzzer_restantes = HMI_BEEP_TICKS;
+        hmi_.ticks_buzzer_restantes = HMI_BEEP_TICKS;
         buzzer_turn_on();
     }
 
-    switch (hmi_.ui.pantalla) {
+    switch (hmi_.pantalla) {
     case HMI_PANTALLA_INICIO:
         if (evento == HMI_EVENTO_MENU) {
-            hmi_.ui.pantalla = HMI_PANTALLA_MENU;
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.pantalla = HMI_PANTALLA_MENU;
+            hmi_.necesita_redibujado = true;
         }
         break;
 
     case HMI_PANTALLA_MENU:
         if (evento == HMI_EVENTO_MENU) {
-            hmi_.ui.pantalla = HMI_PANTALLA_INICIO;
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.pantalla = HMI_PANTALLA_INICIO;
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_SUBIR) {
-            if (hmi_.ui.menu_index == 0U) {
-                hmi_.ui.menu_index = (hmi_parametro_t) (HMI_PARAM_COUNT - 1U);
+            if (hmi_.menu_index == 0U) {
+                hmi_.menu_index = (hmi_parametro_t) (HMI_PARAM_COUNT - 1U);
             } else {
-                hmi_.ui.menu_index = (hmi_parametro_t) (hmi_.ui.menu_index - 1U);
+                hmi_.menu_index = (hmi_parametro_t) (hmi_.menu_index - 1U);
             }
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_BAJAR) {
-            hmi_.ui.menu_index = (hmi_parametro_t) ((hmi_.ui.menu_index + 1U) % HMI_PARAM_COUNT);
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.menu_index = (hmi_parametro_t) ((hmi_.menu_index + 1U) % HMI_PARAM_COUNT);
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_ACEPTAR) {
-            hmi_.ui.editando = hmi_.ui.menu_index;
-            switch (hmi_.ui.editando) {
+            hmi_.editando = hmi_.menu_index;
+            switch (hmi_.editando) {
             case HMI_PARAM_SETPOINT:
-                hmi_.ui.valor_edicion = hmi_.config.setpoint_deci_celsius;
+                hmi_.valor_edicion = hmi_.setpoint_deci_celsius;
                 break;
             case HMI_PARAM_HISTERESIS:
-                hmi_.ui.valor_edicion = hmi_.config.histeresis_deci_celsius;
+                hmi_.valor_edicion = hmi_.histeresis_deci_celsius;
                 break;
             case HMI_PARAM_TMIN_ON:
-                hmi_.ui.valor_edicion = hmi_.config.tmin_on_decisegundos;
+                hmi_.valor_edicion = hmi_.tmin_on_decisegundos;
                 break;
             case HMI_PARAM_TMIN_OFF:
-                hmi_.ui.valor_edicion = hmi_.config.tmin_off_decisegundos;
+                hmi_.valor_edicion = hmi_.tmin_off_decisegundos;
                 break;
             case HMI_PARAM_MODO:
             default:
-                hmi_.ui.valor_edicion = hmi_.config.modo_calentar;
+                hmi_.valor_edicion = hmi_.modo_calentar;
                 break;
             }
-            hmi_.ui.pantalla = HMI_PANTALLA_EDICION;
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.pantalla = HMI_PANTALLA_EDICION;
+            hmi_.necesita_redibujado = true;
         }
         break;
 
     case HMI_PANTALLA_EDICION:
         if (evento == HMI_EVENTO_MENU) {
-            hmi_.ui.pantalla = HMI_PANTALLA_MENU;
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.pantalla = HMI_PANTALLA_MENU;
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_SUBIR) {
-            const hmi_param_desc_t* desc = &hmi_param_descs_[hmi_.ui.editando];
-            hmi_.ui.valor_edicion = (int16_t) (hmi_.ui.valor_edicion + desc->paso);
+            const hmi_param_desc_t* desc = &hmi_param_descs_[hmi_.editando];
+            hmi_.valor_edicion = (int16_t) (hmi_.valor_edicion + desc->paso);
             // Limita el valor editado al rango permitido y hace wrap solo en Modo.
-            if (hmi_.ui.valor_edicion > desc->maximo) {
-                hmi_.ui.valor_edicion = desc->ciclico ? desc->minimo : desc->maximo;
+            if (hmi_.valor_edicion > desc->maximo) {
+                hmi_.valor_edicion = desc->ciclico ? desc->minimo : desc->maximo;
             }
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_BAJAR) {
-            const hmi_param_desc_t* desc = &hmi_param_descs_[hmi_.ui.editando];
-            hmi_.ui.valor_edicion = (int16_t) (hmi_.ui.valor_edicion - desc->paso);
+            const hmi_param_desc_t* desc = &hmi_param_descs_[hmi_.editando];
+            hmi_.valor_edicion = (int16_t) (hmi_.valor_edicion - desc->paso);
             // Limita el valor editado al rango permitido y hace wrap solo en Modo.
-            if (hmi_.ui.valor_edicion < desc->minimo) {
-                hmi_.ui.valor_edicion = desc->ciclico ? desc->maximo : desc->minimo;
+            if (hmi_.valor_edicion < desc->minimo) {
+                hmi_.valor_edicion = desc->ciclico ? desc->maximo : desc->minimo;
             }
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_ACEPTAR) {
-            switch (hmi_.ui.editando) {
+            switch (hmi_.editando) {
             case HMI_PARAM_SETPOINT:
-                hmi_.config.setpoint_deci_celsius = hmi_.ui.valor_edicion;
+                hmi_.setpoint_deci_celsius = hmi_.valor_edicion;
                 break;
             case HMI_PARAM_HISTERESIS:
-                hmi_.config.histeresis_deci_celsius = hmi_.ui.valor_edicion;
+                hmi_.histeresis_deci_celsius = hmi_.valor_edicion;
                 break;
             case HMI_PARAM_TMIN_ON:
-                hmi_.config.tmin_on_decisegundos = hmi_.ui.valor_edicion;
+                hmi_.tmin_on_decisegundos = hmi_.valor_edicion;
                 break;
             case HMI_PARAM_TMIN_OFF:
-                hmi_.config.tmin_off_decisegundos = hmi_.ui.valor_edicion;
+                hmi_.tmin_off_decisegundos = hmi_.valor_edicion;
                 break;
             case HMI_PARAM_MODO:
-                hmi_.config.modo_calentar = hmi_.ui.valor_edicion;
+                hmi_.modo_calentar = hmi_.valor_edicion;
                 break;
             default:
                 break;
             }
-            hmi_.ui.pantalla = HMI_PANTALLA_MENU;
-            hmi_.ui.necesita_redibujado = true;
+            hmi_.pantalla = HMI_PANTALLA_MENU;
+            hmi_.necesita_redibujado = true;
         }
         break;
 
@@ -361,44 +345,44 @@ void hmi_cargar_parametros_control(const parametros_control_t* parametros)
         return;
     }
 
-    hmi_.config.setpoint_deci_celsius = parametros->setpoint_deci_celsius;
-    hmi_.config.histeresis_deci_celsius = (int16_t) parametros->histeresis_deci_celsius;
-    hmi_.config.tmin_on_decisegundos = (int16_t) (parametros->tiempo_minimo_encendido_ms / 100U);
-    hmi_.config.tmin_off_decisegundos = (int16_t) (parametros->tiempo_minimo_apagado_ms / 100U);
-    hmi_.config.modo_calentar = parametros->modo_calentar ? 1 : 0;
-    hmi_.ui.necesita_redibujado = true;
+    hmi_.setpoint_deci_celsius = parametros->setpoint_deci_celsius;
+    hmi_.histeresis_deci_celsius = (int16_t) parametros->histeresis_deci_celsius;
+    hmi_.tmin_on_decisegundos = (int16_t) (parametros->tiempo_minimo_encendido_ms / 100U);
+    hmi_.tmin_off_decisegundos = (int16_t) (parametros->tiempo_minimo_apagado_ms / 100U);
+    hmi_.modo_calentar = parametros->modo_calentar ? 1 : 0;
+    hmi_.necesita_redibujado = true;
 }
 
 void hmi_cargar_estado_proceso(const hmi_estado_proceso_t* estado)
 {
     const bool hubo_cambios = (estado != 0)
-        && ((hmi_.estado.temperatura_valida != estado->temperatura_valida)
-            || (hmi_.estado.temperatura_deci_celsius != estado->temperatura_deci_celsius)
-            || (hmi_.estado.salida_activa != estado->salida_activa)
-            || (hmi_.estado.sensor_disponible != estado->sensor_disponible));
+        && ((hmi_.temperatura_valida != estado->temperatura_valida)
+            || (hmi_.temperatura_deci_celsius != estado->temperatura_deci_celsius)
+            || (hmi_.salida_activa != estado->salida_activa)
+            || (hmi_.sensor_disponible != estado->sensor_disponible));
 
     if (estado == 0) {
         return;
     }
 
-    hmi_.estado.temperatura_valida = estado->temperatura_valida;
-    hmi_.estado.temperatura_deci_celsius = estado->temperatura_deci_celsius;
-    hmi_.estado.salida_activa = estado->salida_activa;
-    hmi_.estado.sensor_disponible = estado->sensor_disponible;
+    hmi_.temperatura_valida = estado->temperatura_valida;
+    hmi_.temperatura_deci_celsius = estado->temperatura_deci_celsius;
+    hmi_.salida_activa = estado->salida_activa;
+    hmi_.sensor_disponible = estado->sensor_disponible;
 
-    if (hubo_cambios && (hmi_.ui.pantalla == HMI_PANTALLA_INICIO)) {
-        hmi_.ui.necesita_redibujado = true;
+    if (hubo_cambios && (hmi_.pantalla == HMI_PANTALLA_INICIO)) {
+        hmi_.necesita_redibujado = true;
     }
 }
 
 parametros_control_t hmi_obtener_parametros_control(void)
 {
     parametros_control_t parametros = {
-        .setpoint_deci_celsius = hmi_.config.setpoint_deci_celsius,
-        .histeresis_deci_celsius = (uint16_t) hmi_.config.histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = (uint32_t) hmi_.config.tmin_on_decisegundos * 100U,
-        .tiempo_minimo_apagado_ms = (uint32_t) hmi_.config.tmin_off_decisegundos * 100U,
-        .modo_calentar = (hmi_.config.modo_calentar != 0),
+        .setpoint_deci_celsius = hmi_.setpoint_deci_celsius,
+        .histeresis_deci_celsius = (uint16_t) hmi_.histeresis_deci_celsius,
+        .tiempo_minimo_encendido_ms = (uint32_t) hmi_.tmin_on_decisegundos * 100U,
+        .tiempo_minimo_apagado_ms = (uint32_t) hmi_.tmin_off_decisegundos * 100U,
+        .modo_calentar = (hmi_.modo_calentar != 0),
     };
 
     return parametros;

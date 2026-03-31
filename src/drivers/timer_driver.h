@@ -19,13 +19,6 @@
 void board_timer_init(uint32_t timer_value_ms);
 
 /**
- * @brief Cambia el periodo del temporizador RIT.
- *
- * @param timer_value Nuevo periodo en milisegundos.
- */
-void board_timer_set_period(uint32_t timer_value);
-
-/**
  * @brief Handler de bajo nivel del RIT para mantener el tick del sistema.
  *
  * Debe llamarse desde la ISR asociada al temporizador.

@@ -17,13 +17,9 @@
 #include "control/control_on_off.h"
 #include "hmi/hmi.h"
 
-typedef struct {
-    ds18b20_driver_t sensor_temperatura;
-    bool inicializado;
-    uint16_t ticks_actualizacion;
-} app_sensores_t;
-
-static app_sensores_t app_sensores_;
+static ds18b20_driver_t app_sensor_temperatura_;
+static bool app_sensor_inicializado_ = false;
+static uint16_t app_sensor_ticks_actualizacion_ = 0U;
 
 static const onewire_pin_config_t app_pin_ds18b20_ = {
     .scu_port = 6U,
@@ -60,21 +56,21 @@ static void app_step_20ms(void)
     bool temperatura_valida = false;
     bool salida_activa = false;
 
-    if (app_sensores_.inicializado) {
-        ds18b20_process(&app_sensores_.sensor_temperatura, APP_LOOP_DELTA_MS);
+    if (app_sensor_inicializado_) {
+        ds18b20_process(&app_sensor_temperatura_, APP_LOOP_DELTA_MS);
 
-        if (!ds18b20_is_busy(&app_sensores_.sensor_temperatura)) {
-            app_sensores_.ticks_actualizacion++;
-            if (app_sensores_.ticks_actualizacion >= 50U) {
-                app_sensores_.ticks_actualizacion = 0U;
-                (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
+        if (!ds18b20_is_busy(&app_sensor_temperatura_)) {
+            app_sensor_ticks_actualizacion_++;
+            if (app_sensor_ticks_actualizacion_ >= 50U) {
+                app_sensor_ticks_actualizacion_ = 0U;
+                (void) ds18b20_start_conversion(&app_sensor_temperatura_);
             }
         } else {
-            app_sensores_.ticks_actualizacion = 0U;
+            app_sensor_ticks_actualizacion_ = 0U;
         }
 
         // Lee la ultima conversion lista del DS18B20 y la pasa a decimas de grado.
-        if (ds18b20_get_latest_raw(&app_sensores_.sensor_temperatura, &temperatura_cruda)) {
+        if (ds18b20_get_latest_raw(&app_sensor_temperatura_, &temperatura_cruda)) {
             temperatura_deci_celsius = app_convertir_temperatura_raw_a_deci(temperatura_cruda);
             temperatura_valida = true;
         }
@@ -141,9 +137,9 @@ void app_init(void)
     (void) parametros_init();
 
     // Inicializacion del sensor de temperatura.
-    app_sensores_.inicializado = ds18b20_init(&app_sensores_.sensor_temperatura, &app_pin_ds18b20_);
-    if (app_sensores_.inicializado) {
-        (void) ds18b20_start_conversion(&app_sensores_.sensor_temperatura);
+    app_sensor_inicializado_ = ds18b20_init(&app_sensor_temperatura_, &app_pin_ds18b20_);
+    if (app_sensor_inicializado_) {
+        (void) ds18b20_start_conversion(&app_sensor_temperatura_);
     }
 
     // Inicializacion de la HMI con el estado persistido.

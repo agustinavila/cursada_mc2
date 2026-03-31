@@ -13,6 +13,11 @@
 
 static volatile uint32_t board_timer_ticks_ = 0U;
 
+static void board_timer_set_period(uint32_t timer_value_ms)
+{
+    Chip_RIT_SetTimerInterval(LPC_RITIMER, timer_value_ms);
+}
+
 void board_timer_init(uint32_t timer_value_ms)
 {
     Chip_RIT_Init(LPC_RITIMER);
@@ -22,12 +27,6 @@ void board_timer_init(uint32_t timer_value_ms)
     NVIC_ClearPendingIRQ(RITIMER_IRQn);
     NVIC_EnableIRQ(RITIMER_IRQn);
 }
-
-void board_timer_set_period(uint32_t timer_value_ms)
-{ //
-    Chip_RIT_SetTimerInterval(LPC_RITIMER, timer_value_ms);
-}
-
 void board_timer_irq_handler(void)
 {
     board_timer_ticks_++;
