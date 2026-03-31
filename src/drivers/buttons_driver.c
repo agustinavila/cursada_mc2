@@ -18,12 +18,28 @@
 #define BUTTONS_DEBOUNCE_MS 40U
 
 typedef struct {
+    uint8_t tecla;
+    uint8_t gpio_port;
+    uint8_t gpio_pin;
+    uint8_t pinint_selector;
+    uint32_t pinint_mask;
+    IRQn_Type irqn;
+} button_hw_t;
+
+typedef struct {
     bool irq_pendiente;
-    bool presionado_estable;
     bool armado;
     bool evento_pendiente;
     uint32_t debounce_acumulado_ms;
 } button_estado_t;
+
+/* Tabla fija de relacion entre tecla logica y recursos fisicos del LPC4337. */
+static const button_hw_t button_hw_[BUTTONS_CANTIDAD] = {
+    [0] = {.tecla = TECLA1, .gpio_port = 0U, .gpio_pin = 4U, .pinint_selector = 0U, .pinint_mask = PININTCH0, .irqn = PIN_INT0_IRQn},
+    [1] = {.tecla = TECLA2, .gpio_port = 0U, .gpio_pin = 8U, .pinint_selector = 1U, .pinint_mask = PININTCH1, .irqn = PIN_INT1_IRQn},
+    [2] = {.tecla = TECLA3, .gpio_port = 0U, .gpio_pin = 9U, .pinint_selector = 2U, .pinint_mask = PININTCH2, .irqn = PIN_INT2_IRQn},
+    [3] = {.tecla = TECLA4, .gpio_port = 1U, .gpio_pin = 9U, .pinint_selector = 3U, .pinint_mask = PININTCH3, .irqn = PIN_INT3_IRQn},
+};
 
 static volatile button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
     [0] = {.armado = true},
@@ -32,91 +48,22 @@ static volatile button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
     [3] = {.armado = true},
 };
 
-static uint8_t button_indice_desde_tecla(uint8_t tecla)
+static int8_t button_indice_desde_tecla(uint8_t tecla)
 {
-    switch (tecla) {
-    case TECLA1:
-        return 0U;
-    case TECLA2:
-        return 1U;
-    case TECLA3:
-        return 2U;
-    case TECLA4:
-        return 3U;
-    default:
-        return 0xFFU;
+    uint8_t indice = 0U;
+
+    for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
+        if (button_hw_[indice].tecla == tecla) {
+            return (int8_t) indice;
+        }
     }
+
+    return -1;
 }
 
-static uint8_t button_read_pin(uint8_t numero_tecla)
+static bool button_esta_presionado(uint8_t indice)
 {
-    uint8_t tecla = 0;
-    switch (numero_tecla) {
-    case TECLA1:
-        tecla = (0x01) & (!Chip_GPIO_GetPinState(LPC_GPIO_PORT, 0, 4));
-        break;
-    case TECLA2:
-        tecla = (0x01) & (!Chip_GPIO_GetPinState(LPC_GPIO_PORT, 0, 8));
-        break;
-    case TECLA3:
-        tecla = (0x01) & (!Chip_GPIO_GetPinState(LPC_GPIO_PORT, 0, 9));
-        break;
-    case TECLA4:
-        tecla = (0x01) & (!Chip_GPIO_GetPinState(LPC_GPIO_PORT, 1, 9));
-        break;
-    default:
-        tecla = 0;
-        break;
-    }
-    return tecla;
-}
-
-static void button_int_enable(uint8_t tecla)
-{
-    switch (tecla) {
-    case TECLA1:
-        Chip_SCU_GPIOIntPinSel(0, 0, 4);
-        Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH0);
-        Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH0);
-        Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH0);
-
-        NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
-        NVIC_EnableIRQ(PIN_INT0_IRQn);
-        break;
-
-    case TECLA2:
-        Chip_SCU_GPIOIntPinSel(1, 0, 8);
-        Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH1);
-        Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH1);
-        Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH1);
-
-        NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
-        NVIC_EnableIRQ(PIN_INT1_IRQn);
-        break;
-
-    case TECLA3:
-        Chip_SCU_GPIOIntPinSel(2, 0, 9);
-        Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH2);
-        Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH2);
-        Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH2);
-
-        NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
-        NVIC_EnableIRQ(PIN_INT2_IRQn);
-        break;
-
-    case TECLA4:
-        Chip_SCU_GPIOIntPinSel(3, 1, 9);
-        Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH3);
-        Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH3);
-        Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH3);
-
-        NVIC_ClearPendingIRQ(PIN_INT3_IRQn);
-        NVIC_EnableIRQ(PIN_INT3_IRQn);
-        break;
-
-    default:
-        break;
-    }
+    return !Chip_GPIO_GetPinState(LPC_GPIO_PORT, button_hw_[indice].gpio_port, button_hw_[indice].gpio_pin);
 }
 
 void buttons_init(void)
@@ -136,28 +83,32 @@ void buttons_init(void)
 
     for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
         button_estados_[indice].irq_pendiente = false;
-        button_estados_[indice].presionado_estable = false;
         button_estados_[indice].armado = true;
         button_estados_[indice].evento_pendiente = false;
         button_estados_[indice].debounce_acumulado_ms = 0U;
-    }
 
-    button_int_enable(TECLA1);
-    button_int_enable(TECLA2);
-    button_int_enable(TECLA3);
-    button_int_enable(TECLA4);
+        Chip_SCU_GPIOIntPinSel(button_hw_[indice].pinint_selector,
+                               button_hw_[indice].gpio_port,
+                               button_hw_[indice].gpio_pin);
+        Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, button_hw_[indice].pinint_mask);
+        Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, button_hw_[indice].pinint_mask);
+        Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, button_hw_[indice].pinint_mask);
+        NVIC_ClearPendingIRQ(button_hw_[indice].irqn);
+        NVIC_EnableIRQ(button_hw_[indice].irqn);
+    }
 }
 
 void button_notify_irq(uint8_t button_id)
 {
-    const uint8_t indice = button_indice_desde_tecla(button_id);
+    const int8_t indice = button_indice_desde_tecla(button_id);
 
-    if (indice >= BUTTONS_CANTIDAD) {
+    if (indice < 0) {
         return;
     }
 
-    button_estados_[indice].irq_pendiente = true;
-    button_estados_[indice].debounce_acumulado_ms = 0U;
+    /* La ISR solo marca actividad y reinicia la ventana de debounce. */
+    button_estados_[(uint8_t) indice].irq_pendiente = true;
+    button_estados_[(uint8_t) indice].debounce_acumulado_ms = 0U;
 }
 
 void buttons_process(uint32_t delta_ms)
@@ -165,12 +116,11 @@ void buttons_process(uint32_t delta_ms)
     uint8_t indice = 0U;
 
     for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
-        const uint8_t tecla = (uint8_t) (indice + 1U);
-        const bool presionado_actual = (button_read_pin(tecla) != 0U);
+        const bool presionado_actual = button_esta_presionado(indice);
         volatile button_estado_t* estado = &button_estados_[indice];
 
-        if (estado->presionado_estable && !presionado_actual) {
-            estado->presionado_estable = false;
+        /* Cuando la tecla se libera, se rearma para aceptar una nueva pulsacion. */
+        if (estado->armado == false && !presionado_actual) {
             estado->armado = true;
         }
 
@@ -196,8 +146,8 @@ void buttons_process(uint32_t delta_ms)
         estado->irq_pendiente = false;
         estado->debounce_acumulado_ms = 0U;
 
+        /* Solo se genera un evento por pulsacion hasta que la tecla se suelte. */
         if (estado->armado) {
-            estado->presionado_estable = true;
             estado->armado = false;
             estado->evento_pendiente = true;
         }
@@ -214,7 +164,7 @@ uint8_t button_get_event(void)
         }
 
         button_estados_[indice].evento_pendiente = false;
-        return (uint8_t) (indice + 1U);
+        return button_hw_[indice].tecla;
     }
 
     return 0U;
