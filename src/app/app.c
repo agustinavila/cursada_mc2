@@ -50,7 +50,6 @@ static void app_step_20ms(void)
 {
     const parametros_control_t parametros_hmi = hmi_obtener_parametros_control();
     hmi_estado_proceso_t estado_hmi = {0};
-    const parametros_control_t* parametros = 0;
     int16_t temperatura_cruda = 0;
     int16_t temperatura_deci_celsius = 0;
     bool temperatura_valida = false;
@@ -86,21 +85,17 @@ static void app_step_20ms(void)
         (void) parametros_guardar();
     }
 
-    parametros = parametros_obtener();
-    control_on_off_configurar(*parametros);
+    control_on_off_configurar(*parametros_obtener());
 
-    if (!temperatura_valida) {
-        estado_hmi.salida_activa = false;
-        estado_hmi.sensor_disponible = false;
-        hmi_cargar_estado_proceso(&estado_hmi);
-        led_turn_off(LED1);
-        return;
+    // Sin una medicion valida, la salida queda inhibida y la HMI muestra sensor ausente.
+    estado_hmi.sensor_disponible = temperatura_valida;
+    estado_hmi.salida_activa = false;
+    if (temperatura_valida) {
+        control_on_off_procesar(temperatura_deci_celsius, APP_LOOP_DELTA_MS);
+        salida_activa = control_on_off_esta_salida_activa();
+        estado_hmi.salida_activa = salida_activa;
     }
 
-    control_on_off_procesar(temperatura_deci_celsius, APP_LOOP_DELTA_MS);
-    salida_activa = control_on_off_esta_salida_activa();
-    estado_hmi.salida_activa = salida_activa;
-    estado_hmi.sensor_disponible = true;
     hmi_cargar_estado_proceso(&estado_hmi);
 
     if (salida_activa) {
@@ -137,13 +132,7 @@ void app_init(void)
     hmi_init();
     parametros = parametros_obtener();
     hmi_cargar_estado_proceso(&(hmi_estado_proceso_t) {0});
-    hmi_cargar_parametros_control(&(parametros_control_t) {
-        .setpoint_deci_celsius = parametros->setpoint_deci_celsius,
-        .histeresis_deci_celsius = parametros->histeresis_deci_celsius,
-        .tiempo_minimo_encendido_ms = parametros->tiempo_minimo_encendido_ms,
-        .tiempo_minimo_apagado_ms = parametros->tiempo_minimo_apagado_ms,
-        .modo_calentar = parametros->modo_calentar,
-    });
+    hmi_cargar_parametros_control(parametros);
 
     // Inicializacion del lazo de control a partir de los parametros cargados.
     control_on_off_inicializar(*parametros);
