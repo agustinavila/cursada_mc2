@@ -125,6 +125,48 @@ static void hmi_formatear_deci(char* salida, size_t tam_salida, int16_t valor_de
     }
 }
 
+static int16_t hmi_cargar_valor_edicion_actual(void)
+{
+    // Convierte el parametro seleccionado a la representacion entera usada en la pantalla de edicion.
+    switch (hmi_.ui.editando) {
+    case HMI_PARAM_SETPOINT:
+        return hmi_.parametros.setpoint_deci_celsius;
+    case HMI_PARAM_HISTERESIS:
+        return hmi_.parametros.histeresis_deci_celsius;
+    case HMI_PARAM_TMIN_ON:
+        return hmi_.parametros.tmin_on_decisegundos;
+    case HMI_PARAM_TMIN_OFF:
+        return hmi_.parametros.tmin_off_decisegundos;
+    case HMI_PARAM_MODO:
+    default:
+        return hmi_.parametros.modo_calentar;
+    }
+}
+
+static void hmi_guardar_valor_editado(void)
+{
+    // Lleva el valor editado de vuelta al parametro persistible correspondiente.
+    switch (hmi_.ui.editando) {
+    case HMI_PARAM_SETPOINT:
+        hmi_.parametros.setpoint_deci_celsius = hmi_.ui.valor_edicion;
+        break;
+    case HMI_PARAM_HISTERESIS:
+        hmi_.parametros.histeresis_deci_celsius = hmi_.ui.valor_edicion;
+        break;
+    case HMI_PARAM_TMIN_ON:
+        hmi_.parametros.tmin_on_decisegundos = hmi_.ui.valor_edicion;
+        break;
+    case HMI_PARAM_TMIN_OFF:
+        hmi_.parametros.tmin_off_decisegundos = hmi_.ui.valor_edicion;
+        break;
+    case HMI_PARAM_MODO:
+        hmi_.parametros.modo_calentar = hmi_.ui.valor_edicion;
+        break;
+    default:
+        break;
+    }
+}
+
 static void hmi_dibujar_inicio(void)
 {
     char temp_con_unidad[8];
@@ -276,24 +318,7 @@ void hmi_process(void)
             hmi_.ui.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_ACEPTAR) {
             hmi_.ui.editando = hmi_.ui.menu_index;
-            switch (hmi_.ui.editando) {
-            case HMI_PARAM_SETPOINT:
-                hmi_.ui.valor_edicion = hmi_.parametros.setpoint_deci_celsius;
-                break;
-            case HMI_PARAM_HISTERESIS:
-                hmi_.ui.valor_edicion = hmi_.parametros.histeresis_deci_celsius;
-                break;
-            case HMI_PARAM_TMIN_ON:
-                hmi_.ui.valor_edicion = hmi_.parametros.tmin_on_decisegundos;
-                break;
-            case HMI_PARAM_TMIN_OFF:
-                hmi_.ui.valor_edicion = hmi_.parametros.tmin_off_decisegundos;
-                break;
-            case HMI_PARAM_MODO:
-            default:
-                hmi_.ui.valor_edicion = hmi_.parametros.modo_calentar;
-                break;
-            }
+            hmi_.ui.valor_edicion = hmi_cargar_valor_edicion_actual();
             hmi_.ui.pantalla = HMI_PANTALLA_EDICION;
             hmi_.ui.necesita_redibujado = true;
         }
@@ -320,25 +345,7 @@ void hmi_process(void)
             }
             hmi_.ui.necesita_redibujado = true;
         } else if (evento == HMI_EVENTO_ACEPTAR) {
-            switch (hmi_.ui.editando) {
-            case HMI_PARAM_SETPOINT:
-                hmi_.parametros.setpoint_deci_celsius = hmi_.ui.valor_edicion;
-                break;
-            case HMI_PARAM_HISTERESIS:
-                hmi_.parametros.histeresis_deci_celsius = hmi_.ui.valor_edicion;
-                break;
-            case HMI_PARAM_TMIN_ON:
-                hmi_.parametros.tmin_on_decisegundos = hmi_.ui.valor_edicion;
-                break;
-            case HMI_PARAM_TMIN_OFF:
-                hmi_.parametros.tmin_off_decisegundos = hmi_.ui.valor_edicion;
-                break;
-            case HMI_PARAM_MODO:
-                hmi_.parametros.modo_calentar = hmi_.ui.valor_edicion;
-                break;
-            default:
-                break;
-            }
+            hmi_guardar_valor_editado();
             hmi_.ui.pantalla = HMI_PANTALLA_MENU;
             hmi_.ui.necesita_redibujado = true;
         }
