@@ -2,6 +2,9 @@
 
 Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando VS Code, CMake, OpenOCD y GDB, sin PlatformIO ni Eclipse.
 
+La documentacion de la API generada con Doxygen esta publicada en GitHub Pages:
+[agustinavila.github.io/cursada_mc2](https://agustinavila.github.io/cursada_mc2/).
+
 ## Indice
 
 - [Funcionamiento general](#funcionamiento-general)
@@ -10,6 +13,7 @@ Entorno reproducible para la EDU-CIAA-NXP (LPC4337, core M4) en Windows usando V
 - [Estructura](#estructura)
 - [Prerrequisitos en Windows](#prerrequisitos-en-windows)
 - [Targets disponibles](#targets-disponibles)
+- [Documentacion API](#documentacion-api)
 - [Como mantener la configuracion de CMake](#como-mantener-la-configuracion-de-cmake)
 - [Build desde terminal](#build-desde-terminal)
 - [Flash desde terminal](#flash-desde-terminal)
@@ -34,8 +38,7 @@ Tambien hay un caso complementario en temporadas de invierno o en ambientes muy 
 
 A grandes rasgos, el flujo es este:
 
-- uno o mas sensores `DS18B20` miden temperatura sobre un bus `1-Wire`
-- la aplicacion descubre los sensores presentes, pero por ahora usa siempre el primero encontrado como variable de proceso
+- un sensor `DS18B20` mide la temperatura del proceso sobre un bus `1-Wire`
 - la HMI muestra el estado general del control en el LCD y permite editar sus parametros principales con cuatro pulsadores
 - sobre esa medicion corre un control `on/off` con histeresis y tiempos minimos de encendido/apagado
 - la salida del control se refleja hoy en `LED1` como actuador de prueba
@@ -53,7 +56,7 @@ Ademas, el control incorpora tiempos minimos de encendido y apagado. Estos delay
 
 En el estado actual:
 
-- el sensor de proceso esta fijado al indice `0`
+- la app trabaja con un unico sensor `DS18B20`
 - la logica de sensores vive en `app`, no en la HMI
 - el control implementado hoy es un unico lazo `on/off`
 
@@ -66,7 +69,7 @@ Esta base hoy esta enfocada en un solo lazo de control simple, pero hay varias e
   - util si se quiere controlar mas de un fermentador, o distintas zonas termicas dentro de un mismo sistema
 
 - seleccion explicita del sensor de proceso
-  - hoy la app usa siempre el primer sensor detectado
+  - hoy la app trabaja con un unico sensor de proceso
   - una mejora posible es permitir elegir desde la HMI que sensor usar como variable de control
 
 - alarmas de proceso
@@ -119,7 +122,7 @@ Como feedback de interfaz, cada pulsacion valida tambien activa un beep corto en
 
 ### Menu actual
 
-La HMI implementa un menu jerarquico simple. En el LCD:
+La HMI implementa una FSM simple con tres pantallas fijas: pantalla principal, menu y edicion. En el LCD:
 
 - la linea superior indica si estas en `MENU`, en un submenu o en modo `EDITAR`
 - la linea inferior muestra la opcion actual o el valor que se esta editando
@@ -197,7 +200,7 @@ La arquitectura actual del firmware se reparte asi:
 
 - `app`
   - es la capa que coordina el sistema
-  - inicializa drivers, descubre sensores, sincroniza la HMI con los parametros persistentes, ejecuta el control y actualiza la salida
+  - inicializa drivers, toma la medicion del DS18B20, sincroniza la HMI con los parametros persistentes, ejecuta el control y actualiza la salida
   - hoy es el lugar donde vive toda la logica del sistema.
 
 - `control`
@@ -227,7 +230,6 @@ Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de u
 - `buttons_driver`
   - abstrae los cuatro pulsadores del poncho
   - hoy la HMI no lee los GPIO crudos directamente: el driver captura la pulsacion por `PIN_INT0..3`, aplica un debounce simple por software y deja un evento pendiente para que la interfaz lo consuma
-  - ademas conserva funciones de lectura directa, que siguen siendo utiles para diagnostico o para una integracion futura distinta
 
 - `delay_driver`
   - abstrae retardos en microsegundos y milisegundos
@@ -236,7 +238,7 @@ Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de u
 
 - `timer_driver`
   - abstrae el temporizador `RIT`
-  - es la base temporal del firmware: mantiene un tick ciclico y permite ejecutar el lazo principal cada `20 ms` sin usar un delay bloqueante
+  - es la base temporal del firmware: mantiene un tick ciclico de `1 ms` y permite ejecutar el lazo principal cada `20 ms` sin usar un delay bloqueante
 
 - `onewire_driver`
   - implementa el bus 1-Wire por bit-banging sobre GPIO
@@ -247,8 +249,8 @@ Los drivers propios viven en `src/drivers/`. No todos tienen el mismo nivel de u
 - `ds18b20_driver`
   - implementa el protocolo de mas alto nivel para sensores DS18B20 sobre 1-Wire
   - soporta un modo de dispositivo unico y un modo de bus con multiples sensores, con descubrimiento, CRC y conversion no bloqueante
-  - la app actual usa el modo de bus, pero toma siempre el primer sensor detectado como variable de proceso
-  - las funciones mas relevantes son `ds18b20_bus_init()`, `ds18b20_bus_discover()`, `ds18b20_bus_start_conversion()`, `ds18b20_bus_process()` y `ds18b20_bus_get_latest_raw()`
+  - el firmware actual usa el flujo de sensor unico: inicializa un `ds18b20_driver_t`, dispara conversiones no bloqueantes y toma la ultima medicion disponible
+  - las funciones mas relevantes en la app actual son `ds18b20_init()`, `ds18b20_start_conversion()`, `ds18b20_process()` y `ds18b20_get_latest_raw()`
 
 - `eeprom_driver`
   - habilita el uso de la EEPROM interna del LPC4337
@@ -331,15 +333,7 @@ El startup define una vector table completa con handlers por defecto, pero eso n
 
 Si en el futuro aparece otro archivo necesario para linker, flashing o debug de la placa, deberia agregarse en `platform/` antes que en `src/`.
 
-Ademas del README principal, las carpetas mas importantes ya incluyen notas cortas para orientar el recorrido del repo:
-
-- `src/`
-- `src/app/`
-- `src/control/`
-- `src/drivers/`
-- `src/hmi/`
-- `src/startup/`
-- `third_party/lpcopen/`
+Algunas carpetas todavia incluyen notas cortas para orientar el recorrido del repo, por ejemplo `src/`, `src/drivers/`, `src/hmi/`, `src/startup/` y `third_party/lpcopen/`.
 
 ## Prerrequisitos en Windows
 
@@ -483,6 +477,10 @@ doxygen Doxyfile
 La salida queda en:
 
 - `build/docs/doxygen/html`
+
+Version publicada:
+
+- [https://agustinavila.github.io/cursada_mc2/](https://agustinavila.github.io/cursada_mc2/)
 
 GitHub Actions:
 
@@ -737,12 +735,10 @@ Alimentacion soportada y documentada:
 
 ### Comportamiento actual del firmware
 
-La aplicacion usa el bus `1-Wire` al iniciar:
+La aplicacion usa un unico sensor `DS18B20` al iniciar:
 
-- descubre sensores `DS18B20` presentes en el bus
-- si no hay sensores validos, el control queda sin medicion
-- si hay uno o mas sensores, por ahora usa siempre el primero encontrado como sensor de proceso
-- la HMI muestra la temperatura de ese sensor de proceso en la pantalla principal
+- si no hay un sensor valido, el control queda sin medicion
+- si el sensor responde correctamente, la HMI muestra su temperatura en la pantalla principal
 - el estado de salida del control se refleja en `LED1`
 
 ### Alcance actual del driver
@@ -756,7 +752,7 @@ La aplicacion usa el bus `1-Wire` al iniciar:
 - cantidad maxima de sensores por bus: `DS18B20_MAX_DEVICES`
 - solo se consideran sensores con codigo de familia `0x28`
 - todos los sensores comparten un unico pin fisico de bus
-- aunque el driver soporta multiples sensores, la app usa solo el primero detectado
+- aunque el driver soporta multiples sensores, la app actual trabaja con una unica instancia de sensor
 
 ### Archivos relevantes
 
@@ -767,7 +763,7 @@ La aplicacion usa el bus `1-Wire` al iniciar:
 
 ### Prueba en hardware
 
-1. Conectar uno o mas sensores `DS18B20` al mismo bus `P8.GPIO0`.
+1. Conectar un sensor `DS18B20` al bus `P8.GPIO0`.
 2. Verificar que el bus tenga la resistencia pull-up de `4.7 kOhm`.
 3. Compilar la app:
 
@@ -782,14 +778,13 @@ cmake --build --preset debug --target flash_cursada_mc2_app
 ```
 
 5. Observar la pantalla principal:
-   - sin sensores: temperatura invalida y salida inactiva
-   - con uno o mas sensores: el firmware usa el primero detectado como sensor de proceso
+   - sin sensor: temperatura invalida y salida inactiva
+   - con sensor conectado: el firmware usa esa medicion como variable de proceso
 
 ### Troubleshooting DS18B20
 
 - `No detectado`: revisar cableado, `3.3V`, `GND`, `DQ` y la resistencia pull-up
 - lectura inestable: revisar longitud del cable y masa comun entre placa y sensores
-- solo detecta uno de varios: revisar que todos compartan el mismo bus y la misma alimentacion
 - OpenOCD falla al flashear: verificar que no haya un proceso `openocd` previo reteniendo la interfaz FTDI
 
 ## Troubleshooting
