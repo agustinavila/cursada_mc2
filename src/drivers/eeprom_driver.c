@@ -13,11 +13,6 @@
 
 static bool eeprom_driver_inicializado_ = false;
 
-static bool driver_eeprom_rango_valido(uint32_t cantidad)
-{
-    return (cantidad <= DRIVER_EEPROM_REGION_SIZE);
-}
-
 /**
  * @brief Programa una pagina completa de EEPROM a partir de un buffer RAM.
  *
@@ -59,7 +54,7 @@ bool driver_eeprom_read(void* destino, uint32_t cantidad)
         return true;
     }
 
-    if (!driver_eeprom_rango_valido(cantidad)) {
+    if (cantidad > DRIVER_EEPROM_REGION_SIZE) {
         return false;
     }
 
@@ -81,7 +76,7 @@ bool driver_eeprom_write(const void* origen, uint32_t cantidad)
         return true;
     }
 
-    if (!driver_eeprom_rango_valido(cantidad)) {
+    if (cantidad > DRIVER_EEPROM_REGION_SIZE) {
         return false;
     }
 
