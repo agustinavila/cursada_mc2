@@ -19,6 +19,10 @@
 
 typedef struct {
     uint8_t tecla;
+    uint8_t scu_port;
+    uint8_t scu_pin;
+    uint16_t scu_mode;
+    uint8_t scu_func;
     uint8_t gpio_port;
     uint8_t gpio_pin;
     uint8_t pinint_selector;
@@ -35,10 +39,10 @@ typedef struct {
 
 /* Tabla fija de relacion entre tecla logica y recursos fisicos del LPC4337. */
 static const button_hw_t button_hw_[BUTTONS_CANTIDAD] = {
-    [0] = {.tecla = TECLA1, .gpio_port = 0U, .gpio_pin = 4U, .pinint_selector = 0U, .pinint_mask = PININTCH0, .irqn = PIN_INT0_IRQn},
-    [1] = {.tecla = TECLA2, .gpio_port = 0U, .gpio_pin = 8U, .pinint_selector = 1U, .pinint_mask = PININTCH1, .irqn = PIN_INT1_IRQn},
-    [2] = {.tecla = TECLA3, .gpio_port = 0U, .gpio_pin = 9U, .pinint_selector = 2U, .pinint_mask = PININTCH2, .irqn = PIN_INT2_IRQn},
-    [3] = {.tecla = TECLA4, .gpio_port = 1U, .gpio_pin = 9U, .pinint_selector = 3U, .pinint_mask = PININTCH3, .irqn = PIN_INT3_IRQn},
+    [0] = {.tecla = TECLA1, .scu_port = 1U, .scu_pin = 0U, .scu_mode = (MD_PUP | MD_EZI | MD_ZI), .scu_func = FUNC0, .gpio_port = 0U, .gpio_pin = 4U, .pinint_selector = 0U, .pinint_mask = PININTCH0, .irqn = PIN_INT0_IRQn},
+    [1] = {.tecla = TECLA2, .scu_port = 1U, .scu_pin = 1U, .scu_mode = (MD_PUP | MD_EZI | MD_ZI), .scu_func = FUNC0, .gpio_port = 0U, .gpio_pin = 8U, .pinint_selector = 1U, .pinint_mask = PININTCH1, .irqn = PIN_INT1_IRQn},
+    [2] = {.tecla = TECLA3, .scu_port = 1U, .scu_pin = 2U, .scu_mode = (MD_PUP | MD_EZI | MD_ZI), .scu_func = FUNC0, .gpio_port = 0U, .gpio_pin = 9U, .pinint_selector = 2U, .pinint_mask = PININTCH2, .irqn = PIN_INT2_IRQn},
+    [3] = {.tecla = TECLA4, .scu_port = 1U, .scu_pin = 6U, .scu_mode = (MD_PUP | MD_EZI | MD_ZI), .scu_func = FUNC0, .gpio_port = 1U, .gpio_pin = 9U, .pinint_selector = 3U, .pinint_mask = PININTCH3, .irqn = PIN_INT3_IRQn},
 };
 
 static volatile button_estado_t button_estados_[BUTTONS_CANTIDAD] = {
@@ -71,15 +75,6 @@ void buttons_init(void)
     uint8_t indice = 0U;
 
     Chip_GPIO_Init(LPC_GPIO_PORT);
-    Chip_SCU_PinMux(1, 0, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 1, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 2, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-    Chip_SCU_PinMux(1, 6, MD_PUP | MD_EZI | MD_ZI, FUNC0);
-
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 4), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 8), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 0, (1 << 9), 0);
-    Chip_GPIO_SetDir(LPC_GPIO_PORT, 1, (1 << 9), 0);
 
     for (indice = 0U; indice < BUTTONS_CANTIDAD; indice++) {
         button_estados_[indice].irq_pendiente = false;
@@ -87,6 +82,14 @@ void buttons_init(void)
         button_estados_[indice].evento_pendiente = false;
         button_estados_[indice].debounce_acumulado_ms = 0U;
 
+        Chip_SCU_PinMux(button_hw_[indice].scu_port,
+                        button_hw_[indice].scu_pin,
+                        button_hw_[indice].scu_mode,
+                        button_hw_[indice].scu_func);
+        Chip_GPIO_SetDir(LPC_GPIO_PORT,
+                         button_hw_[indice].gpio_port,
+                         (1UL << button_hw_[indice].gpio_pin),
+                         0);
         Chip_SCU_GPIOIntPinSel(button_hw_[indice].pinint_selector,
                                button_hw_[indice].gpio_port,
                                button_hw_[indice].gpio_pin);
