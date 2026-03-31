@@ -31,6 +31,14 @@ static const onewire_pin_config_t app_pin_ds18b20_ = {
     .gpio_pin = 0U,
 };
 
+// Salida adicional del control en el poncho UNSJ: P8 pin 3 -> GPIO4 -> P4_0 / GPIO2[0].
+#define APP_CONTROL_GPIO_SCU_PORT 4U
+#define APP_CONTROL_GPIO_SCU_PIN 0U
+#define APP_CONTROL_GPIO_SCU_MODE (MD_PUP)
+#define APP_CONTROL_GPIO_SCU_FUNC FUNC0
+#define APP_CONTROL_GPIO_PORT 2U
+#define APP_CONTROL_GPIO_PIN 0U
+
 #define APP_LOOP_DELTA_MS 20U
 #define APP_TIMER_TICK_MS 1U
 
@@ -45,6 +53,29 @@ static int16_t app_convertir_temperatura_raw_a_deci(int16_t temperatura_cruda)
     }
 
     return (int16_t) ((temperatura_escalada - 8) / 16);
+}
+
+static void app_salida_control_init(void)
+{
+    Chip_SCU_PinMux(
+        APP_CONTROL_GPIO_SCU_PORT,
+        APP_CONTROL_GPIO_SCU_PIN,
+        APP_CONTROL_GPIO_SCU_MODE,
+        APP_CONTROL_GPIO_SCU_FUNC
+    );
+    Chip_GPIO_SetDir(LPC_GPIO_PORT, APP_CONTROL_GPIO_PORT, (1U << APP_CONTROL_GPIO_PIN), 1);
+    Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, APP_CONTROL_GPIO_PORT, APP_CONTROL_GPIO_PIN);
+}
+
+static void app_salida_control_escribir(bool activa)
+{
+    if (activa) {
+        led_turn_on(LED1);
+        Chip_GPIO_SetPinOutHigh(LPC_GPIO_PORT, APP_CONTROL_GPIO_PORT, APP_CONTROL_GPIO_PIN);
+    } else {
+        led_turn_off(LED1);
+        Chip_GPIO_SetPinOutLow(LPC_GPIO_PORT, APP_CONTROL_GPIO_PORT, APP_CONTROL_GPIO_PIN);
+    }
 }
 
 static void app_step_20ms(void)
@@ -108,11 +139,7 @@ static void app_step_20ms(void)
 
     hmi_cargar_estado_proceso(&estado_hmi);
 
-    if (salida_activa) {
-        led_turn_on(LED1);
-    } else {
-        led_turn_off(LED1);
-    }
+    app_salida_control_escribir(salida_activa);
 }
 
 void app_init(void)
@@ -123,6 +150,7 @@ void app_init(void)
     driver_delay_init();
     board_timer_init(APP_TIMER_TICK_MS);
     led_init();
+    app_salida_control_init();
     buzzer_init();
     buzzer_turn_off();
     buttons_init();
